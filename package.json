@@ -1,0 +1,24 @@
+{
+  "name": "tigrisdb-client-ts",
+  "version": "1.0.0-alpha.1",
+  "description": "Tigris client for Typescript",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "node ./node_modules/typescript/bin/tsc",
+    "format": "node ./node_modules/prettier/bin-prettier.js --write '**/*.ts'",
+    "format-check": "node ./node_modules/prettier/bin-prettier.js --check '**/*.ts'",
+    "lint": "node ./node_modules/eslint/bin/eslint src/**/*.ts",
+    "all": "npm run build && npm run format && npm run lint"
+  },
+  "files": [
+    "/dist"
+  ],
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^5.21.0",
+    "@typescript-eslint/parser": "^5.21.0",
+    "eslint": "^8.14.0",
+    "eslint-config-google": "^0.14.0",
+    "prettier": "^2.6.2"
+  }
+}
