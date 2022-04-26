@@ -1,1 +1,1 @@
-# tigrisdb-client-ts
+# tigris-client-ts

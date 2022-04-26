@@ -1,5 +1,5 @@
 {
-  "name": "tigrisdb-client-ts",
+  "name": "tigris-client-ts",
   "version": "1.0.0-alpha.1",
   "description": "Tigris client for Typescript",
   "main": "dist/index.js",
