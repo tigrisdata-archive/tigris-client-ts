@@ -1,0 +1,6 @@
+## generated code
+src/proto/server/v1/*.js
+src/proto/server/v1/*.ts
+
+## tests
+src/__tests__/*.ts

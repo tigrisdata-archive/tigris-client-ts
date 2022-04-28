@@ -15,4 +15,9 @@ jobs:
       - name: Install Dependencies
         run: |
           npm install
-      - run: npm run all
+      - run: npm run clean
+      - run: npm run update_api
+      - run: npm run protoc
+      - run: npm run lint
+      - run: npm run build
+      - run: npm run test

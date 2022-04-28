@@ -2,23 +2,37 @@
   "name": "tigris-client-ts",
   "version": "1.0.0-alpha.1",
   "description": "Tigris client for Typescript",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
   "scripts": {
-    "build": "node ./node_modules/typescript/bin/tsc",
-    "format": "node ./node_modules/prettier/bin-prettier.js --write '**/*.ts'",
-    "format-check": "node ./node_modules/prettier/bin-prettier.js --check '**/*.ts'",
+    "clean": "rm -rf ./src/proto/* && rm -rf dist",
+    "update_api": "git submodule update --init --recursive",
+    "protoc": "./scripts/protoc.sh",
     "lint": "node ./node_modules/eslint/bin/eslint src/**/*.ts",
-    "all": "npm run build && npm run format && npm run lint"
+    "lint-fix": "node ./node_modules/eslint/bin/eslint --fix src/**/*.ts",
+    "build": "npm run protoc && tsc",
+    "test": "node ./node_modules/jest/bin/jest.js",
+    "all": "npm run clean && npm run update_api && npm run protoc && npm run lint && npm run build"
   },
-  "files": [
-    "/dist"
-  ],
+    "keywords": [
+      "typescript",
+      "jest",
+      "mock"
+    ],
   "devDependencies": {
+    "@types/google-protobuf": "^3.15.5",
     "@typescript-eslint/eslint-plugin": "^5.21.0",
     "@typescript-eslint/parser": "^5.21.0",
     "eslint": "^8.14.0",
-    "eslint-config-google": "^0.14.0",
-    "prettier": "^2.6.2"
+    "eslint-config-google": "^0.14.0"
+  },
+  "dependencies": {
+    "@grpc/grpc-js": "^1.6.7",
+    "@types/jest": "^27.4.1",
+    "google-protobuf": "^3.20.1",
+    "grpc": "^1.24.11",
+    "grpc_tools_node_protoc_ts": "^5.3.2",
+    "grpc-tools": "^1.11.2",
+    "jest": "^27.0.4",
+    "ts-jest": "^27.0.3",
+    "ts-node": "^10.7.0"
   }
 }
