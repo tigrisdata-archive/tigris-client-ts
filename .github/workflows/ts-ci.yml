@@ -1,4 +1,4 @@
-name: java-ci
+name: ts-ci
 
 on: [ push ]
 
