@@ -1,102 +1,119 @@
 import {ITigrisServer, TigrisService} from '../proto/server/v1/api_grpc_pb';
 import grpc, {sendUnaryData, ServerUnaryCall, ServerWritableStream} from 'grpc';
 import {
-  BeginTransactionRequest, BeginTransactionResponse,
-  CommitTransactionRequest,
-  CommitTransactionResponse,
-  CreateDatabaseRequest,
-  CreateDatabaseResponse,
-  CreateOrUpdateCollectionRequest,
-  CreateOrUpdateCollectionResponse,
-  DatabaseInfo, DatabaseMetadata,
-  DeleteRequest,
-  DeleteResponse,
-  DescribeCollectionRequest,
-  DescribeCollectionResponse,
-  DescribeDatabaseRequest,
-  DescribeDatabaseResponse,
-  DropCollectionRequest,
-  DropCollectionResponse,
-  DropDatabaseRequest,
-  DropDatabaseResponse,
-  InsertRequest,
-  InsertResponse,
-  ListCollectionsRequest,
-  ListCollectionsResponse,
-  ListDatabasesRequest,
-  ListDatabasesResponse,
-  ReadRequest,
-  ReadResponse,
-  ReplaceRequest,
-  ReplaceResponse,
-  RollbackTransactionRequest, RollbackTransactionResponse,
-  StreamRequest, StreamResponse, UpdateRequest, UpdateResponse,
+    BeginTransactionRequest, BeginTransactionResponse,
+    CommitTransactionRequest,
+    CommitTransactionResponse,
+    CreateDatabaseRequest,
+    CreateDatabaseResponse,
+    CreateOrUpdateCollectionRequest,
+    CreateOrUpdateCollectionResponse,
+    DatabaseInfo, DatabaseMetadata,
+    DeleteRequest,
+    DeleteResponse,
+    DescribeCollectionRequest,
+    DescribeCollectionResponse,
+    DescribeDatabaseRequest,
+    DescribeDatabaseResponse,
+    DropCollectionRequest,
+    DropCollectionResponse,
+    DropDatabaseRequest,
+    DropDatabaseResponse,
+    InsertRequest,
+    InsertResponse,
+    ListCollectionsRequest,
+    ListCollectionsResponse,
+    ListDatabasesRequest,
+    ListDatabasesResponse,
+    ReadRequest,
+    ReadResponse,
+    ReplaceRequest,
+    ReplaceResponse,
+    RollbackTransactionRequest, RollbackTransactionResponse,
+    StreamRequest, StreamResponse, UpdateRequest, UpdateResponse,
 } from '../proto/server/v1/api_pb';
-class TestTigrisService implements ITigrisServer {
-  listDatabases = (
-      call: grpc.ServerUnaryCall<ListDatabasesRequest>,
-      callback: grpc.sendUnaryData<ListDatabasesResponse>): void => {
-    const reply: ListDatabasesResponse = new ListDatabasesResponse();
-    const dbs : DatabaseInfo[] = [];
-    dbs.push(new DatabaseInfo().setDb('db1').setMetadata(new DatabaseMetadata()));
-    dbs.push(new DatabaseInfo().setDb('db2').setMetadata(new DatabaseMetadata()));
-    dbs.push(new DatabaseInfo().setDb('db3').setMetadata(new DatabaseMetadata()));
-    dbs.push(new DatabaseInfo().setDb('db4').setMetadata(new DatabaseMetadata()));
-    dbs.push(new DatabaseInfo().setDb('db5').setMetadata(new DatabaseMetadata()));
-    reply.setDatabasesList(dbs);
-    callback(null, reply);
-  };
 
-  beginTransaction(call: ServerUnaryCall<BeginTransactionRequest>, callback: sendUnaryData<BeginTransactionResponse>): void {
-  }
+export class TestTigrisService implements ITigrisServer {
 
-  commitTransaction(call: ServerUnaryCall<CommitTransactionRequest>, callback: sendUnaryData<CommitTransactionResponse>): void {
-  }
+    private dbs: string[] = [];
 
-  createDatabase(call: ServerUnaryCall<CreateDatabaseRequest>, callback: sendUnaryData<CreateDatabaseResponse>): void {
-  }
+    constructor() {
+        this.dbs.push('db1', 'db2', 'db3', 'db4', 'db5')
+    }
 
-  createOrUpdateCollection(call: ServerUnaryCall<CreateOrUpdateCollectionRequest>, callback: sendUnaryData<CreateOrUpdateCollectionResponse>): void {
-  }
+    listDatabases = (
+        call: grpc.ServerUnaryCall<ListDatabasesRequest>,
+        callback: grpc.sendUnaryData<ListDatabasesResponse>): void => {
+        const reply: ListDatabasesResponse = new ListDatabasesResponse();
+        const dbInfos: DatabaseInfo[] = [];
+        for (let i = 0; i < this.dbs.length; i++) {
+            dbInfos.push(new DatabaseInfo().setDb(this.dbs[i]).setMetadata(new DatabaseMetadata()));
+        }
 
-  delete(call: ServerUnaryCall<DeleteRequest>, callback: sendUnaryData<DeleteResponse>): void {
-  }
+        reply.setDatabasesList(dbInfos);
+        callback(null, reply);
+    };
 
-  describeCollection(call: ServerUnaryCall<DescribeCollectionRequest>, callback: sendUnaryData<DescribeCollectionResponse>): void {
-  }
+    beginTransaction(call: ServerUnaryCall<BeginTransactionRequest>, callback: sendUnaryData<BeginTransactionResponse>): void {
+    }
 
-  describeDatabase(call: ServerUnaryCall<DescribeDatabaseRequest>, callback: sendUnaryData<DescribeDatabaseResponse>): void {
-  }
+    commitTransaction(call: ServerUnaryCall<CommitTransactionRequest>, callback: sendUnaryData<CommitTransactionResponse>): void {
+    }
 
-  dropCollection(call: ServerUnaryCall<DropCollectionRequest>, callback: sendUnaryData<DropCollectionResponse>): void {
-  }
+    createDatabase(call: ServerUnaryCall<CreateDatabaseRequest>, callback: sendUnaryData<CreateDatabaseResponse>): void {
+        this.dbs.push(call.request.getDb())
+        const reply: CreateDatabaseResponse = new CreateDatabaseResponse();
+        reply.setMessage(call.request.getDb() + ' created successfully')
+        reply.setStatus('created')
+        callback(null, reply)
+    }
 
-  dropDatabase(call: ServerUnaryCall<DropDatabaseRequest>, callback: sendUnaryData<DropDatabaseResponse>): void {
-  }
+    createOrUpdateCollection(call: ServerUnaryCall<CreateOrUpdateCollectionRequest>, callback: sendUnaryData<CreateOrUpdateCollectionResponse>): void {
+    }
 
-  insert(call: ServerUnaryCall<InsertRequest>, callback: sendUnaryData<InsertResponse>): void {
-  }
+    delete(call: ServerUnaryCall<DeleteRequest>, callback: sendUnaryData<DeleteResponse>): void {
+    }
 
-  listCollections(call: ServerUnaryCall<ListCollectionsRequest>, callback: sendUnaryData<ListCollectionsResponse>): void {
-  }
+    describeCollection(call: ServerUnaryCall<DescribeCollectionRequest>, callback: sendUnaryData<DescribeCollectionResponse>): void {
+    }
 
-  read(call: ServerWritableStream<ReadRequest, ReadResponse>): void {
-  }
+    describeDatabase(call: ServerUnaryCall<DescribeDatabaseRequest>, callback: sendUnaryData<DescribeDatabaseResponse>): void {
+    }
 
-  replace(call: ServerUnaryCall<ReplaceRequest>, callback: sendUnaryData<ReplaceResponse>): void {
-  }
+    dropCollection(call: ServerUnaryCall<DropCollectionRequest>, callback: sendUnaryData<DropCollectionResponse>): void {
+    }
 
-  rollbackTransaction(call: ServerUnaryCall<RollbackTransactionRequest>, callback: sendUnaryData<RollbackTransactionResponse>): void {
-  }
+    dropDatabase(call: ServerUnaryCall<DropDatabaseRequest>, callback: sendUnaryData<DropDatabaseResponse>): void {
+        this.dbs = this.dbs.filter(db => db !== call.request.getDb());
+        const reply: DropDatabaseResponse = new DropDatabaseResponse();
+        reply.setMessage(call.request.getDb() + ' dropped successfully')
+        reply.setStatus('dropped')
+        callback(null, reply)
+    }
 
-  stream(call: ServerWritableStream<StreamRequest, StreamResponse>): void {
-  }
+    insert(call: ServerUnaryCall<InsertRequest>, callback: sendUnaryData<InsertResponse>): void {
+    }
 
-  update(call: ServerUnaryCall<UpdateRequest>, callback: sendUnaryData<UpdateResponse>): void {
-  }
+    listCollections(call: ServerUnaryCall<ListCollectionsRequest>, callback: sendUnaryData<ListCollectionsResponse>): void {
+    }
+
+    read(call: ServerWritableStream<ReadRequest, ReadResponse>): void {
+    }
+
+    replace(call: ServerUnaryCall<ReplaceRequest>, callback: sendUnaryData<ReplaceResponse>): void {
+    }
+
+    rollbackTransaction(call: ServerUnaryCall<RollbackTransactionRequest>, callback: sendUnaryData<RollbackTransactionResponse>): void {
+    }
+
+    stream(call: ServerWritableStream<StreamRequest, StreamResponse>): void {
+    }
+
+    update(call: ServerUnaryCall<UpdateRequest>, callback: sendUnaryData<UpdateResponse>): void {
+    }
 }
 
 export default {
-  service: TigrisService,
-  handler: new TestTigrisService(),
+    service: TigrisService,
+    handler: new TestTigrisService(),
 };
