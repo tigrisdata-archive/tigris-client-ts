@@ -5,9 +5,22 @@ import {
     CreateDatabaseRequest as ProtoCreateDatabaseRequest,
     DatabaseOptions as ProtoDatabaseOptions,
     DropDatabaseRequest as ProtoDropDatabaseRequest,
-    ListDatabasesRequest as ProtoListDatabasesRequest
+    ListDatabasesRequest as ProtoListDatabasesRequest,
+    ListCollectionsRequest as ProtoListCollectionsRequest,
+    CollectionOptions as ProtoCollectionOptions,
+    DropCollectionRequest as ProtoDropCollectionRequest,
+    DescribeDatabaseRequest as ProtoDescribeDatabaseRequest,
 } from './proto/server/v1/api_pb';
-import {DatabaseInfo, DatabaseMetadata, DatabaseOptions, DropDatabaseResponse} from "./types";
+import {
+    CollectionDescription,
+    CollectionInfo,
+    CollectionMetadata,
+    CollectionOptions, DatabaseDescription,
+    DatabaseInfo,
+    DatabaseMetadata,
+    DatabaseOptions, DropCollectionResponse,
+    DropDatabaseResponse
+} from "./types";
 
 export interface TigrisClientConfig {
     serverUrl: string;
@@ -55,7 +68,7 @@ export class Tigris {
         });
     }
 
-    public createDatabaseIfNotExists(db: string, options: DatabaseOptions): Promise<DB> {
+    public createDatabaseIfNotExists(db: string, options?: DatabaseOptions): Promise<DB> {
         return new Promise<DB>((resolve, reject) => {
             this.grpcClient.createDatabase(new ProtoCreateDatabaseRequest().setDb(db).setOptions(new ProtoDatabaseOptions()),
                 (error, response) => {
@@ -68,7 +81,7 @@ export class Tigris {
         });
     }
 
-    public dropDatabase(db: string, options: DatabaseOptions): Promise<DropDatabaseResponse> {
+    public dropDatabase(db: string, options?: DatabaseOptions): Promise<DropDatabaseResponse> {
         return new Promise<DropDatabaseResponse>((resolve, reject) => {
             this.grpcClient.dropDatabase(
                 new ProtoDropDatabaseRequest().setDb(db).setOptions(new ProtoDatabaseOptions()),
@@ -100,6 +113,73 @@ export class DB {
         this.grpcClient = grpcClient;
     }
 
+    public listCollections(options?: CollectionOptions): Promise<Array<CollectionInfo>> {
+        return new Promise<Array<CollectionInfo>>((resolve, reject) => {
+            let request = new ProtoListCollectionsRequest().setDb(this.db);
+            if (typeof options !== 'undefined') {
+                return request.setOptions(new ProtoCollectionOptions())
+            }
+            this.grpcClient.listCollections(request, (error, response) => {
+                if (error) {
+                    reject(error)
+                } else {
+                    let result: CollectionInfo[] = []
+                    for (let i = 0; i < response.getCollectionsList().length; i++) {
+                        result.push(new CollectionInfo(response.getCollectionsList()[i].getCollection(), new CollectionMetadata()));
+                    }
+                    resolve(result)
+                }
+            })
+        });
+    }
+
+    public dropCollection(collectionName: string): Promise<DropCollectionResponse> {
+        return new Promise<DropCollectionResponse>((resolve, reject) => {
+            this.grpcClient.dropCollection(
+                new ProtoDropCollectionRequest().setDb(this.db).setCollection(collectionName),
+                (error, response) => {
+                    if (error) {
+                        reject(error);
+                    } else {
+                        resolve(
+                            new DropCollectionResponse(
+                                response.getStatus(),
+                                response.getMessage()
+                            )
+                        )
+                    }
+
+                }
+            )
+        });
+    }
+
+    public describe(): Promise<DatabaseDescription> {
+        return new Promise<DatabaseDescription>((resolve, reject) => {
+            this.grpcClient.describeDatabase(
+                new ProtoDescribeDatabaseRequest().setDb(this.db),
+                (error, response) => {
+                    if (error) {
+                        reject(error);
+                    } else {
+                        let collectionsDescription: CollectionDescription[] = [];
+                        for (let i = 0; i < response.getCollectionsList().length; i++) {
+                            collectionsDescription.push(new CollectionDescription(
+                                response.getCollectionsList()[i].getCollection(),
+                                new CollectionMetadata(),
+                                response.getCollectionsList()[i].getSchema_asB64()
+                            ))
+                        }
+                        resolve(new DatabaseDescription(response.getDb(), new DatabaseMetadata(), collectionsDescription))
+                    }
+                }
+            )
+        });
+    }
+
+    public getCollection(collectionName: string): Collection {
+        return new Collection(collectionName);
+    }
 
     get db(): string {
         return this._db;
@@ -116,6 +196,15 @@ export interface TigrisCollectionType {
  * Tigris Collection
  */
 export class Collection {
+    private readonly _collectionName: string;
+
+    constructor(collectionName: string) {
+        this._collectionName = collectionName;
+    }
+
+    get collectionName(): string {
+        return this._collectionName;
+    }
 }
 
 /**
