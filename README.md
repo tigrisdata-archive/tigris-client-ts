@@ -2,10 +2,15 @@
 
 
 ```
-npm install
+# clean the dev env
 npm run clean
-npm run protoc
-npm run lint
+
+# build
 npm run build
+
+# test 
 npm run test
+
+# lint
+npm run lint
 ```
