@@ -1,28 +1,39 @@
 import {Tigris} from '../tigris';
-import grpc from 'grpc';
+import  {Server, ServerCredentials} from '@grpc/grpc-js';
 import {TigrisService} from '../proto/server/v1/api_grpc_pb';
-import TestService, {TestTigrisService} from './TestService';
-import {DatabaseOptions} from "../types";
+import TestService, {TestTigrisService} from './test-service';
+import {DatabaseOptions, TigrisCollectionType} from "../types";
+import {TigrisCollection} from "../tigris-collection";
 
 describe('success tests', () => {
-    let server: grpc.Server;
-    let serverPort: number;
+    let server: Server;
+    const SERVER_PORT = 5002;
     beforeAll(() => {
-        server = new grpc.Server();
-        server.addService(TigrisService, TestService.handler);
-        serverPort = server.bind(
-            '0.0.0.0:0',
-            grpc.ServerCredentials.createInsecure(),
+        server = new Server();
+        TestTigrisService.reset();
+        server.addService(TigrisService, TestService.handler.impl);
+        server.bindAsync(
+            '0.0.0.0:'+SERVER_PORT,
+            // test purpose only
+            ServerCredentials.createInsecure(),
+            (err: Error | null) => {
+                if (err) {
+                    console.log(err)
+                } else {
+                    server.start();
+                }
+            }
         );
-        server.start();
     });
-
+    beforeEach(() => {
+        TestTigrisService.reset();
+    });
     afterAll(() => {
         server.forceShutdown();
     });
 
     it('listDatabase', () => {
-        const tigris = new Tigris({serverUrl: '0.0.0.0:' + serverPort});
+        const tigris = new Tigris({serverUrl: '0.0.0.0:'+SERVER_PORT});
         const listDbsPromise = tigris.listDatabases();
         listDbsPromise
             .then((value) => {
@@ -39,7 +50,7 @@ describe('success tests', () => {
     });
 
     it('createDatabaseIfNotExists', () => {
-        const tigris = new Tigris({serverUrl: '0.0.0.0:' + serverPort});
+        const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
         const dbCreationPromise = tigris.createDatabaseIfNotExists('db6', new DatabaseOptions());
         dbCreationPromise
             .then((value) => {
@@ -51,7 +62,7 @@ describe('success tests', () => {
     });
 
     it('dropDatabase', () => {
-        const tigris = new Tigris({serverUrl: '0.0.0.0:' + serverPort});
+        const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
         const dbDropPromise = tigris.dropDatabase('db6', new DatabaseOptions());
         dbDropPromise
             .then((value) => {
@@ -63,13 +74,13 @@ describe('success tests', () => {
     });
 
     it('getDatabase', () => {
-        const tigris = new Tigris({serverUrl: '0.0.0.0:' + serverPort});
+        const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
         const db1 = tigris.getDatabase('db1');
         expect(db1.db).toBe('db1')
     });
 
     it('listCollections1', () => {
-        const tigris = new Tigris({serverUrl: '0.0.0.0:' + serverPort});
+        const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
         const db1 = tigris.getDatabase('db1');
 
         const listCollectionPromise = db1.listCollections();
@@ -85,7 +96,7 @@ describe('success tests', () => {
     });
 
     it('listCollections2', () => {
-        const tigris = new Tigris({serverUrl: '0.0.0.0:' + serverPort});
+        const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
         const db1 = tigris.getDatabase('db3');
 
         const listCollectionPromise = db1.listCollections();
@@ -101,7 +112,7 @@ describe('success tests', () => {
     });
 
     it('describeDatabase', () => {
-        const tigris = new Tigris({serverUrl: '0.0.0.0:' + serverPort});
+        const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
         const db1 = tigris.getDatabase('db3');
 
         const databaseDescriptionPromise = db1.describe();
@@ -118,7 +129,7 @@ describe('success tests', () => {
     });
 
     it('dropCollection', () => {
-        const tigris = new Tigris({serverUrl: '0.0.0.0:' + serverPort});
+        const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
         const db1 = tigris.getDatabase('db3');
 
         const dropCollectionPromise = db1.dropCollection('db3_coll_2');
@@ -130,10 +141,43 @@ describe('success tests', () => {
     });
 
     it('getCollection', () => {
-        const tigris = new Tigris({serverUrl: '0.0.0.0:' + serverPort});
+        const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
         const db1 = tigris.getDatabase('db3');
-        const collection = db1.getCollection('db3_coll_2');
+        const collection = db1.getCollection(DB3_Coll2);
         expect(collection.collectionName).toBe('db3_coll_2');
+    });
+
+    it('insertOne', () => {
+        const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
+        const userCollection = tigris.getDatabase('db3').getCollection(User);
+        const insertionPromise = userCollection.insert(new User(1, "alice", 123));
+        insertionPromise.then(value => {
+            expect(value.status).toBe('inserted: "{\\"_id\\":1,\\"_name\\":\\"alice\\",\\"_balance\\":123}"')
+        })
+        return insertionPromise;
     });
 });
 
+@TigrisCollection("db3_coll_2")
+export class DB3_Coll2 implements TigrisCollectionType {}
+
+@TigrisCollection("users")
+export class User implements TigrisCollectionType {
+    private readonly _id: number;
+    private readonly _name: string;
+    private readonly _balance: number;
+
+    constructor(id: number, name: string, _balance: number) {
+        this._id = id;
+        this._name = name;
+        this._balance = _balance;
+    }
+
+    get id(): number {
+        return this._id;
+    }
+
+    get name(): string {
+        return this._name;
+    }
+}

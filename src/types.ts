@@ -1,13 +1,15 @@
+import {TigrisCollection} from "./tigris-collection";
+
 export class DatabaseInfo {
-    private readonly _name: String
+    private readonly _name: string
     private readonly _metadata: DatabaseMetadata
 
-    constructor(name: String, metadata: DatabaseMetadata) {
+    constructor(name: string, metadata: DatabaseMetadata) {
         this._name = name;
         this._metadata = metadata;
     }
 
-    public get name(): String {
+    public get name(): string {
         return this._name;
     }
 
@@ -17,15 +19,15 @@ export class DatabaseInfo {
 }
 
 export class CollectionInfo {
-    private readonly _name: String
+    private readonly _name: string
     private readonly _metadata: CollectionMetadata
 
-    constructor(name: String, metadata: CollectionMetadata) {
+    constructor(name: string, metadata: CollectionMetadata) {
         this._name = name;
         this._metadata = metadata;
     }
 
-    get name(): String {
+    get name(): string {
         return this._name;
     }
 
@@ -34,21 +36,13 @@ export class CollectionInfo {
     }
 }
 
-export class DatabaseMetadata {
-    constructor() {
-    }
-}
+export class DatabaseMetadata {}
 
-export class CollectionMetadata {
-    constructor() {
-    }
-}
+export class CollectionMetadata {}
 
-export class DatabaseOptions {
-}
+export class DatabaseOptions {}
 
-export class CollectionOptions {
-}
+export class CollectionOptions {}
 
 export class DropDatabaseResponse {
     private readonly _status: string;
@@ -133,3 +127,38 @@ export class CollectionDescription {
         return this._schema;
     }
 }
+
+export class InsertResponse {
+    private readonly _status: string;
+    constructor(status: string) {
+        this._status = status;
+    }
+
+    get status(): string {
+        return this._status;
+    }
+}
+
+export class WriteOptions {}
+
+export class InsertOptions {
+    private readonly _status: string;
+    private readonly _message: string;
+
+    constructor(status: string, message: string) {
+        this._status = status;
+        this._message = message;
+    }
+
+    get status(): string {
+        return this._status;
+    }
+
+    get message(): string {
+        return this._message;
+    }
+}
+
+
+// Marker interface
+export interface TigrisCollectionType {}

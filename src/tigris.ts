@@ -1,6 +1,6 @@
 import {TigrisClient} from './proto/server/v1/api_grpc_pb';
-import * as grpc from 'grpc';
-import {status} from 'grpc';
+import * as grpc from '@grpc/grpc-js';
+import {status} from '@grpc/grpc-js';
 import {
     CreateDatabaseRequest as ProtoCreateDatabaseRequest,
     DatabaseOptions as ProtoDatabaseOptions,
@@ -10,6 +10,8 @@ import {
     CollectionOptions as ProtoCollectionOptions,
     DropCollectionRequest as ProtoDropCollectionRequest,
     DescribeDatabaseRequest as ProtoDescribeDatabaseRequest,
+    InsertRequest as ProtoInsertRequest,
+    InsertRequestOptions as ProtoInsertRequestOptions
 } from './proto/server/v1/api_pb';
 import {
     CollectionDescription,
@@ -19,7 +21,7 @@ import {
     DatabaseInfo,
     DatabaseMetadata,
     DatabaseOptions, DropCollectionResponse,
-    DropDatabaseResponse
+    DropDatabaseResponse, InsertOptions, InsertResponse, TigrisCollectionType
 } from "./types";
 
 export interface TigrisClientConfig {
@@ -56,11 +58,7 @@ export class Tigris {
                     if (error) {
                         reject(error);
                     } else {
-                        let result: DatabaseInfo[] = []
-                        for (let i = 0; i < response.getDatabasesList().length; i++) {
-                            let protoDatabaseInfo = response.getDatabasesList()[i];
-                            result.push(new DatabaseInfo(protoDatabaseInfo.getDb(), new DatabaseMetadata()))
-                        }
+                        const result = response.getDatabasesList().map(protoDatabaseInfo => new DatabaseInfo(protoDatabaseInfo.getDb(), new DatabaseMetadata()));
                         resolve(result);
                     }
                 },
@@ -115,7 +113,7 @@ export class DB {
 
     public listCollections(options?: CollectionOptions): Promise<Array<CollectionInfo>> {
         return new Promise<Array<CollectionInfo>>((resolve, reject) => {
-            let request = new ProtoListCollectionsRequest().setDb(this.db);
+            const request = new ProtoListCollectionsRequest().setDb(this.db);
             if (typeof options !== 'undefined') {
                 return request.setOptions(new ProtoCollectionOptions())
             }
@@ -123,10 +121,7 @@ export class DB {
                 if (error) {
                     reject(error)
                 } else {
-                    let result: CollectionInfo[] = []
-                    for (let i = 0; i < response.getCollectionsList().length; i++) {
-                        result.push(new CollectionInfo(response.getCollectionsList()[i].getCollection(), new CollectionMetadata()));
-                    }
+                    const result = response.getCollectionsList().map(collectionInfo => new CollectionInfo(collectionInfo.getCollection(), new CollectionMetadata()));
                     resolve(result)
                 }
             })
@@ -162,7 +157,7 @@ export class DB {
                     if (error) {
                         reject(error);
                     } else {
-                        let collectionsDescription: CollectionDescription[] = [];
+                        const collectionsDescription: CollectionDescription[] = [];
                         for (let i = 0; i < response.getCollectionsList().length; i++) {
                             collectionsDescription.push(new CollectionDescription(
                                 response.getCollectionsList()[i].getCollection(),
@@ -177,8 +172,10 @@ export class DB {
         });
     }
 
-    public getCollection(collectionName: string): Collection {
-        return new Collection(collectionName);
+
+    public getCollection<T extends new (...args: any[]) => any>(collectionType: T): Collection<InstanceType<T>> {
+        const collectionName = Reflect.get(collectionType, "tigris-collection-name");
+        return new Collection<InstanceType<T>>(collectionName, this.db, this.grpcClient)
     }
 
     get db(): string {
@@ -186,24 +183,54 @@ export class DB {
     }
 }
 
-/**
- * A marker type for collection model
- */
-export interface TigrisCollectionType {
-}
 
 /**
  * Tigris Collection
  */
-export class Collection {
+export class Collection<T extends TigrisCollectionType> {
     private readonly _collectionName: string;
+    private readonly _db: string;
+    private readonly _grpcClient: TigrisClient;
 
-    constructor(collectionName: string) {
+    constructor(collectionName: string, db: string, grpcClient: TigrisClient) {
         this._collectionName = collectionName;
+        this._db = db;
+        this._grpcClient = grpcClient;
     }
 
     get collectionName(): string {
         return this._collectionName;
+    }
+
+    insertMany(options?: InsertOptions, ...docs: Array<T>): Promise<InsertResponse> {
+        return new Promise<InsertResponse>((resolve, reject) => {
+            const docsArray = new Array<Uint8Array | string>();
+            for (const doc of docs) {
+                docsArray.push(new TextEncoder().encode(JSON.stringify(doc)));
+            }
+
+            const protoRequest = new ProtoInsertRequest()
+                .setDb(this._db)
+                .setCollection(this._collectionName)
+                .setDocumentsList(docsArray);
+            if (options) {
+                protoRequest.setOptions(new ProtoInsertRequestOptions().setWriteOptions())
+            }
+            this._grpcClient.insert(
+                protoRequest,
+                (error, response) => {
+                    if (error) {
+                        reject(error);
+                    } else {
+                        resolve(new InsertResponse(response.getStatus()))
+                    }
+                }
+            )
+        });
+    }
+
+    insert(doc: T, options?: InsertOptions): Promise<InsertResponse> {
+        return this.insertMany(options, doc);
     }
 }
 

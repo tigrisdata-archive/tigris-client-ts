@@ -4,7 +4,9 @@
         "es2021": true
     },
     "extends": [
-        "google"
+        "eslint:recommended",
+        "plugin:@typescript-eslint/recommended",
+        "plugin:unicorn/recommended"
     ],
     "parser": "@typescript-eslint/parser",
     "parserOptions": {
@@ -12,8 +14,11 @@
         "sourceType": "module"
     },
     "plugins": [
-        "@typescript-eslint"
+        "@typescript-eslint",
+        "functional"
     ],
     "rules": {
+        "unicorn/prevent-abbreviations": "off",
+        "@typescript-eslint/no-empty-interface": "warn"
     }
 }
