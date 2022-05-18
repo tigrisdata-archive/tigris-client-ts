@@ -1,9 +1,8 @@
-import {Tigris} from '../tigris';
-import  {Server, ServerCredentials} from '@grpc/grpc-js';
+import {Filter, LogicalFilter, LogicalOperator, Tigris, Utility} from '../tigris';
+import {Server, ServerCredentials} from '@grpc/grpc-js';
 import {TigrisService} from '../proto/server/v1/api_grpc_pb';
 import TestService, {TestTigrisService} from './test-service';
 import {DatabaseOptions, TigrisCollectionType} from "../types";
-import {TigrisCollection} from "../tigris-collection";
 
 describe('success tests', () => {
     let server: Server;
@@ -13,7 +12,7 @@ describe('success tests', () => {
         TestTigrisService.reset();
         server.addService(TigrisService, TestService.handler.impl);
         server.bindAsync(
-            '0.0.0.0:'+SERVER_PORT,
+            '0.0.0.0:' + SERVER_PORT,
             // test purpose only
             ServerCredentials.createInsecure(),
             (err: Error | null) => {
@@ -32,8 +31,9 @@ describe('success tests', () => {
         server.forceShutdown();
     });
 
+
     it('listDatabase', () => {
-        const tigris = new Tigris({serverUrl: '0.0.0.0:'+SERVER_PORT});
+        const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
         const listDbsPromise = tigris.listDatabases();
         listDbsPromise
             .then((value) => {
@@ -143,41 +143,152 @@ describe('success tests', () => {
     it('getCollection', () => {
         const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
         const db1 = tigris.getDatabase('db3');
-        const collection = db1.getCollection(DB3_Coll2);
-        expect(collection.collectionName).toBe('db3_coll_2');
+        const books = db1.getCollection<IBook>('books');
+        expect(books.collectionName).toBe('books');
     });
 
-    it('insertOne', () => {
+    it('insert', () => {
         const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
-        const userCollection = tigris.getDatabase('db3').getCollection(User);
-        const insertionPromise = userCollection.insert(new User(1, "alice", 123));
+        const db1 = tigris.getDatabase('db3');
+        const insertionPromise = db1.getCollection<IBook>('books').insert({
+            author: "author name",
+            id: 0,
+            tags: ['science'],
+            title: 'science book'
+        });
         insertionPromise.then(value => {
-            expect(value.status).toBe('inserted: "{\\"_id\\":1,\\"_name\\":\\"alice\\",\\"_balance\\":123}"')
+            expect(value.status).toBe('inserted: "{\\"author\\":\\"author name\\",\\"id\\":0,\\"tags\\":[\\"science\\"],\\"title\\":\\"science book\\"}"');
         })
         return insertionPromise;
     });
+
+    it('basicFilterTest', () => {
+        const filter1: Filter<string> = {
+            key: 'name',
+            val: 'Alice'
+        }
+        expect(Utility.filterString(filter1)).toBe('{"name":"Alice"}');
+
+        const filter2: Filter<number> = {
+            key: 'id',
+            val: 123
+        }
+        expect(Utility.filterString(filter2)).toBe('{"id":123}');
+
+        const filter3: Filter<boolean> = {
+            key: 'isActive',
+            val: true
+        }
+        expect(Utility.filterString(filter3)).toBe('{"isActive":true}');
+    });
+
+    it('logicalFilterTestOr', () => {
+        const logicalFilter: LogicalFilter<string> = {
+            logicalOperator: LogicalOperator.OR,
+            filters: [
+                {
+                    key: 'name',
+                    val: 'alice'
+                },
+                {
+                    key: 'name',
+                    val: 'emma'
+                }
+            ]
+        }
+        expect(Utility.logicalFilterString(logicalFilter)).toBe('{"$or":[{"name":"alice"},{"name":"emma"}]}');
+    });
+
+    it('logicalFilterTestAnd', () => {
+        const logicalFilter: LogicalFilter<string | number> = {
+            logicalOperator: LogicalOperator.AND,
+            filters: [
+                {
+                    key: 'name',
+                    val: 'alice'
+                },
+                {
+                    key: 'rank',
+                    val: 1
+                }
+            ]
+        }
+        expect(Utility.logicalFilterString(logicalFilter)).toBe('{"$and":[{"name":"alice"},{"rank":1}]}');
+    });
+
+    it('nestedLogicalFilter1', () => {
+        const logicalFilter1: LogicalFilter<string | number | boolean> = {
+            logicalOperator: LogicalOperator.AND,
+            filters: [
+                {
+                    key: 'name',
+                    val: 'alice'
+                },
+                {
+                    key: 'rank',
+                    val: 1
+                }
+            ]
+        }
+        const logicalFilter2: LogicalFilter<string | number | boolean> = {
+            logicalOperator: LogicalOperator.AND,
+            filters: [
+                {
+                    key: 'name',
+                    val: 'emma'
+                },
+                {
+                    key: 'rank',
+                    val: 1
+                }
+            ]
+        }
+        const nestedLogicalFilter: LogicalFilter<string | number | boolean> = {
+            logicalOperator: LogicalOperator.OR,
+            logicalFilters: [logicalFilter1, logicalFilter2]
+        }
+        expect(Utility.logicalFilterString(nestedLogicalFilter)).toBe('{"$or":[{"$and":[{"name":"alice"},{"rank":1}]},{"$and":[{"name":"emma"},{"rank":1}]}]}');
+    });
+
+    it('nestedLogicalFilter2', () => {
+        const logicalFilter1: LogicalFilter<string | number | boolean> = {
+            logicalOperator: LogicalOperator.OR,
+            filters: [
+                {
+                    key: 'name',
+                    val: 'alice'
+                },
+                {
+                    key: 'rank',
+                    val: 1
+                }
+            ]
+        }
+        const logicalFilter2: LogicalFilter<string | number | boolean> = {
+            logicalOperator: LogicalOperator.OR,
+            filters: [
+                {
+                    key: 'name',
+                    val: 'emma'
+                },
+                {
+                    key: 'rank',
+                    val: 1
+                }
+            ]
+        }
+        const nestedLogicalFilter: LogicalFilter<string | number | boolean> = {
+            logicalOperator: LogicalOperator.AND,
+            logicalFilters: [logicalFilter1, logicalFilter2]
+        }
+        expect(Utility.logicalFilterString(nestedLogicalFilter)).toBe('{"$and":[{"$or":[{"name":"alice"},{"rank":1}]},{"$or":[{"name":"emma"},{"rank":1}]}]}');
+    });
+
 });
 
-@TigrisCollection("db3_coll_2")
-export class DB3_Coll2 implements TigrisCollectionType {}
-
-@TigrisCollection("users")
-export class User implements TigrisCollectionType {
-    private readonly _id: number;
-    private readonly _name: string;
-    private readonly _balance: number;
-
-    constructor(id: number, name: string, _balance: number) {
-        this._id = id;
-        this._name = name;
-        this._balance = _balance;
-    }
-
-    get id(): number {
-        return this._id;
-    }
-
-    get name(): string {
-        return this._name;
-    }
+export interface IBook extends TigrisCollectionType {
+    id: number;
+    title: string;
+    author: string;
+    tags?: string[];
 }
