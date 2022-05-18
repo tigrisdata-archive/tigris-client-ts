@@ -69,6 +69,7 @@ export class Tigris {
     public createDatabaseIfNotExists(db: string, options?: DatabaseOptions): Promise<DB> {
         return new Promise<DB>((resolve, reject) => {
             this.grpcClient.createDatabase(new ProtoCreateDatabaseRequest().setDb(db).setOptions(new ProtoDatabaseOptions()),
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 (error, response) => {
                     if (error && error.code != status.ALREADY_EXISTS) {
                         reject(error);
@@ -172,10 +173,8 @@ export class DB {
         });
     }
 
-
-    public getCollection<T extends new (...args: any[]) => any>(collectionType: T): Collection<InstanceType<T>> {
-        const collectionName = Reflect.get(collectionType, "tigris-collection-name");
-        return new Collection<InstanceType<T>>(collectionName, this.db, this.grpcClient)
+    public getCollection<T>(collectionName: string): Collection<T> {
+        return new Collection<T>(collectionName, this.db, this.grpcClient)
     }
 
     get db(): string {
@@ -238,3 +237,52 @@ export class Collection<T extends TigrisCollectionType> {
  * Default instance of the Tigrisclient
  */
 export default new Tigris({serverUrl: `${process.env.TIGRIS_SERVER_URL}`});
+
+export type Filter<T extends string | number | boolean> = {
+    key: string;
+    val: T;
+}
+
+export type LogicalFilter<T extends string | number | boolean> = {
+    logicalOperator: LogicalOperator
+    filters?: Filter<T>[];
+    logicalFilters?: LogicalFilter<T>[];
+}
+
+export const Utility = {
+    filterString<T extends string | number | boolean>(filter: Filter<T>): string {
+        return JSON.stringify(this.filterJSON(filter));
+    },
+
+    filterJSON(filter: Filter<string | number | boolean>): object {
+        const obj = {};
+        obj[filter.key] = filter.val;
+        return obj;
+    },
+
+    logicalFilterString<T extends string | number | boolean>(filter: LogicalFilter<T>): string {
+        return JSON.stringify(this.logicalFilterJSON(filter));
+    },
+
+    logicalFilterJSON(filter: LogicalFilter<string | number | boolean>): object{
+        const obj = {};
+        const innerArray = [];
+        obj[filter.logicalOperator] = innerArray;
+        if(filter.filters) {
+            for (const value of filter.filters) {
+                innerArray.push(this.filterJSON(value));
+            }
+        }
+        if(filter.logicalFilters) {
+            for (const value of filter.logicalFilters) {
+                innerArray.push(this.logicalFilterJSON(value));
+            }
+        }
+        return obj
+    }
+};
+
+export enum LogicalOperator {
+    AND='$and',
+    OR='$or'
+}

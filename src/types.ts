@@ -1,5 +1,3 @@
-import {TigrisCollection} from "./tigris-collection";
-
 export class DatabaseInfo {
     private readonly _name: string
     private readonly _metadata: DatabaseMetadata
@@ -161,4 +159,5 @@ export class InsertOptions {
 
 
 // Marker interface
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface TigrisCollectionType {}
