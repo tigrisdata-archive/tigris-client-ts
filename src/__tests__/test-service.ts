@@ -137,21 +137,28 @@ export class TestTigrisService {
             const filterString = Utility.uint8ArrayToString(call.request.getFilter_asU8());
             const filter = JSON.parse(filterString);
             // for test purpose if id=1, we find the record, else we don't
-            if (call.request.getOptions().getLimit() == 1 && filter['id'] == 1) {
+            if (call.request.getOptions() != undefined && call.request.getOptions().getLimit() == 1 && filter['id'] == 1) {
                 // base64 of {"id":1,"title":"A Passage to India","author":"E.M. Forster","tags":["Novel","India"]}
                 call.write(new ReadResponse().setData('eyJpZCI6MSwidGl0bGUiOiJBIFBhc3NhZ2UgdG8gSW5kaWEiLCJhdXRob3IiOiJFLk0uIEZvcnN0ZXIiLCJ0YWdzIjpbIk5vdmVsIiwiSW5kaWEiXX0='));
                 call.end();
-            } else if (call.request.getOptions().getLimit() == 1 && filter['id'] == 2) {
+            } else if (call.request.getOptions() != undefined && call.request.getOptions().getLimit() == 1 && filter['id'] == 2) {
                 // case where readOne doesn't find the document
                 call.end();
-            } else if (call.request.getOptions().getLimit() == 1 && filter['$and'] != undefined) {
+            } else if (call.request.getOptions() != undefined && call.request.getOptions().getLimit() == 1 && filter['$and'] != undefined) {
                 // case with logicalFilter passed in
                 // base64 of {"id":3,"title":"In Search of Lost Time","author":"Marcel Proust","tags":["Novel","Childhood"]}
                 call.write(new ReadResponse().setData('eyJpZCI6MywidGl0bGUiOiJJbiBTZWFyY2ggb2YgTG9zdCBUaW1lIiwiYXV0aG9yIjoiTWFyY2VsIFByb3VzdCIsInRhZ3MiOlsiTm92ZWwiLCJDaGlsZGhvb2QiXX0='));
                 call.end();
             } else {
-                // not yet implemented
-
+                // base64 of {"id":3,"title":"In Search of Lost Time","author":"Marcel Proust","tags":["Novel","Childhood"]}
+                call.write(new ReadResponse().setData('eyJpZCI6MywidGl0bGUiOiJJbiBTZWFyY2ggb2YgTG9zdCBUaW1lIiwiYXV0aG9yIjoiTWFyY2VsIFByb3VzdCIsInRhZ3MiOlsiTm92ZWwiLCJDaGlsZGhvb2QiXX0='));
+                // base64 of {"id":4,"title":"Swann's Way","author":"Marcel Proust"}
+                call.write(new ReadResponse().setData('eyJpZCI6NCwidGl0bGUiOiJTd2FubidzIFdheSIsImF1dGhvciI6Ik1hcmNlbCBQcm91c3QifQ=='));
+                // base64 of {"id":5,"title":"Time Regained","author":"Marcel Proust"}
+                call.write(new ReadResponse().setData('eyJpZCI6NSwidGl0bGUiOiJUaW1lIFJlZ2FpbmVkIiwiYXV0aG9yIjoiTWFyY2VsIFByb3VzdCJ9'));
+                // base64 of {"id":6,"title":"The Prisoner","author":"Marcel Proust"}
+                call.write(new ReadResponse().setData('eyJpZCI6NiwidGl0bGUiOiJUaGUgUHJpc29uZXIiLCJhdXRob3IiOiJNYXJjZWwgUHJvdXN0In0='))
+                call.end();
             }
         },
         // eslint-disable-next-line @typescript-eslint/no-empty-function

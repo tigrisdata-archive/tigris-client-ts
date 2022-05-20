@@ -232,15 +232,13 @@ export class Collection<T extends TigrisCollectionType> {
         return this.insertMany(options, doc);
     }
 
-    readOne(filter: Filter<string | number | boolean> | LogicalFilter<string | number | boolean>):  Promise<T|void> {
-        // eslint-disable-next-line no-prototype-builtins
-        const filterString: string = filter.hasOwnProperty('logicalOperator') ? Utility.logicalFilterString(filter as LogicalFilter<any>) : Utility.filterString(filter as Filter<any>);
-        return new Promise<T|void>((resolve, reject) => {
+    readOne(filter: Filter<string | number | boolean> | LogicalFilter<string | number | boolean>): Promise<T | void> {
+        return new Promise<T | void>((resolve, reject) => {
             const readRequest = new ReadRequest()
                 .setDb(this._db)
                 .setCollection(this._collectionName)
                 .setOptions(new ReadRequestOptions().setLimit(1))
-                .setFilter( Utility.stringToUint8Array(filterString))
+                .setFilter(Utility.stringToUint8Array(Utility.filterString(filter)))
             const stream: grpc.ClientReadableStream<ReadResponse> = this._grpcClient.read(readRequest);
             let doc: T;
             stream.on('data', (readResponse: ReadResponse) => {
@@ -255,6 +253,23 @@ export class Collection<T extends TigrisCollectionType> {
             })
         });
     }
+
+    read(filter: Filter<string | number | boolean> | LogicalFilter<string | number | boolean>, reader: ReaderCallback<T>) {
+        const readRequest = new ReadRequest()
+            .setDb(this._db)
+            .setCollection(this._collectionName)
+            .setFilter(Utility.stringToUint8Array(Utility.filterString(filter)))
+
+        const stream: grpc.ClientReadableStream<ReadResponse> = this._grpcClient.read(readRequest)
+        stream.on('data', (readResponse: ReadResponse) => {
+            const doc: T = JSON.parse(Buffer.from(readResponse.getData_asB64(), 'base64').toString('binary'));
+            reader.onNext(doc);
+        });
+
+        stream.on('error', (error) => reader.onError(error))
+        stream.on('end', () => reader.onEnd())
+    }
+
 }
 
 /**
@@ -289,8 +304,9 @@ export const Utility = {
         return Buffer.from(b64String).toString('binary')
     },
 
-    filterString<T extends string | number | boolean>(filter: Filter<T>): string {
-        return JSON.stringify(this.filterJSON(filter));
+    filterString<T extends string | number | boolean>(filter: Filter<T> | LogicalFilter<T>): string {
+        // eslint-disable-next-line no-prototype-builtins
+        return filter.hasOwnProperty('logicalOperator') ? Utility._logicalFilterString(filter as LogicalFilter<any>) : JSON.stringify(this.filterJSON(filter as Filter<any>));
     },
 
     filterJSON(filter: Filter<string | number | boolean>): object {
@@ -299,7 +315,7 @@ export const Utility = {
         return obj;
     },
 
-    logicalFilterString<T extends string | number | boolean>(filter: LogicalFilter<T>): string {
+    _logicalFilterString<T extends string | number | boolean>(filter: LogicalFilter<T>): string {
         return JSON.stringify(this.logicalFilterJSON(filter));
     },
 
@@ -324,4 +340,12 @@ export const Utility = {
 export enum LogicalOperator {
     AND = '$and',
     OR = '$or'
+}
+
+export interface ReaderCallback<T> {
+    onNext(doc: T);
+
+    onEnd();
+
+    onError(error: Error);
 }

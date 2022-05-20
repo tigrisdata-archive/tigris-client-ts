@@ -195,7 +195,7 @@ describe('success tests', () => {
     it('readOneWithLogicalFilter', () => {
         const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
         const db1 = tigris.getDatabase('db3');
-        const readOnePromise: Promise<IBook|void> = db1.getCollection<IBook>('books').readOne({
+        const readOnePromise: Promise<IBook | void> = db1.getCollection<IBook>('books').readOne({
             logicalOperator: LogicalOperator.AND,
             filters: [
                 {
@@ -216,6 +216,32 @@ describe('success tests', () => {
             expect(book.tags).toStrictEqual(["Novel", "Childhood"])
         })
         return readOnePromise;
+    });
+
+    it('readMany', (done) => {
+        const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
+        const db1 = tigris.getDatabase('db3');
+        let bookCounter = 0;
+        let success = true;
+        success = true;
+        db1.getCollection<IBook>('books').read({
+            key: 'author',
+            val: 'Marcel Proust'
+        }, {
+            onEnd() {
+                // test service is coded to return 4 books back
+                expect(bookCounter).toBe(4);
+                expect(success).toBe(true);
+                done();
+            },
+            onNext(book: IBook) {
+                bookCounter++;
+                expect(book.author).toBe('Marcel Proust')
+            },
+            onError(error: Error) {
+                success = false;
+            }
+        });
     });
 
     it('basicFilterTest', () => {
@@ -252,7 +278,7 @@ describe('success tests', () => {
                 }
             ]
         }
-        expect(Utility.logicalFilterString(logicalFilter)).toBe('{"$or":[{"name":"alice"},{"name":"emma"}]}');
+        expect(Utility._logicalFilterString(logicalFilter)).toBe('{"$or":[{"name":"alice"},{"name":"emma"}]}');
     });
 
     it('logicalFilterTestAnd', () => {
@@ -269,7 +295,7 @@ describe('success tests', () => {
                 }
             ]
         }
-        expect(Utility.logicalFilterString(logicalFilter)).toBe('{"$and":[{"name":"alice"},{"rank":1}]}');
+        expect(Utility._logicalFilterString(logicalFilter)).toBe('{"$and":[{"name":"alice"},{"rank":1}]}');
     });
 
     it('nestedLogicalFilter1', () => {
@@ -303,7 +329,7 @@ describe('success tests', () => {
             logicalOperator: LogicalOperator.OR,
             logicalFilters: [logicalFilter1, logicalFilter2]
         }
-        expect(Utility.logicalFilterString(nestedLogicalFilter)).toBe('{"$or":[{"$and":[{"name":"alice"},{"rank":1}]},{"$and":[{"name":"emma"},{"rank":1}]}]}');
+        expect(Utility._logicalFilterString(nestedLogicalFilter)).toBe('{"$or":[{"$and":[{"name":"alice"},{"rank":1}]},{"$and":[{"name":"emma"},{"rank":1}]}]}');
     });
 
     it('nestedLogicalFilter2', () => {
@@ -337,7 +363,7 @@ describe('success tests', () => {
             logicalOperator: LogicalOperator.AND,
             logicalFilters: [logicalFilter1, logicalFilter2]
         }
-        expect(Utility.logicalFilterString(nestedLogicalFilter)).toBe('{"$and":[{"$or":[{"name":"alice"},{"rank":1}]},{"$or":[{"name":"emma"},{"rank":1}]}]}');
+        expect(Utility._logicalFilterString(nestedLogicalFilter)).toBe('{"$and":[{"$or":[{"name":"alice"},{"rank":1}]},{"$or":[{"name":"emma"},{"rank":1}]}]}');
     });
 
 });
