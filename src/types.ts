@@ -126,8 +126,9 @@ export class CollectionDescription {
     }
 }
 
-export class InsertResponse {
+export class TigrisResponse {
     private readonly _status: string;
+
     constructor(status: string) {
         this._status = status;
     }
@@ -135,6 +136,45 @@ export class InsertResponse {
     get status(): string {
         return this._status;
     }
+}
+
+export class DMLMetadata {
+    private readonly _createdAt: Date;
+    private readonly _updatedAt: Date;
+
+    constructor(createdAt: Date, updatedAt: Date) {
+        this._createdAt = createdAt;
+        this._updatedAt = updatedAt;
+    }
+
+    get createdAt(): Date {
+        return this._createdAt;
+    }
+
+    get updatedAt(): Date {
+        return this._updatedAt;
+    }
+}
+
+export class DMLResponse extends TigrisResponse {
+    private readonly _metadata: DMLMetadata;
+
+    constructor(status: string, metadata: DMLMetadata) {
+        super(status)
+        this._metadata = metadata;
+    }
+
+    get metadata(): DMLMetadata {
+        return this._metadata;
+    }
+}
+
+export class InsertResponse extends DMLResponse {
+
+    constructor(status: string, metadata: DMLMetadata) {
+        super(status, metadata);
+    }
+
 }
 
 export class WriteOptions {}
@@ -160,4 +200,5 @@ export class InsertOptions {
 
 // Marker interface
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface TigrisCollectionType {}
+export interface TigrisCollectionType {
+}

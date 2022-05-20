@@ -20,7 +20,7 @@ import {
     CollectionOptions, DatabaseDescription,
     DatabaseInfo,
     DatabaseMetadata,
-    DatabaseOptions, DropCollectionResponse,
+    DatabaseOptions, DMLMetadata, DropCollectionResponse,
     DropDatabaseResponse, InsertOptions, InsertResponse, TigrisCollectionType
 } from "./types";
 
@@ -221,7 +221,11 @@ export class Collection<T extends TigrisCollectionType> {
                     if (error) {
                         reject(error);
                     } else {
-                        resolve(new InsertResponse(response.getStatus()))
+                        const metadata: DMLMetadata = new DMLMetadata(
+                            response.getMetadata().getCreatedAt(),
+                            response.getMetadata().getUpdatedAt()
+                        )
+                        resolve(new InsertResponse(response.getStatus(), metadata))
                     }
                 }
             )

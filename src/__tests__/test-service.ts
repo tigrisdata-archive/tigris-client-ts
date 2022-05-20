@@ -31,9 +31,10 @@ import {
     ReplaceResponse,
     RollbackTransactionRequest, RollbackTransactionResponse,
     StreamRequest, StreamResponse, UpdateRequest, UpdateResponse,
-    CollectionMetadata, CollectionDescription
+    CollectionMetadata, CollectionDescription, ResponseMetadata
 } from '../proto/server/v1/api_pb';
 import {Filter, Utility} from "../tigris";
+import * as google_protobuf_timestamp_pb from "google-protobuf/google/protobuf/timestamp_pb";
 
 export class TestTigrisService {
     private static DBS: string[] = [];
@@ -55,11 +56,9 @@ export class TestTigrisService {
 
     public impl: ITigrisServer = {
         // eslint-disable-next-line @typescript-eslint/no-empty-function
-        beginTransaction(call: ServerUnaryCall<BeginTransactionRequest, BeginTransactionResponse>, callback: sendUnaryData<BeginTransactionResponse>): void {
-        },
+        beginTransaction(call: ServerUnaryCall<BeginTransactionRequest, BeginTransactionResponse>, callback: sendUnaryData<BeginTransactionResponse>): void {},
         // eslint-disable-next-line @typescript-eslint/no-empty-function
-        commitTransaction(call: ServerUnaryCall<CommitTransactionRequest, CommitTransactionResponse>, callback: sendUnaryData<CommitTransactionResponse>): void {
-        },
+        commitTransaction(call: ServerUnaryCall<CommitTransactionRequest, CommitTransactionResponse>, callback: sendUnaryData<CommitTransactionResponse>): void {},
         createDatabase(call: ServerUnaryCall<CreateDatabaseRequest, CreateDatabaseResponse>, callback: sendUnaryData<CreateDatabaseResponse>): void {
             TestTigrisService.DBS.push(call.request.getDb())
             const reply: CreateDatabaseResponse = new CreateDatabaseResponse();
@@ -68,14 +67,11 @@ export class TestTigrisService {
             callback(undefined, reply)
         },
         // eslint-disable-next-line @typescript-eslint/no-empty-function
-        createOrUpdateCollection(call: ServerUnaryCall<CreateOrUpdateCollectionRequest, CreateOrUpdateCollectionResponse>, callback: sendUnaryData<CreateOrUpdateCollectionResponse>): void {
-        },
+        createOrUpdateCollection(call: ServerUnaryCall<CreateOrUpdateCollectionRequest, CreateOrUpdateCollectionResponse>, callback: sendUnaryData<CreateOrUpdateCollectionResponse>): void {},
         // eslint-disable-next-line @typescript-eslint/no-empty-function
-        delete(call: ServerUnaryCall<DeleteRequest, DeleteResponse>, callback: sendUnaryData<DeleteResponse>): void {
-        },
+        delete(call: ServerUnaryCall<DeleteRequest, DeleteResponse>, callback: sendUnaryData<DeleteResponse>): void {},
         // eslint-disable-next-line @typescript-eslint/no-empty-function
-        describeCollection(call: ServerUnaryCall<DescribeCollectionRequest, DescribeCollectionResponse>, callback: sendUnaryData<DescribeCollectionResponse>): void {
-        },
+        describeCollection(call: ServerUnaryCall<DescribeCollectionRequest, DescribeCollectionResponse>, callback: sendUnaryData<DescribeCollectionResponse>): void {},
 
         describeDatabase(call: ServerUnaryCall<DescribeDatabaseRequest, DescribeDatabaseResponse>, callback: sendUnaryData<DescribeDatabaseResponse>): void {
             const result: DescribeDatabaseResponse = new DescribeDatabaseResponse();
@@ -108,8 +104,8 @@ export class TestTigrisService {
         },
         insert(call: ServerUnaryCall<InsertRequest, InsertResponse>, callback: sendUnaryData<InsertResponse>): void {
             const reply: InsertResponse = new InsertResponse();
-
             reply.setStatus("inserted: " + JSON.stringify(new TextDecoder().decode(call.request.getDocumentsList_asU8()[0])));
+            reply.setMetadata(new ResponseMetadata().setCreatedAt(new google_protobuf_timestamp_pb.Timestamp()).setUpdatedAt(new google_protobuf_timestamp_pb.Timestamp()))
             callback(undefined, reply)
         },
         listCollections(call: ServerUnaryCall<ListCollectionsRequest, ListCollectionsResponse>, callback: sendUnaryData<ListCollectionsResponse>): void {
@@ -162,17 +158,13 @@ export class TestTigrisService {
             }
         },
         // eslint-disable-next-line @typescript-eslint/no-empty-function
-        replace(call: ServerUnaryCall<ReplaceRequest, ReplaceResponse>, callback: sendUnaryData<ReplaceResponse>): void {
-        },
+        replace(call: ServerUnaryCall<ReplaceRequest, ReplaceResponse>, callback: sendUnaryData<ReplaceResponse>): void {},
         // eslint-disable-next-line @typescript-eslint/no-empty-function
-        rollbackTransaction(call: ServerUnaryCall<RollbackTransactionRequest, RollbackTransactionResponse>, callback: sendUnaryData<RollbackTransactionResponse>): void {
-        },
+        rollbackTransaction(call: ServerUnaryCall<RollbackTransactionRequest, RollbackTransactionResponse>, callback: sendUnaryData<RollbackTransactionResponse>): void {},
         // eslint-disable-next-line @typescript-eslint/no-empty-function
-        stream(call: ServerWritableStream<StreamRequest, StreamResponse>): void {
-        },
+        stream(call: ServerWritableStream<StreamRequest, StreamResponse>): void {},
         // eslint-disable-next-line @typescript-eslint/no-empty-function
-        update(call: ServerUnaryCall<UpdateRequest, UpdateResponse>, callback: sendUnaryData<UpdateResponse>): void {
-        }
+        update(call: ServerUnaryCall<UpdateRequest, UpdateResponse>, callback: sendUnaryData<UpdateResponse>): void {}
     }
 }
 
