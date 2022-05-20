@@ -11,7 +11,7 @@ import {
     DropCollectionRequest as ProtoDropCollectionRequest,
     DescribeDatabaseRequest as ProtoDescribeDatabaseRequest,
     InsertRequest as ProtoInsertRequest,
-    InsertRequestOptions as ProtoInsertRequestOptions
+    InsertRequestOptions as ProtoInsertRequestOptions, ReadRequest, ReadResponse, ReadRequestOptions
 } from './proto/server/v1/api_pb';
 import {
     CollectionDescription,
@@ -231,6 +231,30 @@ export class Collection<T extends TigrisCollectionType> {
     insert(doc: T, options?: InsertOptions): Promise<InsertResponse> {
         return this.insertMany(options, doc);
     }
+
+    readOne(filter: Filter<string | number | boolean> | LogicalFilter<string | number | boolean>):  Promise<T|void> {
+        // eslint-disable-next-line no-prototype-builtins
+        const filterString: string = filter.hasOwnProperty('logicalOperator') ? Utility.logicalFilterString(filter as LogicalFilter<any>) : Utility.filterString(filter as Filter<any>);
+        return new Promise<T|void>((resolve, reject) => {
+            const readRequest = new ReadRequest()
+                .setDb(this._db)
+                .setCollection(this._collectionName)
+                .setOptions(new ReadRequestOptions().setLimit(1))
+                .setFilter( Utility.stringToUint8Array(filterString))
+            const stream: grpc.ClientReadableStream<ReadResponse> = this._grpcClient.read(readRequest);
+            let doc: T;
+            stream.on('data', (readResponse: ReadResponse) => {
+                doc = JSON.parse(Buffer.from(readResponse.getData_asB64(), 'base64').toString('binary'));
+                resolve(doc);
+            });
+            stream.on('error', reject);
+
+            stream.on('end', val => {
+                // eslint unicorn/no-useless-undefined: ["error", {"checkArguments": false}]
+                resolve()
+            })
+        });
+    }
 }
 
 /**
@@ -250,6 +274,21 @@ export type LogicalFilter<T extends string | number | boolean> = {
 }
 
 export const Utility = {
+
+    stringToUint8Array(input: string): Uint8Array {
+        return new TextEncoder().encode(input);
+    },
+    uint8ArrayToString(input: Uint8Array): string {
+        return new TextDecoder().decode(input);
+    },
+    encodeBase64(input: string): string {
+        return Buffer.from(input).toString('base64');
+    },
+
+    decodeBase64(b64String: string): string {
+        return Buffer.from(b64String).toString('binary')
+    },
+
     filterString<T extends string | number | boolean>(filter: Filter<T>): string {
         return JSON.stringify(this.filterJSON(filter));
     },
@@ -264,16 +303,16 @@ export const Utility = {
         return JSON.stringify(this.logicalFilterJSON(filter));
     },
 
-    logicalFilterJSON(filter: LogicalFilter<string | number | boolean>): object{
+    logicalFilterJSON(filter: LogicalFilter<string | number | boolean>): object {
         const obj = {};
         const innerArray = [];
         obj[filter.logicalOperator] = innerArray;
-        if(filter.filters) {
+        if (filter.filters) {
             for (const value of filter.filters) {
                 innerArray.push(this.filterJSON(value));
             }
         }
-        if(filter.logicalFilters) {
+        if (filter.logicalFilters) {
             for (const value of filter.logicalFilters) {
                 innerArray.push(this.logicalFilterJSON(value));
             }
@@ -283,6 +322,6 @@ export const Utility = {
 };
 
 export enum LogicalOperator {
-    AND='$and',
-    OR='$or'
+    AND = '$and',
+    OR = '$or'
 }

@@ -162,6 +162,62 @@ describe('success tests', () => {
         return insertionPromise;
     });
 
+    it('readOne', () => {
+        const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
+        const db1 = tigris.getDatabase('db3');
+        const readOnePromise = db1.getCollection<IBook>('books').readOne({
+            key: 'id',
+            val: 1
+        });
+        readOnePromise.then(value => {
+            const book: IBook = <IBook>value;
+            expect(book.id).toBe(1);
+            expect(book.title).toBe('A Passage to India');
+            expect(book.author).toBe('E.M. Forster')
+            expect(book.tags).toStrictEqual(["Novel", "India"])
+        })
+        return readOnePromise;
+    });
+
+    it('readOneRecordNotFound', () => {
+        const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
+        const db1 = tigris.getDatabase('db3');
+        const readOnePromise = db1.getCollection<IBook>('books').readOne({
+            key: 'id',
+            val: 2
+        });
+        readOnePromise.then((value) => {
+            expect(value).toBe(undefined);
+        })
+        return readOnePromise;
+    });
+
+    it('readOneWithLogicalFilter', () => {
+        const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
+        const db1 = tigris.getDatabase('db3');
+        const readOnePromise: Promise<IBook|void> = db1.getCollection<IBook>('books').readOne({
+            logicalOperator: LogicalOperator.AND,
+            filters: [
+                {
+                    key: 'id',
+                    val: 3
+                },
+                {
+                    key: 'title',
+                    val: 'In Search of Lost Time'
+                }
+            ]
+        });
+        readOnePromise.then(value => {
+            const book: IBook = <IBook>value;
+            expect(book.id).toBe(3);
+            expect(book.title).toBe('In Search of Lost Time');
+            expect(book.author).toBe('Marcel Proust')
+            expect(book.tags).toStrictEqual(["Novel", "Childhood"])
+        })
+        return readOnePromise;
+    });
+
     it('basicFilterTest', () => {
         const filter1: Filter<string> = {
             key: 'name',
