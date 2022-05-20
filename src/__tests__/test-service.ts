@@ -1,5 +1,5 @@
 import {ITigrisServer, TigrisService} from '../proto/server/v1/api_grpc_pb';
-import  {sendUnaryData, ServerUnaryCall, ServerWritableStream} from '@grpc/grpc-js';
+import {sendUnaryData, ServerUnaryCall, ServerWritableStream} from '@grpc/grpc-js';
 import {
     BeginTransactionRequest, BeginTransactionResponse, CollectionInfo,
     CommitTransactionRequest,
@@ -33,6 +33,7 @@ import {
     StreamRequest, StreamResponse, UpdateRequest, UpdateResponse,
     CollectionMetadata, CollectionDescription
 } from '../proto/server/v1/api_pb';
+import {Filter, Utility} from "../tigris";
 
 export class TestTigrisService {
     private static DBS: string[] = [];
@@ -54,9 +55,11 @@ export class TestTigrisService {
 
     public impl: ITigrisServer = {
         // eslint-disable-next-line @typescript-eslint/no-empty-function
-        beginTransaction(call: ServerUnaryCall<BeginTransactionRequest, BeginTransactionResponse>, callback: sendUnaryData<BeginTransactionResponse>): void {},
+        beginTransaction(call: ServerUnaryCall<BeginTransactionRequest, BeginTransactionResponse>, callback: sendUnaryData<BeginTransactionResponse>): void {
+        },
         // eslint-disable-next-line @typescript-eslint/no-empty-function
-        commitTransaction(call: ServerUnaryCall<CommitTransactionRequest, CommitTransactionResponse>, callback: sendUnaryData<CommitTransactionResponse>): void {},
+        commitTransaction(call: ServerUnaryCall<CommitTransactionRequest, CommitTransactionResponse>, callback: sendUnaryData<CommitTransactionResponse>): void {
+        },
         createDatabase(call: ServerUnaryCall<CreateDatabaseRequest, CreateDatabaseResponse>, callback: sendUnaryData<CreateDatabaseResponse>): void {
             TestTigrisService.DBS.push(call.request.getDb())
             const reply: CreateDatabaseResponse = new CreateDatabaseResponse();
@@ -65,11 +68,14 @@ export class TestTigrisService {
             callback(undefined, reply)
         },
         // eslint-disable-next-line @typescript-eslint/no-empty-function
-        createOrUpdateCollection(call: ServerUnaryCall<CreateOrUpdateCollectionRequest, CreateOrUpdateCollectionResponse>, callback: sendUnaryData<CreateOrUpdateCollectionResponse>): void {},
+        createOrUpdateCollection(call: ServerUnaryCall<CreateOrUpdateCollectionRequest, CreateOrUpdateCollectionResponse>, callback: sendUnaryData<CreateOrUpdateCollectionResponse>): void {
+        },
         // eslint-disable-next-line @typescript-eslint/no-empty-function
-        delete(call: ServerUnaryCall<DeleteRequest, DeleteResponse>, callback: sendUnaryData<DeleteResponse>): void {},
+        delete(call: ServerUnaryCall<DeleteRequest, DeleteResponse>, callback: sendUnaryData<DeleteResponse>): void {
+        },
         // eslint-disable-next-line @typescript-eslint/no-empty-function
-        describeCollection(call: ServerUnaryCall<DescribeCollectionRequest, DescribeCollectionResponse>, callback: sendUnaryData<DescribeCollectionResponse>): void {},
+        describeCollection(call: ServerUnaryCall<DescribeCollectionRequest, DescribeCollectionResponse>, callback: sendUnaryData<DescribeCollectionResponse>): void {
+        },
 
         describeDatabase(call: ServerUnaryCall<DescribeDatabaseRequest, DescribeDatabaseResponse>, callback: sendUnaryData<DescribeDatabaseResponse>): void {
             const result: DescribeDatabaseResponse = new DescribeDatabaseResponse();
@@ -126,15 +132,40 @@ export class TestTigrisService {
             callback(undefined, reply);
         },
         // eslint-disable-next-line @typescript-eslint/no-empty-function
-        read(call: ServerWritableStream<ReadRequest, ReadResponse>): void {},
+        read(call: ServerWritableStream<ReadRequest, ReadResponse>): void {
+            // read one implementation
+            const filterString = Utility.uint8ArrayToString(call.request.getFilter_asU8());
+            const filter = JSON.parse(filterString);
+            // for test purpose if id=1, we find the record, else we don't
+            if (call.request.getOptions().getLimit() == 1 && filter['id'] == 1) {
+                // base64 of {"id":1,"title":"A Passage to India","author":"E.M. Forster","tags":["Novel","India"]}
+                call.write(new ReadResponse().setData('eyJpZCI6MSwidGl0bGUiOiJBIFBhc3NhZ2UgdG8gSW5kaWEiLCJhdXRob3IiOiJFLk0uIEZvcnN0ZXIiLCJ0YWdzIjpbIk5vdmVsIiwiSW5kaWEiXX0='));
+                call.end();
+            } else if (call.request.getOptions().getLimit() == 1 && filter['id'] == 2) {
+                // case where readOne doesn't find the document
+                call.end();
+            } else if (call.request.getOptions().getLimit() == 1 && filter['$and'] != undefined) {
+                // case with logicalFilter passed in
+                // base64 of {"id":3,"title":"In Search of Lost Time","author":"Marcel Proust","tags":["Novel","Childhood"]}
+                call.write(new ReadResponse().setData('eyJpZCI6MywidGl0bGUiOiJJbiBTZWFyY2ggb2YgTG9zdCBUaW1lIiwiYXV0aG9yIjoiTWFyY2VsIFByb3VzdCIsInRhZ3MiOlsiTm92ZWwiLCJDaGlsZGhvb2QiXX0='));
+                call.end();
+            } else {
+                // not yet implemented
+
+            }
+        },
         // eslint-disable-next-line @typescript-eslint/no-empty-function
-        replace(call: ServerUnaryCall<ReplaceRequest, ReplaceResponse>, callback: sendUnaryData<ReplaceResponse>): void {},
+        replace(call: ServerUnaryCall<ReplaceRequest, ReplaceResponse>, callback: sendUnaryData<ReplaceResponse>): void {
+        },
         // eslint-disable-next-line @typescript-eslint/no-empty-function
-        rollbackTransaction(call: ServerUnaryCall<RollbackTransactionRequest, RollbackTransactionResponse>, callback: sendUnaryData<RollbackTransactionResponse>): void {},
+        rollbackTransaction(call: ServerUnaryCall<RollbackTransactionRequest, RollbackTransactionResponse>, callback: sendUnaryData<RollbackTransactionResponse>): void {
+        },
         // eslint-disable-next-line @typescript-eslint/no-empty-function
-        stream(call: ServerWritableStream<StreamRequest, StreamResponse>): void {},
+        stream(call: ServerWritableStream<StreamRequest, StreamResponse>): void {
+        },
         // eslint-disable-next-line @typescript-eslint/no-empty-function
-        update(call: ServerUnaryCall<UpdateRequest, UpdateResponse>, callback: sendUnaryData<UpdateResponse>): void {}
+        update(call: ServerUnaryCall<UpdateRequest, UpdateResponse>, callback: sendUnaryData<UpdateResponse>): void {
+        }
     }
 }
 
