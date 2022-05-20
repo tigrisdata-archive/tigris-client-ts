@@ -162,6 +162,19 @@ describe('success tests', () => {
         return insertionPromise;
     });
 
+    it('delete', () => {
+        const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
+        const db1 = tigris.getDatabase('db3');
+        const deletionPromise = db1.getCollection<IBook>('books').delete({
+            key: 'id',
+            val: 1
+        });
+        deletionPromise.then(value => {
+            expect(value.status).toBe('deleted: {"id":1}');
+        })
+        return deletionPromise;
+    });
+
     it('readOne', () => {
         const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
         const db1 = tigris.getDatabase('db3');

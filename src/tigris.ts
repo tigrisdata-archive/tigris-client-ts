@@ -11,7 +11,11 @@ import {
     DropCollectionRequest as ProtoDropCollectionRequest,
     DescribeDatabaseRequest as ProtoDescribeDatabaseRequest,
     InsertRequest as ProtoInsertRequest,
-    InsertRequestOptions as ProtoInsertRequestOptions, ReadRequest, ReadResponse, ReadRequestOptions
+    InsertRequestOptions as ProtoInsertRequestOptions,
+    ReadRequest as ProtoReadRequest,
+    ReadResponse as ProtoReadResponse,
+    ReadRequestOptions as ProtoReadRequestOptions,
+    DeleteRequest as ProtoDeleteRequest,
 } from './proto/server/v1/api_pb';
 import {
     CollectionDescription,
@@ -20,7 +24,7 @@ import {
     CollectionOptions, DatabaseDescription,
     DatabaseInfo,
     DatabaseMetadata,
-    DatabaseOptions, DMLMetadata, DropCollectionResponse,
+    DatabaseOptions, DeleteRequestOptions, DeleteResponse, DMLMetadata, DropCollectionResponse,
     DropDatabaseResponse, InsertOptions, InsertResponse, TigrisCollectionType
 } from "./types";
 
@@ -238,14 +242,14 @@ export class Collection<T extends TigrisCollectionType> {
 
     readOne(filter: Filter<string | number | boolean> | LogicalFilter<string | number | boolean>): Promise<T | void> {
         return new Promise<T | void>((resolve, reject) => {
-            const readRequest = new ReadRequest()
+            const readRequest = new ProtoReadRequest()
                 .setDb(this._db)
                 .setCollection(this._collectionName)
-                .setOptions(new ReadRequestOptions().setLimit(1))
+                .setOptions(new ProtoReadRequestOptions().setLimit(1))
                 .setFilter(Utility.stringToUint8Array(Utility.filterString(filter)))
-            const stream: grpc.ClientReadableStream<ReadResponse> = this._grpcClient.read(readRequest);
+            const stream: grpc.ClientReadableStream<ProtoReadResponse> = this._grpcClient.read(readRequest);
             let doc: T;
-            stream.on('data', (readResponse: ReadResponse) => {
+            stream.on('data', (readResponse: ProtoReadResponse) => {
                 doc = JSON.parse(Buffer.from(readResponse.getData_asB64(), 'base64').toString('binary'));
                 resolve(doc);
             });
@@ -259,13 +263,13 @@ export class Collection<T extends TigrisCollectionType> {
     }
 
     read(filter: Filter<string | number | boolean> | LogicalFilter<string | number | boolean>, reader: ReaderCallback<T>) {
-        const readRequest = new ReadRequest()
+        const readRequest = new ProtoReadRequest()
             .setDb(this._db)
             .setCollection(this._collectionName)
             .setFilter(Utility.stringToUint8Array(Utility.filterString(filter)))
 
-        const stream: grpc.ClientReadableStream<ReadResponse> = this._grpcClient.read(readRequest)
-        stream.on('data', (readResponse: ReadResponse) => {
+        const stream: grpc.ClientReadableStream<ProtoReadResponse> = this._grpcClient.read(readRequest)
+        stream.on('data', (readResponse: ProtoReadResponse) => {
             const doc: T = JSON.parse(Buffer.from(readResponse.getData_asB64(), 'base64').toString('binary'));
             reader.onNext(doc);
         });
@@ -274,6 +278,25 @@ export class Collection<T extends TigrisCollectionType> {
         stream.on('end', () => reader.onEnd())
     }
 
+    delete(filter: Filter<string | number | boolean> | LogicalFilter<string | number | boolean>, options?: DeleteRequestOptions): Promise<DeleteResponse> {
+        return new Promise<DeleteResponse>((resolve, reject) => {
+            const deleteRequest = new ProtoDeleteRequest().setDb(this._db)
+                .setCollection(this._collectionName)
+                .setFilter(Utility.stringToUint8Array(Utility.filterString(filter)))
+            this._grpcClient.delete(deleteRequest, (error, response) => {
+                if (error) {
+                    reject(error);
+                } else {
+                    const metadata: DMLMetadata = new DMLMetadata(
+                        response.getMetadata().getCreatedAt(),
+                        response.getMetadata().getUpdatedAt()
+                    )
+                    resolve(new DeleteResponse(response.getStatus(), metadata))
+                }
+            });
+        });
+
+    }
 }
 
 /**

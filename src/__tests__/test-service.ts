@@ -69,7 +69,12 @@ export class TestTigrisService {
         // eslint-disable-next-line @typescript-eslint/no-empty-function
         createOrUpdateCollection(call: ServerUnaryCall<CreateOrUpdateCollectionRequest, CreateOrUpdateCollectionResponse>, callback: sendUnaryData<CreateOrUpdateCollectionResponse>): void {},
         // eslint-disable-next-line @typescript-eslint/no-empty-function
-        delete(call: ServerUnaryCall<DeleteRequest, DeleteResponse>, callback: sendUnaryData<DeleteResponse>): void {},
+        delete(call: ServerUnaryCall<DeleteRequest, DeleteResponse>, callback: sendUnaryData<DeleteResponse>): void {
+            const reply: DeleteResponse = new DeleteResponse();
+            reply.setStatus("deleted: " +  Utility.uint8ArrayToString(call.request.getFilter_asU8()));
+            reply.setMetadata(new ResponseMetadata().setCreatedAt(new google_protobuf_timestamp_pb.Timestamp()).setUpdatedAt(new google_protobuf_timestamp_pb.Timestamp()))
+            callback(undefined, reply)
+        },
         // eslint-disable-next-line @typescript-eslint/no-empty-function
         describeCollection(call: ServerUnaryCall<DescribeCollectionRequest, DescribeCollectionResponse>, callback: sendUnaryData<DescribeCollectionResponse>): void {},
 
