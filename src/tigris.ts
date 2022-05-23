@@ -16,6 +16,7 @@ import {
     ReadResponse as ProtoReadResponse,
     ReadRequestOptions as ProtoReadRequestOptions,
     DeleteRequest as ProtoDeleteRequest,
+    UpdateRequest as ProtoUpdateRequest
 } from './proto/server/v1/api_pb';
 import {
     CollectionDescription,
@@ -25,7 +26,7 @@ import {
     DatabaseInfo,
     DatabaseMetadata,
     DatabaseOptions, DeleteRequestOptions, DeleteResponse, DMLMetadata, DropCollectionResponse,
-    DropDatabaseResponse, InsertOptions, InsertResponse, TigrisCollectionType
+    DropDatabaseResponse, InsertOptions, InsertResponse, TigrisCollectionType, UpdateRequestOptions, UpdateResponse
 } from "./types";
 
 export interface TigrisClientConfig {
@@ -248,7 +249,7 @@ export class Collection<T extends TigrisCollectionType> {
                 .setOptions(new ProtoReadRequestOptions().setLimit(1))
                 .setFilter(Utility.stringToUint8Array(Utility.filterString(filter)))
 
-            if(readFields){
+            if (readFields) {
                 readRequest.setFields(Utility.stringToUint8Array(Utility.readFieldString(readFields)))
             }
             const stream: grpc.ClientReadableStream<ProtoReadResponse> = this._grpcClient.read(readRequest);
@@ -259,8 +260,8 @@ export class Collection<T extends TigrisCollectionType> {
             });
             stream.on('error', reject);
 
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             stream.on('end', val => {
-                // eslint unicorn/no-useless-undefined: ["error", {"checkArguments": false}]
                 resolve()
             })
         });
@@ -272,7 +273,7 @@ export class Collection<T extends TigrisCollectionType> {
             .setCollection(this._collectionName)
             .setFilter(Utility.stringToUint8Array(Utility.filterString(filter)))
 
-        if(readFields){
+        if (readFields) {
             readRequest.setFields(Utility.stringToUint8Array(Utility.readFieldString(readFields)))
         }
         const stream: grpc.ClientReadableStream<ProtoReadResponse> = this._grpcClient.read(readRequest)
@@ -302,7 +303,27 @@ export class Collection<T extends TigrisCollectionType> {
                 }
             });
         });
+    }
 
+    update(filter: Filter<string | number | boolean> | LogicalFilter<string | number | boolean>, fields: UpdateFields<string | number | boolean>, options?: UpdateRequestOptions): Promise<UpdateResponse> {
+        return new Promise<UpdateResponse>((resolve, reject) => {
+            const updateRequest = new ProtoUpdateRequest()
+                .setDb(this._db)
+                .setCollection(this._collectionName)
+                .setFilter(Utility.stringToUint8Array(Utility.filterString(filter)))
+                .setFields(Utility.stringToUint8Array(Utility.updateFieldsString(fields)))
+            this._grpcClient.update(updateRequest, (error, response) => {
+                if (error) {
+                    reject(error);
+                } else {
+                    const metadata: DMLMetadata = new DMLMetadata(
+                        response.getMetadata().getCreatedAt(),
+                        response.getMetadata().getUpdatedAt()
+                    )
+                    resolve(new UpdateResponse(response.getStatus(), metadata))
+                }
+            });
+        });
     }
 }
 
@@ -325,6 +346,15 @@ export type LogicalFilter<T extends string | number | boolean> = {
 export type ReadFields = {
     include?: string[];
     exclude?: string[];
+}
+
+export type UpdateFields<T extends string | number | boolean> = {
+    operator: UpdateFieldsOperator,
+    fields: UpdateField<T>
+}
+
+export type UpdateField<T extends string | number | boolean> = {
+    [key: string]: T | undefined;
 }
 
 export const Utility = {
@@ -376,16 +406,21 @@ export const Utility = {
     },
     readFieldString(readFields: ReadFields): string {
         const obj = {};
-        if(readFields.include){
+        if (readFields.include) {
             for (const field of readFields.include) {
                 obj[field] = true;
             }
         }
-        if(readFields.exclude){
+        if (readFields.exclude) {
             for (const field of readFields.exclude) {
                 obj[field] = false;
             }
         }
+        return JSON.stringify(obj);
+    },
+    updateFieldsString(fields: UpdateFields<string | number | boolean>) {
+        const obj = {};
+        obj[fields.operator] = fields.fields;
         return JSON.stringify(obj);
     }
 };
@@ -394,6 +429,11 @@ export enum LogicalOperator {
     AND = '$and',
     OR = '$or'
 }
+
+export enum UpdateFieldsOperator {
+    SET = '$set',
+}
+
 
 export interface ReaderCallback<T> {
     onNext(doc: T);
