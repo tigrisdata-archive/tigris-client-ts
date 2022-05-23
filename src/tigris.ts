@@ -240,13 +240,17 @@ export class Collection<T extends TigrisCollectionType> {
         return this.insertMany(options, doc);
     }
 
-    readOne(filter: Filter<string | number | boolean> | LogicalFilter<string | number | boolean>): Promise<T | void> {
+    readOne(filter: Filter<string | number | boolean> | LogicalFilter<string | number | boolean>, readFields?: ReadFields): Promise<T | void> {
         return new Promise<T | void>((resolve, reject) => {
             const readRequest = new ProtoReadRequest()
                 .setDb(this._db)
                 .setCollection(this._collectionName)
                 .setOptions(new ProtoReadRequestOptions().setLimit(1))
                 .setFilter(Utility.stringToUint8Array(Utility.filterString(filter)))
+
+            if(readFields){
+                readRequest.setFields(Utility.stringToUint8Array(Utility.readFieldString(readFields)))
+            }
             const stream: grpc.ClientReadableStream<ProtoReadResponse> = this._grpcClient.read(readRequest);
             let doc: T;
             stream.on('data', (readResponse: ProtoReadResponse) => {
@@ -262,12 +266,15 @@ export class Collection<T extends TigrisCollectionType> {
         });
     }
 
-    read(filter: Filter<string | number | boolean> | LogicalFilter<string | number | boolean>, reader: ReaderCallback<T>) {
+    read(filter: Filter<string | number | boolean> | LogicalFilter<string | number | boolean>, reader: ReaderCallback<T>, readFields?: ReadFields) {
         const readRequest = new ProtoReadRequest()
             .setDb(this._db)
             .setCollection(this._collectionName)
             .setFilter(Utility.stringToUint8Array(Utility.filterString(filter)))
 
+        if(readFields){
+            readRequest.setFields(Utility.stringToUint8Array(Utility.readFieldString(readFields)))
+        }
         const stream: grpc.ClientReadableStream<ProtoReadResponse> = this._grpcClient.read(readRequest)
         stream.on('data', (readResponse: ProtoReadResponse) => {
             const doc: T = JSON.parse(Buffer.from(readResponse.getData_asB64(), 'base64').toString('binary'));
@@ -313,6 +320,11 @@ export type LogicalFilter<T extends string | number | boolean> = {
     logicalOperator: LogicalOperator
     filters?: Filter<T>[];
     logicalFilters?: LogicalFilter<T>[];
+}
+
+export type ReadFields = {
+    include?: string[];
+    exclude?: string[];
 }
 
 export const Utility = {
@@ -361,6 +373,20 @@ export const Utility = {
             }
         }
         return obj
+    },
+    readFieldString(readFields: ReadFields): string {
+        const obj = {};
+        if(readFields.include){
+            for (const field of readFields.include) {
+                obj[field] = true;
+            }
+        }
+        if(readFields.exclude){
+            for (const field of readFields.exclude) {
+                obj[field] = false;
+            }
+        }
+        return JSON.stringify(obj);
     }
 };
 
