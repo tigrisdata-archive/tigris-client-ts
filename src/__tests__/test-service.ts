@@ -56,9 +56,11 @@ export class TestTigrisService {
 
     public impl: ITigrisServer = {
         // eslint-disable-next-line @typescript-eslint/no-empty-function
-        beginTransaction(call: ServerUnaryCall<BeginTransactionRequest, BeginTransactionResponse>, callback: sendUnaryData<BeginTransactionResponse>): void {},
+        beginTransaction(call: ServerUnaryCall<BeginTransactionRequest, BeginTransactionResponse>, callback: sendUnaryData<BeginTransactionResponse>): void {
+        },
         // eslint-disable-next-line @typescript-eslint/no-empty-function
-        commitTransaction(call: ServerUnaryCall<CommitTransactionRequest, CommitTransactionResponse>, callback: sendUnaryData<CommitTransactionResponse>): void {},
+        commitTransaction(call: ServerUnaryCall<CommitTransactionRequest, CommitTransactionResponse>, callback: sendUnaryData<CommitTransactionResponse>): void {
+        },
         createDatabase(call: ServerUnaryCall<CreateDatabaseRequest, CreateDatabaseResponse>, callback: sendUnaryData<CreateDatabaseResponse>): void {
             TestTigrisService.DBS.push(call.request.getDb())
             const reply: CreateDatabaseResponse = new CreateDatabaseResponse();
@@ -67,16 +69,18 @@ export class TestTigrisService {
             callback(undefined, reply)
         },
         // eslint-disable-next-line @typescript-eslint/no-empty-function
-        createOrUpdateCollection(call: ServerUnaryCall<CreateOrUpdateCollectionRequest, CreateOrUpdateCollectionResponse>, callback: sendUnaryData<CreateOrUpdateCollectionResponse>): void {},
+        createOrUpdateCollection(call: ServerUnaryCall<CreateOrUpdateCollectionRequest, CreateOrUpdateCollectionResponse>, callback: sendUnaryData<CreateOrUpdateCollectionResponse>): void {
+        },
         // eslint-disable-next-line @typescript-eslint/no-empty-function
         delete(call: ServerUnaryCall<DeleteRequest, DeleteResponse>, callback: sendUnaryData<DeleteResponse>): void {
             const reply: DeleteResponse = new DeleteResponse();
-            reply.setStatus("deleted: " +  Utility.uint8ArrayToString(call.request.getFilter_asU8()));
+            reply.setStatus("deleted: " + Utility.uint8ArrayToString(call.request.getFilter_asU8()));
             reply.setMetadata(new ResponseMetadata().setCreatedAt(new google_protobuf_timestamp_pb.Timestamp()).setUpdatedAt(new google_protobuf_timestamp_pb.Timestamp()))
             callback(undefined, reply)
         },
         // eslint-disable-next-line @typescript-eslint/no-empty-function
-        describeCollection(call: ServerUnaryCall<DescribeCollectionRequest, DescribeCollectionResponse>, callback: sendUnaryData<DescribeCollectionResponse>): void {},
+        describeCollection(call: ServerUnaryCall<DescribeCollectionRequest, DescribeCollectionResponse>, callback: sendUnaryData<DescribeCollectionResponse>): void {
+        },
 
         describeDatabase(call: ServerUnaryCall<DescribeDatabaseRequest, DescribeDatabaseResponse>, callback: sendUnaryData<DescribeDatabaseResponse>): void {
             const result: DescribeDatabaseResponse = new DescribeDatabaseResponse();
@@ -168,8 +172,12 @@ export class TestTigrisService {
         rollbackTransaction(call: ServerUnaryCall<RollbackTransactionRequest, RollbackTransactionResponse>, callback: sendUnaryData<RollbackTransactionResponse>): void {},
         // eslint-disable-next-line @typescript-eslint/no-empty-function
         stream(call: ServerWritableStream<StreamRequest, StreamResponse>): void {},
-        // eslint-disable-next-line @typescript-eslint/no-empty-function
-        update(call: ServerUnaryCall<UpdateRequest, UpdateResponse>, callback: sendUnaryData<UpdateResponse>): void {}
+        update(call: ServerUnaryCall<UpdateRequest, UpdateResponse>, callback: sendUnaryData<UpdateResponse>): void {
+            const reply: UpdateResponse = new UpdateResponse();
+            reply.setStatus("updated: " + Utility.uint8ArrayToString(call.request.getFilter_asU8()) + ', ' + Utility.uint8ArrayToString(call.request.getFields_asU8()));
+            reply.setMetadata(new ResponseMetadata().setCreatedAt(new google_protobuf_timestamp_pb.Timestamp()).setUpdatedAt(new google_protobuf_timestamp_pb.Timestamp()))
+            callback(undefined, reply)
+        }
     }
 }
 

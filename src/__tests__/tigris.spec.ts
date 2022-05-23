@@ -1,4 +1,13 @@
-import {Filter, LogicalFilter, LogicalOperator, Tigris, Utility} from '../tigris';
+import {
+    Filter,
+    LogicalFilter,
+    LogicalOperator,
+    ReadFields,
+    Tigris,
+    UpdateFields,
+    UpdateFieldsOperator,
+    Utility
+} from '../tigris';
 import {Server, ServerCredentials} from '@grpc/grpc-js';
 import {TigrisService} from '../proto/server/v1/api_grpc_pb';
 import TestService, {TestTigrisService} from './test-service';
@@ -173,6 +182,26 @@ describe('success tests', () => {
             expect(value.status).toBe('deleted: {"id":1}');
         })
         return deletionPromise;
+    });
+
+    it('update', () => {
+        const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
+        const db1 = tigris.getDatabase('db3');
+        const updatePromise = db1.getCollection<IBook>('books').update(
+            {
+                key: 'id',
+                val: 1
+            },
+            {
+                operator: UpdateFieldsOperator.SET,
+                fields: {
+                    title: 'New Title'
+                }
+            });
+        updatePromise.then(value => {
+            expect(value.status).toBe('updated: {"id":1}, {"$set":{"title":"New Title"}}');
+        })
+        return updatePromise;
     });
 
     it('readOne', () => {
@@ -377,6 +406,38 @@ describe('success tests', () => {
             logicalFilters: [logicalFilter1, logicalFilter2]
         }
         expect(Utility._logicalFilterString(nestedLogicalFilter)).toBe('{"$and":[{"$or":[{"name":"alice"},{"rank":1}]},{"$or":[{"name":"emma"},{"rank":1}]}]}');
+    });
+
+    it('readFields1', () => {
+        const readFields: ReadFields = {
+            include: ['id', 'title'],
+        };
+        expect(Utility.readFieldString(readFields)).toBe('{"id":true,"title":true}');
+    });
+    it('readFields2', () => {
+        const readFields: ReadFields = {
+            exclude: ['id', 'title'],
+        };
+        expect(Utility.readFieldString(readFields)).toBe('{"id":false,"title":false}');
+    });
+    it('readFields3', () => {
+        const readFields: ReadFields = {
+            include: ['id', 'title'],
+            exclude: ['author']
+        };
+        expect(Utility.readFieldString(readFields)).toBe('{"id":true,"title":true,"author":false}');
+    });
+
+    it('updateFields', () => {
+        const updateFields: UpdateFields<string | number | boolean> = {
+            operator: UpdateFieldsOperator.SET,
+            fields: {
+                title: 'New Title',
+                price: 499,
+                active: true,
+            }
+        };
+        expect(Utility.updateFieldsString(updateFields)).toBe('{"$set":{"title":"New Title","price":499,"active":true}}');
     });
 
 });

@@ -183,8 +183,17 @@ export class DeleteResponse extends DMLResponse {
     }
 
 }
+
+export class UpdateResponse extends DMLResponse {
+
+    constructor(status: string, metadata: DMLMetadata) {
+        super(status, metadata);
+    }
+
+}
 export class WriteOptions {}
 export class DeleteRequestOptions {}
+export class UpdateRequestOptions {}
 
 export class InsertOptions {
     private readonly _status: string;
