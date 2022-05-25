@@ -29,6 +29,8 @@ import {
     DropDatabaseResponse, InsertOptions, InsertResponse, TigrisCollectionType, UpdateRequestOptions, UpdateResponse
 } from "./types";
 
+import json_bigint from "json-bigint";
+
 export interface TigrisClientConfig {
     serverUrl: string;
 }
@@ -210,7 +212,8 @@ export class Collection<T extends TigrisCollectionType> {
         return new Promise<InsertResponse>((resolve, reject) => {
             const docsArray = new Array<Uint8Array | string>();
             for (const doc of docs) {
-                docsArray.push(new TextEncoder().encode(JSON.stringify(doc)));
+                console.log(Utility.objToJsonString(doc))
+                docsArray.push(new TextEncoder().encode(Utility.objToJsonString(doc)));
             }
 
             const protoRequest = new ProtoInsertRequest()
@@ -241,7 +244,7 @@ export class Collection<T extends TigrisCollectionType> {
         return this.insertMany(options, doc);
     }
 
-    readOne(filter: Filter<string | number | boolean> | LogicalFilter<string | number | boolean>, readFields?: ReadFields): Promise<T | void> {
+    readOne(filter: Filter<string | number | boolean | bigint | bigint> | LogicalFilter<string | number | boolean | bigint | bigint>, readFields?: ReadFields): Promise<T | void> {
         return new Promise<T | void>((resolve, reject) => {
             const readRequest = new ProtoReadRequest()
                 .setDb(this._db)
@@ -267,7 +270,7 @@ export class Collection<T extends TigrisCollectionType> {
         });
     }
 
-    read(filter: Filter<string | number | boolean> | LogicalFilter<string | number | boolean>, reader: ReaderCallback<T>, readFields?: ReadFields) {
+    read(filter: Filter<string | number | boolean | bigint> | LogicalFilter<string | number | boolean | bigint>, reader: ReaderCallback<T>, readFields?: ReadFields) {
         const readRequest = new ProtoReadRequest()
             .setDb(this._db)
             .setCollection(this._collectionName)
@@ -278,7 +281,7 @@ export class Collection<T extends TigrisCollectionType> {
         }
         const stream: grpc.ClientReadableStream<ProtoReadResponse> = this._grpcClient.read(readRequest)
         stream.on('data', (readResponse: ProtoReadResponse) => {
-            const doc: T = JSON.parse(Buffer.from(readResponse.getData_asB64(), 'base64').toString('binary'));
+            const doc: T = Utility.jsonStringToObj<T>(Buffer.from(readResponse.getData_asB64(), 'base64').toString('binary'));
             reader.onNext(doc);
         });
 
@@ -286,7 +289,7 @@ export class Collection<T extends TigrisCollectionType> {
         stream.on('end', () => reader.onEnd())
     }
 
-    delete(filter: Filter<string | number | boolean> | LogicalFilter<string | number | boolean>, options?: DeleteRequestOptions): Promise<DeleteResponse> {
+    delete(filter: Filter<string | number | boolean | bigint> | LogicalFilter<string | number | boolean | bigint>, options?: DeleteRequestOptions): Promise<DeleteResponse> {
         return new Promise<DeleteResponse>((resolve, reject) => {
             const deleteRequest = new ProtoDeleteRequest().setDb(this._db)
                 .setCollection(this._collectionName)
@@ -305,7 +308,7 @@ export class Collection<T extends TigrisCollectionType> {
         });
     }
 
-    update(filter: Filter<string | number | boolean> | LogicalFilter<string | number | boolean>, fields: UpdateFields<string | number | boolean>, options?: UpdateRequestOptions): Promise<UpdateResponse> {
+    update(filter: Filter<string | number | boolean | bigint> | LogicalFilter<string | number | boolean | bigint>, fields: UpdateFields<string | number | boolean | bigint>, options?: UpdateRequestOptions): Promise<UpdateResponse> {
         return new Promise<UpdateResponse>((resolve, reject) => {
             const updateRequest = new ProtoUpdateRequest()
                 .setDb(this._db)
@@ -332,12 +335,12 @@ export class Collection<T extends TigrisCollectionType> {
  */
 export default new Tigris({serverUrl: `${process.env.TIGRIS_SERVER_URL}`});
 
-export type Filter<T extends string | number | boolean> = {
+export type Filter<T extends string | number | boolean | bigint> = {
     key: string;
     val: T;
 }
 
-export type LogicalFilter<T extends string | number | boolean> = {
+export type LogicalFilter<T extends string | number | boolean | bigint> = {
     logicalOperator: LogicalOperator
     filters?: Filter<T>[];
     logicalFilters?: LogicalFilter<T>[];
@@ -348,12 +351,12 @@ export type ReadFields = {
     exclude?: string[];
 }
 
-export type UpdateFields<T extends string | number | boolean> = {
+export type UpdateFields<T extends string | number | boolean | bigint> = {
     operator: UpdateFieldsOperator,
     fields: UpdateField<T>
 }
 
-export type UpdateField<T extends string | number | boolean> = {
+export type UpdateField<T extends string | number | boolean | bigint> = {
     [key: string]: T | undefined;
 }
 
@@ -373,22 +376,22 @@ export const Utility = {
         return Buffer.from(b64String).toString('binary')
     },
 
-    filterString<T extends string | number | boolean>(filter: Filter<T> | LogicalFilter<T>): string {
+    filterString<T extends string | number | boolean | bigint>(filter: Filter<T> | LogicalFilter<T>): string {
         // eslint-disable-next-line no-prototype-builtins
-        return filter.hasOwnProperty('logicalOperator') ? Utility._logicalFilterString(filter as LogicalFilter<any>) : JSON.stringify(this.filterJSON(filter as Filter<any>));
+        return filter.hasOwnProperty('logicalOperator') ? Utility._logicalFilterString(filter as LogicalFilter<any>) : this.objToJsonString(this.filterJSON(filter as Filter<any>), );
     },
 
-    filterJSON(filter: Filter<string | number | boolean>): object {
+    filterJSON(filter: Filter<string | number | boolean | bigint>): object {
         const obj = {};
         obj[filter.key] = filter.val;
         return obj;
     },
 
-    _logicalFilterString<T extends string | number | boolean>(filter: LogicalFilter<T>): string {
-        return JSON.stringify(this.logicalFilterJSON(filter));
+    _logicalFilterString<T extends string | number | boolean | bigint>(filter: LogicalFilter<T>): string {
+        return this.objToJsonString(this.logicalFilterJSON(filter));
     },
 
-    logicalFilterJSON(filter: LogicalFilter<string | number | boolean>): object {
+    logicalFilterJSON(filter: LogicalFilter<string | number | boolean | bigint>): object {
         const obj = {};
         const innerArray = [];
         obj[filter.logicalOperator] = innerArray;
@@ -416,12 +419,20 @@ export const Utility = {
                 obj[field] = false;
             }
         }
-        return JSON.stringify(obj);
+        return this.objToJsonString(obj);
     },
-    updateFieldsString(fields: UpdateFields<string | number | boolean>) {
+    updateFieldsString(fields: UpdateFields<string | number | boolean | bigint>) {
         const obj = {};
         obj[fields.operator] = fields.fields;
-        return JSON.stringify(obj);
+        return this.objToJsonString(obj);
+    },
+    objToJsonString(obj: object): string {
+        const JSONbigNative = json_bigint({ useNativeBigInt: true });
+        return JSONbigNative.stringify(obj)
+    },
+    jsonStringToObj<T>(json: string): T {
+        const JSONbigNative = json_bigint({ useNativeBigInt: true });
+        return JSONbigNative.parse(json);
     }
 };
 
