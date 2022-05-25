@@ -31,7 +31,7 @@ import {
     ReplaceResponse,
     RollbackTransactionRequest, RollbackTransactionResponse,
     StreamRequest, StreamResponse, UpdateRequest, UpdateResponse,
-    CollectionMetadata, CollectionDescription, ResponseMetadata
+    CollectionMetadata, CollectionDescription, ResponseMetadata, GetInfoRequest, GetInfoResponse
 } from '../proto/server/v1/api_pb';
 import {Filter, Utility} from "../tigris";
 import * as google_protobuf_timestamp_pb from "google-protobuf/google/protobuf/timestamp_pb";
@@ -167,17 +167,23 @@ export class TestTigrisService {
             }
         },
         // eslint-disable-next-line @typescript-eslint/no-empty-function
-        replace(call: ServerUnaryCall<ReplaceRequest, ReplaceResponse>, callback: sendUnaryData<ReplaceResponse>): void {},
+        replace(call: ServerUnaryCall<ReplaceRequest, ReplaceResponse>, callback: sendUnaryData<ReplaceResponse>): void {
+        },
         // eslint-disable-next-line @typescript-eslint/no-empty-function
-        rollbackTransaction(call: ServerUnaryCall<RollbackTransactionRequest, RollbackTransactionResponse>, callback: sendUnaryData<RollbackTransactionResponse>): void {},
+        rollbackTransaction(call: ServerUnaryCall<RollbackTransactionRequest, RollbackTransactionResponse>, callback: sendUnaryData<RollbackTransactionResponse>): void {
+        },
         // eslint-disable-next-line @typescript-eslint/no-empty-function
-        stream(call: ServerWritableStream<StreamRequest, StreamResponse>): void {},
+        stream(call: ServerWritableStream<StreamRequest, StreamResponse>): void {
+        },
         update(call: ServerUnaryCall<UpdateRequest, UpdateResponse>, callback: sendUnaryData<UpdateResponse>): void {
             const reply: UpdateResponse = new UpdateResponse();
             reply.setStatus("updated: " + Utility.uint8ArrayToString(call.request.getFilter_asU8()) + ', ' + Utility.uint8ArrayToString(call.request.getFields_asU8()));
             reply.setMetadata(new ResponseMetadata().setCreatedAt(new google_protobuf_timestamp_pb.Timestamp()).setUpdatedAt(new google_protobuf_timestamp_pb.Timestamp()))
             callback(undefined, reply)
-        }
+        },
+        getInfo(call: ServerUnaryCall<GetInfoRequest, GetInfoResponse>, callback: sendUnaryData<GetInfoResponse>): void {
+        },
+
     }
 }
 

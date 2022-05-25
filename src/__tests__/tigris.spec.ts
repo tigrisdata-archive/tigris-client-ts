@@ -40,7 +40,6 @@ describe('success tests', () => {
         server.forceShutdown();
     });
 
-
     it('listDatabase', () => {
         const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
         const listDbsPromise = tigris.listDatabases();
@@ -340,8 +339,24 @@ describe('success tests', () => {
         expect(Utility._logicalFilterString(logicalFilter)).toBe('{"$and":[{"name":"alice"},{"rank":1}]}');
     });
 
+    it('jsonSerDe', () => {
+        const user: IUser =
+            {
+                id: BigInt('9223372036854775807'),
+                name: 'Alice',
+                balance: 123
+            };
+        const userString = Utility.objToJsonString(user);
+        expect(userString).toBe('{"id":9223372036854775807,"name":"Alice","balance":123}');
+
+        const deserializedUser = Utility.jsonStringToObj<IUser>('{"id":9223372036854775807,"name":"Alice","balance":123}');
+        expect(deserializedUser.id).toBe(BigInt('9223372036854775807'))
+        expect(deserializedUser.name).toBe('Alice')
+        expect(deserializedUser.balance).toBe(123)
+    });
+
     it('nestedLogicalFilter1', () => {
-        const logicalFilter1: LogicalFilter<string | number | boolean> = {
+        const logicalFilter1: LogicalFilter<string | number | boolean | bigint> = {
             logicalOperator: LogicalOperator.AND,
             filters: [
                 {
@@ -354,7 +369,7 @@ describe('success tests', () => {
                 }
             ]
         }
-        const logicalFilter2: LogicalFilter<string | number | boolean> = {
+        const logicalFilter2: LogicalFilter<string | number | boolean | bigint | bigint> = {
             logicalOperator: LogicalOperator.AND,
             filters: [
                 {
@@ -367,7 +382,7 @@ describe('success tests', () => {
                 }
             ]
         }
-        const nestedLogicalFilter: LogicalFilter<string | number | boolean> = {
+        const nestedLogicalFilter: LogicalFilter<string | number | boolean | bigint | bigint> = {
             logicalOperator: LogicalOperator.OR,
             logicalFilters: [logicalFilter1, logicalFilter2]
         }
@@ -375,7 +390,7 @@ describe('success tests', () => {
     });
 
     it('nestedLogicalFilter2', () => {
-        const logicalFilter1: LogicalFilter<string | number | boolean> = {
+        const logicalFilter1: LogicalFilter<string | number | boolean | bigint | bigint> = {
             logicalOperator: LogicalOperator.OR,
             filters: [
                 {
@@ -388,7 +403,7 @@ describe('success tests', () => {
                 }
             ]
         }
-        const logicalFilter2: LogicalFilter<string | number | boolean> = {
+        const logicalFilter2: LogicalFilter<string | number | boolean | bigint | bigint> = {
             logicalOperator: LogicalOperator.OR,
             filters: [
                 {
@@ -401,7 +416,7 @@ describe('success tests', () => {
                 }
             ]
         }
-        const nestedLogicalFilter: LogicalFilter<string | number | boolean> = {
+        const nestedLogicalFilter: LogicalFilter<string | number | boolean | bigint | bigint> = {
             logicalOperator: LogicalOperator.AND,
             logicalFilters: [logicalFilter1, logicalFilter2]
         }
@@ -429,7 +444,7 @@ describe('success tests', () => {
     });
 
     it('updateFields', () => {
-        const updateFields: UpdateFields<string | number | boolean> = {
+        const updateFields: UpdateFields<string | number | boolean | bigint | bigint> = {
             operator: UpdateFieldsOperator.SET,
             fields: {
                 title: 'New Title',
@@ -447,4 +462,10 @@ export interface IBook extends TigrisCollectionType {
     title: string;
     author: string;
     tags?: string[];
+}
+
+export interface IUser extends TigrisCollectionType {
+    id: BigInt;
+    name: string;
+    balance: number;
 }

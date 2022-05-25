@@ -17,7 +17,6 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
       - run: npm run clean
-      - run: npm run update_api
       - run: npm run build
       - run: npm run lint
       - run: npm run test
