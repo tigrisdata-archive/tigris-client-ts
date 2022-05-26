@@ -285,6 +285,82 @@ describe('success tests', () => {
         });
     });
 
+    it('beginTx', () => {
+        const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
+        const db3 = tigris.getDatabase('db3');
+        const beginTxPromise = db3.beginTransaction()
+        beginTxPromise.then(value => {
+            expect(value.id).toBe('id-test');
+            expect(value.origin).toBe('origin-test');
+        })
+        return beginTxPromise;
+    });
+
+    it('commitTx', (done) => {
+        const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
+        const db3 = tigris.getDatabase('db3');
+        const beginTxPromise = db3.beginTransaction()
+        beginTxPromise.then(session => {
+            const commitTxResponse = session.commit()
+            commitTxResponse.then(value => {
+                expect(value.status).toBe('committed-test');
+                done();
+            })
+        })
+    });
+
+    it('rollbackTx', (done) => {
+        const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
+        const db3 = tigris.getDatabase('db3');
+        const beginTxPromise = db3.beginTransaction()
+        beginTxPromise.then(session => {
+            const rollbackTransactionResponsePromise = session.rollback()
+            rollbackTransactionResponsePromise.then(value => {
+                expect(value.status).toBe('rollback-test');
+                done();
+            })
+        })
+    });
+
+    it('transact', (done) => {
+        const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
+        const txDB = tigris.getDatabase('test-tx');
+        const books = txDB.getCollection<IBook>('books')
+        txDB.transact(tx => {
+            books.insert(
+                {
+                    id: 1,
+                    author: 'Alice',
+                    title: 'Some book title'
+                },
+                tx
+            ).then(value => {
+                books.readOne({
+                    key: 'id',
+                    val: 1
+                }, undefined, tx).then(value1 => {
+                    books.update({
+                            key: 'id',
+                            val: 1
+                        },
+                        {
+                            operator: UpdateFieldsOperator.SET,
+                            fields: {
+                                'author':
+                                    'Dr. Author'
+                            }
+                        }, tx).then(value2 => {
+                        books.delete({
+                            key: 'id',
+                            val: 1
+                        }, tx).then(value3 => done())
+                    })
+                })
+            })
+
+        });
+    });
+
     it('basicFilterTest', () => {
         const filter1: Filter<string> = {
             key: 'name',

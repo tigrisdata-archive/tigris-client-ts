@@ -176,6 +176,7 @@ export class InsertResponse extends DMLResponse {
     }
 
 }
+
 export class DeleteResponse extends DMLResponse {
 
     constructor(status: string, metadata: DMLMetadata) {
@@ -191,9 +192,28 @@ export class UpdateResponse extends DMLResponse {
     }
 
 }
+
 export class WriteOptions {}
+
 export class DeleteRequestOptions {}
+export class ReadRequestOptions {}
+
 export class UpdateRequestOptions {}
+
+export class TransactionOptions {}
+
+export class CommitTransactionResponse extends TigrisResponse {
+    constructor(status: string) {
+        super(status);
+    }
+}
+
+export class RollbackTransactionResponse extends TigrisResponse {
+
+    public constructor(status: string) {
+        super(status);
+    }
+}
 
 export class InsertOptions {
     private readonly _status: string;
