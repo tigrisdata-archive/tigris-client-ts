@@ -1,6 +1,6 @@
 import {TigrisClient} from './proto/server/v1/api_grpc_pb';
 import * as grpc from '@grpc/grpc-js';
-import {status} from '@grpc/grpc-js';
+import {Metadata, status} from '@grpc/grpc-js';
 import {
     CreateDatabaseRequest as ProtoCreateDatabaseRequest,
     DatabaseOptions as ProtoDatabaseOptions,
@@ -16,17 +16,37 @@ import {
     ReadResponse as ProtoReadResponse,
     ReadRequestOptions as ProtoReadRequestOptions,
     DeleteRequest as ProtoDeleteRequest,
-    UpdateRequest as ProtoUpdateRequest
+    UpdateRequest as ProtoUpdateRequest,
+    BeginTransactionRequest as ProtoBeginTransactionRequest,
+    CommitTransactionRequest as ProtoCommitTransactionRequest,
+    RollbackTransactionRequest as ProtoRollbackTransactionRequest,
+    TransactionCtx as ProtoTransactionCtx,
+    WriteOptions as ProtoWriteOptions,
+    DeleteRequestOptions as ProtoDeleteRequestOptions,
+    UpdateRequestOptions as ProtoUpdateRequestOptions,
+
 } from './proto/server/v1/api_pb';
 import {
     CollectionDescription,
     CollectionInfo,
     CollectionMetadata,
-    CollectionOptions, DatabaseDescription,
+    CollectionOptions,
+    CommitTransactionResponse,
+    DatabaseDescription,
     DatabaseInfo,
     DatabaseMetadata,
-    DatabaseOptions, DeleteRequestOptions, DeleteResponse, DMLMetadata, DropCollectionResponse,
-    DropDatabaseResponse, InsertOptions, InsertResponse, TigrisCollectionType, UpdateRequestOptions, UpdateResponse
+    DatabaseOptions,
+    DeleteRequestOptions,
+    DeleteResponse,
+    DMLMetadata,
+    DropCollectionResponse,
+    DropDatabaseResponse,
+    InsertOptions,
+    InsertResponse, RollbackTransactionResponse,
+    TigrisCollectionType,
+    TransactionOptions,
+    UpdateRequestOptions,
+    UpdateResponse
 } from "./types";
 
 import json_bigint from "json-bigint";
@@ -184,11 +204,114 @@ export class DB {
         return new Collection<T>(collectionName, this.db, this.grpcClient)
     }
 
+    public transact(fn: (tx: Session) => void) {
+        let sessionVar: Session;
+        this.beginTransaction().then(session => {
+            // tx started
+            sessionVar = session;
+            try {
+                // invoke user code
+                fn(session)
+                // user code successful
+                return session.commit()
+            } catch (error) {
+                // failed to run user code
+                // if session was already started, roll it back and throw error
+                sessionVar.rollback().finally(() => {
+                    throw error
+                })
+                // if session was not yet started, throw error
+                throw error
+            }
+        }).catch(error => {
+            // failed to begin transaction
+            if (sessionVar) {
+                sessionVar.rollback().finally(() => {
+                    throw error
+                });
+            } else {
+                throw error
+            }
+        })
+    }
+
+    public beginTransaction(options?: TransactionOptions): Promise<Session> {
+        return new Promise<Session>((resolve, reject) => {
+            const beginTxRequest = new ProtoBeginTransactionRequest()
+                .setDb(this._db)
+
+            this.grpcClient.beginTransaction(beginTxRequest, (error, response) => {
+                if (error) {
+                    reject(error);
+                } else {
+                    resolve(new Session(response.getTxCtx().getId(), response.getTxCtx().getOrigin(), this.grpcClient, this.db))
+                }
+            });
+        });
+    }
+
     get db(): string {
         return this._db;
     }
 }
 
+export class Session {
+    private readonly _id: string;
+    private readonly _origin: string;
+    private readonly grpcClient: TigrisClient;
+    private readonly db: string;
+
+    constructor(id, origin, grpcClient: TigrisClient, db: string) {
+        this._id = id;
+        this._origin = origin;
+        this.grpcClient = grpcClient;
+        this.db = db;
+    }
+
+    get id(): string {
+        return this._id;
+    }
+
+    get origin(): string {
+        return this._origin;
+    }
+
+    public commit(): Promise<CommitTransactionResponse> {
+        return new Promise<CommitTransactionResponse>((resolve, reject) => {
+            const txCtx = new ProtoTransactionCtx()
+                .setId(this.id)
+                .setOrigin(this.origin);
+            const request = new ProtoCommitTransactionRequest()
+                .setDb(this.db)
+                .setTxCtx(txCtx)
+            this.grpcClient.commitTransaction(request, (error, response) => {
+                if (error) {
+                    reject(error)
+                } else {
+                    resolve(new CommitTransactionResponse(response.getStatus()))
+                }
+            })
+        });
+    }
+
+    public rollback(): Promise<RollbackTransactionResponse> {
+        return new Promise<RollbackTransactionResponse>((resolve, reject) => {
+            const txCtx = new ProtoTransactionCtx()
+                .setId(this.id)
+                .setOrigin(this.origin);
+            const request = new ProtoRollbackTransactionRequest()
+                .setDb(this.db)
+                .setTxCtx(txCtx)
+            this.grpcClient.rollbackTransaction(request, (error, response) => {
+                if (error) {
+                    reject(error)
+                } else {
+                    resolve(new RollbackTransactionResponse(response.getStatus()))
+                }
+            })
+        });
+    }
+}
 
 /**
  * Tigris Collection
@@ -208,11 +331,10 @@ export class Collection<T extends TigrisCollectionType> {
         return this._collectionName;
     }
 
-    insertMany(options?: InsertOptions, ...docs: Array<T>): Promise<InsertResponse> {
+    insertMany(tx?: Session, options?: InsertOptions, ...docs: Array<T>): Promise<InsertResponse> {
         return new Promise<InsertResponse>((resolve, reject) => {
             const docsArray = new Array<Uint8Array | string>();
             for (const doc of docs) {
-                console.log(Utility.objToJsonString(doc))
                 docsArray.push(new TextEncoder().encode(Utility.objToJsonString(doc)));
             }
 
@@ -220,11 +342,22 @@ export class Collection<T extends TigrisCollectionType> {
                 .setDb(this._db)
                 .setCollection(this._collectionName)
                 .setDocumentsList(docsArray);
-            if (options) {
-                protoRequest.setOptions(new ProtoInsertRequestOptions().setWriteOptions())
+
+            if (tx) {
+                if (protoRequest.getOptions()) {
+                    if (protoRequest.getOptions().getWriteOptions()) {
+                        protoRequest.getOptions().getWriteOptions().setTxCtx(Utility.txApiToProto(tx))
+                    } else {
+                        protoRequest.getOptions().setWriteOptions(new ProtoWriteOptions().setTxCtx(Utility.txApiToProto(tx)))
+                    }
+                } else {
+                    protoRequest.setOptions(new ProtoInsertRequestOptions().setWriteOptions(new ProtoWriteOptions().setTxCtx(Utility.txApiToProto(tx))))
+                }
             }
+
             this._grpcClient.insert(
                 protoRequest,
+                Utility.txToMetadata(tx),
                 (error, response) => {
                     if (error) {
                         reject(error);
@@ -240,11 +373,11 @@ export class Collection<T extends TigrisCollectionType> {
         });
     }
 
-    insert(doc: T, options?: InsertOptions): Promise<InsertResponse> {
-        return this.insertMany(options, doc);
+    insert(doc: T, tx?: Session, options?: InsertOptions): Promise<InsertResponse> {
+        return this.insertMany(tx, options, doc);
     }
 
-    readOne(filter: Filter<string | number | boolean | bigint | bigint> | LogicalFilter<string | number | boolean | bigint | bigint>, readFields?: ReadFields): Promise<T | void> {
+    readOne(filter: Filter<string | number | boolean | bigint | bigint> | LogicalFilter<string | number | boolean | bigint | bigint>, readFields?: ReadFields, tx?: Session): Promise<T | void> {
         return new Promise<T | void>((resolve, reject) => {
             const readRequest = new ProtoReadRequest()
                 .setDb(this._db)
@@ -255,7 +388,10 @@ export class Collection<T extends TigrisCollectionType> {
             if (readFields) {
                 readRequest.setFields(Utility.stringToUint8Array(Utility.readFieldString(readFields)))
             }
-            const stream: grpc.ClientReadableStream<ProtoReadResponse> = this._grpcClient.read(readRequest);
+            if (tx) {
+                readRequest.setOptions(new ProtoReadRequestOptions().setTxCtx(Utility.txApiToProto(tx)))
+            }
+            const stream: grpc.ClientReadableStream<ProtoReadResponse> = this._grpcClient.read(readRequest, Utility.txToMetadata(tx));
             let doc: T;
             stream.on('data', (readResponse: ProtoReadResponse) => {
                 doc = JSON.parse(Buffer.from(readResponse.getData_asB64(), 'base64').toString('binary'));
@@ -270,7 +406,7 @@ export class Collection<T extends TigrisCollectionType> {
         });
     }
 
-    read(filter: Filter<string | number | boolean | bigint> | LogicalFilter<string | number | boolean | bigint>, reader: ReaderCallback<T>, readFields?: ReadFields) {
+    read(filter: Filter<string | number | boolean | bigint> | LogicalFilter<string | number | boolean | bigint>, reader: ReaderCallback<T>, readFields?: ReadFields, tx?: Session) {
         const readRequest = new ProtoReadRequest()
             .setDb(this._db)
             .setCollection(this._collectionName)
@@ -279,7 +415,10 @@ export class Collection<T extends TigrisCollectionType> {
         if (readFields) {
             readRequest.setFields(Utility.stringToUint8Array(Utility.readFieldString(readFields)))
         }
-        const stream: grpc.ClientReadableStream<ProtoReadResponse> = this._grpcClient.read(readRequest)
+        if (tx) {
+            readRequest.setOptions(new ProtoReadRequestOptions().setTxCtx(Utility.txApiToProto(tx)))
+        }
+        const stream: grpc.ClientReadableStream<ProtoReadResponse> = this._grpcClient.read(readRequest, Utility.txToMetadata(tx))
         stream.on('data', (readResponse: ProtoReadResponse) => {
             const doc: T = Utility.jsonStringToObj<T>(Buffer.from(readResponse.getData_asB64(), 'base64').toString('binary'));
             reader.onNext(doc);
@@ -289,43 +428,56 @@ export class Collection<T extends TigrisCollectionType> {
         stream.on('end', () => reader.onEnd())
     }
 
-    delete(filter: Filter<string | number | boolean | bigint> | LogicalFilter<string | number | boolean | bigint>, options?: DeleteRequestOptions): Promise<DeleteResponse> {
+    delete(filter: Filter<string | number | boolean | bigint> | LogicalFilter<string | number | boolean | bigint>, tx?: Session, options?: DeleteRequestOptions): Promise<DeleteResponse> {
         return new Promise<DeleteResponse>((resolve, reject) => {
             const deleteRequest = new ProtoDeleteRequest().setDb(this._db)
                 .setCollection(this._collectionName)
                 .setFilter(Utility.stringToUint8Array(Utility.filterString(filter)))
-            this._grpcClient.delete(deleteRequest, (error, response) => {
-                if (error) {
-                    reject(error);
-                } else {
-                    const metadata: DMLMetadata = new DMLMetadata(
-                        response.getMetadata().getCreatedAt(),
-                        response.getMetadata().getUpdatedAt()
-                    )
-                    resolve(new DeleteResponse(response.getStatus(), metadata))
-                }
-            });
+            if (tx) {
+                deleteRequest.setOptions(new ProtoDeleteRequestOptions().setWriteOptions(new ProtoWriteOptions().setTxCtx(Utility.txApiToProto(tx))))
+            }
+            this._grpcClient.delete(
+                deleteRequest,
+                Utility.txToMetadata(tx),
+                (error, response) => {
+                    if (error) {
+                        reject(error);
+                    } else {
+                        const metadata: DMLMetadata = new DMLMetadata(
+                            response.getMetadata().getCreatedAt(),
+                            response.getMetadata().getUpdatedAt()
+                        )
+                        resolve(new DeleteResponse(response.getStatus(), metadata))
+                    }
+                });
         });
     }
 
-    update(filter: Filter<string | number | boolean | bigint> | LogicalFilter<string | number | boolean | bigint>, fields: UpdateFields<string | number | boolean | bigint>, options?: UpdateRequestOptions): Promise<UpdateResponse> {
+    update(filter: Filter<string | number | boolean | bigint> | LogicalFilter<string | number | boolean | bigint>, fields: UpdateFields<string | number | boolean | bigint>, tx?: Session, options?: UpdateRequestOptions): Promise<UpdateResponse> {
         return new Promise<UpdateResponse>((resolve, reject) => {
             const updateRequest = new ProtoUpdateRequest()
                 .setDb(this._db)
                 .setCollection(this._collectionName)
                 .setFilter(Utility.stringToUint8Array(Utility.filterString(filter)))
                 .setFields(Utility.stringToUint8Array(Utility.updateFieldsString(fields)))
-            this._grpcClient.update(updateRequest, (error, response) => {
-                if (error) {
-                    reject(error);
-                } else {
-                    const metadata: DMLMetadata = new DMLMetadata(
-                        response.getMetadata().getCreatedAt(),
-                        response.getMetadata().getUpdatedAt()
-                    )
-                    resolve(new UpdateResponse(response.getStatus(), metadata))
-                }
-            });
+
+            if (tx) {
+                updateRequest.setOptions(new ProtoUpdateRequestOptions().setWriteOptions(new ProtoWriteOptions().setTxCtx(Utility.txApiToProto(tx))))
+            }
+            this._grpcClient.update(
+                updateRequest,
+                Utility.txToMetadata(tx),
+                (error, response) => {
+                    if (error) {
+                        reject(error);
+                    } else {
+                        const metadata: DMLMetadata = new DMLMetadata(
+                            response.getMetadata().getCreatedAt(),
+                            response.getMetadata().getUpdatedAt()
+                        )
+                        resolve(new UpdateResponse(response.getStatus(), metadata))
+                    }
+                });
         });
     }
 }
@@ -378,7 +530,7 @@ export const Utility = {
 
     filterString<T extends string | number | boolean | bigint>(filter: Filter<T> | LogicalFilter<T>): string {
         // eslint-disable-next-line no-prototype-builtins
-        return filter.hasOwnProperty('logicalOperator') ? Utility._logicalFilterString(filter as LogicalFilter<any>) : this.objToJsonString(this.filterJSON(filter as Filter<any>), );
+        return filter.hasOwnProperty('logicalOperator') ? Utility._logicalFilterString(filter as LogicalFilter<any>) : this.objToJsonString(this.filterJSON(filter as Filter<any>),);
     },
 
     filterJSON(filter: Filter<string | number | boolean | bigint>): object {
@@ -427,12 +579,23 @@ export const Utility = {
         return this.objToJsonString(obj);
     },
     objToJsonString(obj: object): string {
-        const JSONbigNative = json_bigint({ useNativeBigInt: true });
+        const JSONbigNative = json_bigint({useNativeBigInt: true});
         return JSONbigNative.stringify(obj)
     },
     jsonStringToObj<T>(json: string): T {
-        const JSONbigNative = json_bigint({ useNativeBigInt: true });
+        const JSONbigNative = json_bigint({useNativeBigInt: true});
         return JSONbigNative.parse(json);
+    },
+    txApiToProto(tx: Session): ProtoTransactionCtx {
+        return new ProtoTransactionCtx().setId(tx.id).setOrigin(tx.origin)
+    },
+    txToMetadata(tx: Session): Metadata {
+        const metadata = new Metadata();
+        if (tx) {
+            metadata.set('tx-id', tx.id)
+            metadata.set('tx-origin', tx.origin)
+        }
+        return metadata
     }
 };
 
