@@ -9,7 +9,7 @@
     "lint": "node ./node_modules/eslint/bin/eslint **/*.ts",
     "lint-fix": "node ./node_modules/eslint/bin/eslint --fix **/*.ts",
     "build": "npm install && npm run update_api && npm run protoc && tsc",
-    "test": "node ./node_modules/jest/bin/jest.js --runInBand",
+    "test": "jest --runInBand",
     "all": "npm run clean && npm run update_api && npm run protoc && npm run lint && npm run build"
   },
   "engines": {
@@ -27,16 +27,17 @@
     "eslint": "^8.15.0",
     "eslint-plugin-functional": "^4.2.1",
     "eslint-plugin-unicorn": "^42.0.0",
-    "grpc_tools_node_protoc_ts": "^5.3.2",
     "grpc-tools": "^1.11.2",
+    "uuid": "^8.3.2",
+    "grpc_tools_node_protoc_ts": "^5.3.2",
+    "jest": "^27.0.4",
+    "ts-jest": "^27.0.3",
     "tsutils": "^3.21.0",
-    "uuid": "^8.3.2"
+    "typescript": "^4.7.2"
   },
   "dependencies": {
     "@grpc/grpc-js": "^1.6.7",
     "google-protobuf": "^3.20.1",
-    "jest": "^27.0.4",
-    "json-bigint": "^1.0.0",
-    "ts-jest": "^27.0.3"
+    "json-bigint": "^1.0.0"
   }
 }
