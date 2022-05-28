@@ -1,17 +1,10 @@
-import {
-    Filter,
-    LogicalFilter,
-    LogicalOperator,
-    ReadFields,
-    Tigris,
-    UpdateFields,
-    UpdateFieldsOperator,
-    Utility
-} from '../tigris';
+
 import {Server, ServerCredentials} from '@grpc/grpc-js';
 import {TigrisService} from '../proto/server/v1/api_grpc_pb';
 import TestService, {TestTigrisService} from './test-service';
-import {DatabaseOptions, TigrisCollectionType} from "../types";
+import {DatabaseOptions, Filter, LogicalFilter, LogicalOperator, ReadFields, TigrisCollectionType, UpdateFields, UpdateFieldsOperator} from "../types";
+import { Tigris } from './../tigris';
+import { Utility } from './../utility';
 
 describe('success tests', () => {
     let server: Server;
@@ -362,19 +355,19 @@ describe('success tests', () => {
     });
 
     it('basicFilterTest', () => {
-        const filter1: Filter<string> = {
+        const filter1: Filter = {
             key: 'name',
             val: 'Alice'
         }
         expect(Utility.filterString(filter1)).toBe('{"name":"Alice"}');
 
-        const filter2: Filter<number> = {
+        const filter2: Filter = {
             key: 'id',
             val: 123
         }
         expect(Utility.filterString(filter2)).toBe('{"id":123}');
 
-        const filter3: Filter<boolean> = {
+        const filter3: Filter = {
             key: 'isActive',
             val: true
         }
@@ -382,7 +375,7 @@ describe('success tests', () => {
     });
 
     it('logicalFilterTestOr', () => {
-        const logicalFilter: LogicalFilter<string> = {
+        const logicalFilter: LogicalFilter = {
             logicalOperator: LogicalOperator.OR,
             filters: [
                 {
@@ -399,7 +392,7 @@ describe('success tests', () => {
     });
 
     it('logicalFilterTestAnd', () => {
-        const logicalFilter: LogicalFilter<string | number> = {
+        const logicalFilter: LogicalFilter = {
             logicalOperator: LogicalOperator.AND,
             filters: [
                 {
@@ -432,7 +425,7 @@ describe('success tests', () => {
     });
 
     it('nestedLogicalFilter1', () => {
-        const logicalFilter1: LogicalFilter<string | number | boolean | bigint> = {
+        const logicalFilter1: LogicalFilter = {
             logicalOperator: LogicalOperator.AND,
             filters: [
                 {
@@ -445,7 +438,7 @@ describe('success tests', () => {
                 }
             ]
         }
-        const logicalFilter2: LogicalFilter<string | number | boolean | bigint | bigint> = {
+        const logicalFilter2: LogicalFilter = {
             logicalOperator: LogicalOperator.AND,
             filters: [
                 {
@@ -458,7 +451,7 @@ describe('success tests', () => {
                 }
             ]
         }
-        const nestedLogicalFilter: LogicalFilter<string | number | boolean | bigint | bigint> = {
+        const nestedLogicalFilter: LogicalFilter = {
             logicalOperator: LogicalOperator.OR,
             logicalFilters: [logicalFilter1, logicalFilter2]
         }
@@ -466,7 +459,7 @@ describe('success tests', () => {
     });
 
     it('nestedLogicalFilter2', () => {
-        const logicalFilter1: LogicalFilter<string | number | boolean | bigint | bigint> = {
+        const logicalFilter1: LogicalFilter = {
             logicalOperator: LogicalOperator.OR,
             filters: [
                 {
@@ -479,7 +472,7 @@ describe('success tests', () => {
                 }
             ]
         }
-        const logicalFilter2: LogicalFilter<string | number | boolean | bigint | bigint> = {
+        const logicalFilter2: LogicalFilter = {
             logicalOperator: LogicalOperator.OR,
             filters: [
                 {
@@ -492,7 +485,7 @@ describe('success tests', () => {
                 }
             ]
         }
-        const nestedLogicalFilter: LogicalFilter<string | number | boolean | bigint | bigint> = {
+        const nestedLogicalFilter: LogicalFilter = {
             logicalOperator: LogicalOperator.AND,
             logicalFilters: [logicalFilter1, logicalFilter2]
         }
@@ -520,7 +513,7 @@ describe('success tests', () => {
     });
 
     it('updateFields', () => {
-        const updateFields: UpdateFields<string | number | boolean | bigint | bigint> = {
+        const updateFields: UpdateFields = {
             operator: UpdateFieldsOperator.SET,
             fields: {
                 title: 'New Title',
@@ -534,14 +527,14 @@ describe('success tests', () => {
 });
 
 export interface IBook extends TigrisCollectionType {
-    id: number;
-    title: string;
-    author: string;
-    tags?: string[];
+	id: number;
+	title: string;
+	author: string;
+	tags?: string[];
 }
 
 export interface IUser extends TigrisCollectionType {
-    id: BigInt;
-    name: string;
-    balance: number;
+	id: BigInt;
+	name: string;
+	balance: number;
 }

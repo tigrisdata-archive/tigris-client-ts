@@ -238,3 +238,43 @@ export class InsertOptions {
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface TigrisCollectionType {
 }
+
+export enum LogicalOperator {
+	AND = '$and',
+	OR = '$or',
+}
+
+export enum UpdateFieldsOperator {
+    SET = '$set',
+}
+
+export type FieldTypes = string | number | boolean | bigint;
+
+export type Filter = {
+	key: string;
+	val: FieldTypes;
+};
+
+export type Filters = Record<string, FieldTypes>;
+
+export type LogicalFilter = {
+	logicalOperator: LogicalOperator;
+	filters?: Array<Filter>;
+	logicalFilters?: Array<LogicalFilter>;
+};
+
+export type LogicalFilters = Record<string, Array<Filters | LogicalFilters>>;
+
+export type ReadFields = {
+    include?: Array<string>;
+    exclude?: Array<string>;
+}
+
+export type UpdateFields = {
+    operator: UpdateFieldsOperator,
+    fields: UpdateField
+}
+
+export type UpdateField = {
+    [key: string]: FieldTypes | undefined;
+}
