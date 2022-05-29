@@ -108,12 +108,12 @@ export class TestTigrisService {
 			reply.setStatus("created");
 			callback(undefined, reply);
 		},
-		// eslint-disable-next-line @typescript-eslint/no-empty-function
+		/* eslint-disable @typescript-eslint/no-empty-function */
 		createOrUpdateCollection(
 			call: ServerUnaryCall<CreateOrUpdateCollectionRequest, CreateOrUpdateCollectionResponse>,
 			callback: sendUnaryData<CreateOrUpdateCollectionResponse>
 		): void {},
-		// eslint-disable-next-line @typescript-eslint/no-empty-function
+		/* eslint-enable @typescript-eslint/no-empty-function */
 		delete(
 			call: ServerUnaryCall<DeleteRequest, DeleteResponse>,
 			callback: sendUnaryData<DeleteResponse>
@@ -135,12 +135,13 @@ export class TestTigrisService {
 			);
 			callback(undefined, reply);
 		},
-		// eslint-disable-next-line @typescript-eslint/no-empty-function
+		/* eslint-disable @typescript-eslint/no-empty-function */
 		describeCollection(
 			call: ServerUnaryCall<DescribeCollectionRequest, DescribeCollectionResponse>,
 			callback: sendUnaryData<DescribeCollectionResponse>
 		): void {},
-
+		/* eslint-enable @typescript-eslint/no-empty-function */
+		
 		describeDatabase(
 			call: ServerUnaryCall<DescribeDatabaseRequest, DescribeDatabaseResponse>,
 			callback: sendUnaryData<DescribeDatabaseResponse>
@@ -329,12 +330,11 @@ export class TestTigrisService {
 				call.end();
 			}
 		},
-		// eslint-disable-next-line @typescript-eslint/no-empty-function
+		/* eslint-disable @typescript-eslint/no-empty-function */
 		replace(
 			call: ServerUnaryCall<ReplaceRequest, ReplaceResponse>,
 			callback: sendUnaryData<ReplaceResponse>
 		): void {},
-		// eslint-disable-next-line @typescript-eslint/no-empty-function
 		rollbackTransaction(
 			call: ServerUnaryCall<RollbackTransactionRequest, RollbackTransactionResponse>,
 			callback: sendUnaryData<RollbackTransactionResponse>
@@ -343,8 +343,8 @@ export class TestTigrisService {
 			reply.setStatus("rollback-test");
 			callback(undefined, reply);
 		},
-		// eslint-disable-next-line @typescript-eslint/no-empty-function
 		stream(call: ServerWritableStream<StreamRequest, StreamResponse>): void {},
+		/* eslint-enable @typescript-eslint/no-empty-function */
 		update(
 			call: ServerUnaryCall<UpdateRequest, UpdateResponse>,
 			callback: sendUnaryData<UpdateResponse>
@@ -371,10 +371,12 @@ export class TestTigrisService {
 			);
 			callback(undefined, reply);
 		},
+		/* eslint-disable @typescript-eslint/no-empty-function */
 		getInfo(
 			call: ServerUnaryCall<GetInfoRequest, GetInfoResponse>,
 			callback: sendUnaryData<GetInfoResponse>
 		): void {},
+		/* eslint-enable @typescript-eslint/no-empty-function */
 	};
 }
 
