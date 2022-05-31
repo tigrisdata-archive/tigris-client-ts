@@ -110,7 +110,9 @@ export class TestTigrisService {
 		},
 		/* eslint-disable @typescript-eslint/no-empty-function */
 		createOrUpdateCollection(
+			// eslint-disable-next-line @typescript-eslint/no-unused-vars
 			call: ServerUnaryCall<CreateOrUpdateCollectionRequest, CreateOrUpdateCollectionResponse>,
+			// eslint-disable-next-line @typescript-eslint/no-unused-vars
 			callback: sendUnaryData<CreateOrUpdateCollectionResponse>
 		): void {},
 		/* eslint-enable @typescript-eslint/no-empty-function */
@@ -137,11 +139,13 @@ export class TestTigrisService {
 		},
 		/* eslint-disable @typescript-eslint/no-empty-function */
 		describeCollection(
+			// eslint-disable-next-line @typescript-eslint/no-unused-vars
 			call: ServerUnaryCall<DescribeCollectionRequest, DescribeCollectionResponse>,
+			// eslint-disable-next-line @typescript-eslint/no-unused-vars
 			callback: sendUnaryData<DescribeCollectionResponse>
 		): void {},
 		/* eslint-enable @typescript-eslint/no-empty-function */
-		
+
 		describeDatabase(
 			call: ServerUnaryCall<DescribeDatabaseRequest, DescribeDatabaseResponse>,
 			callback: sendUnaryData<DescribeDatabaseResponse>
@@ -332,7 +336,9 @@ export class TestTigrisService {
 		},
 		/* eslint-disable @typescript-eslint/no-empty-function */
 		replace(
+			// eslint-disable-next-line @typescript-eslint/no-unused-vars
 			call: ServerUnaryCall<ReplaceRequest, ReplaceResponse>,
+			// eslint-disable-next-line @typescript-eslint/no-unused-vars
 			callback: sendUnaryData<ReplaceResponse>
 		): void {},
 		rollbackTransaction(
@@ -343,6 +349,7 @@ export class TestTigrisService {
 			reply.setStatus("rollback-test");
 			callback(undefined, reply);
 		},
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		stream(call: ServerWritableStream<StreamRequest, StreamResponse>): void {},
 		/* eslint-enable @typescript-eslint/no-empty-function */
 		update(
@@ -373,7 +380,9 @@ export class TestTigrisService {
 		},
 		/* eslint-disable @typescript-eslint/no-empty-function */
 		getInfo(
+			// eslint-disable-next-line @typescript-eslint/no-unused-vars
 			call: ServerUnaryCall<GetInfoRequest, GetInfoResponse>,
+			// eslint-disable-next-line @typescript-eslint/no-unused-vars
 			callback: sendUnaryData<GetInfoResponse>
 		): void {},
 		/* eslint-enable @typescript-eslint/no-empty-function */

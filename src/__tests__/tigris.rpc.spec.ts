@@ -2,9 +2,8 @@
 import {Server, ServerCredentials} from '@grpc/grpc-js';
 import {TigrisService} from '../proto/server/v1/api_grpc_pb';
 import TestService, {TestTigrisService} from './test-service';
-import {DatabaseOptions, Filter, LogicalFilter, LogicalOperator, ReadFields, TigrisCollectionType, UpdateFields, UpdateFieldsOperator} from "../types";
+import {DatabaseOptions, LogicalOperator, TigrisCollectionType, UpdateFieldsOperator} from "../types";
 import { Tigris } from './../tigris';
-import { Utility } from './../utility';
 
 describe('success rpc tests', () => {
     let server: Server;
@@ -272,6 +271,7 @@ describe('success rpc tests', () => {
                 bookCounter++;
                 expect(book.author).toBe('Marcel Proust')
             },
+			// eslint-disable-next-line @typescript-eslint/no-unused-vars
             onError(error: Error) {
                 success = false;
             }
@@ -327,10 +327,12 @@ describe('success rpc tests', () => {
                     title: 'Some book title'
                 },
                 tx
+				// eslint-disable-next-line @typescript-eslint/no-unused-vars
             ).then(value => {
                 books.readOne({
                     key: 'id',
                     val: 1
+					// eslint-disable-next-line @typescript-eslint/no-unused-vars
                 }, undefined, tx).then(value1 => {
                     books.update({
                             key: 'id',
@@ -342,10 +344,12 @@ describe('success rpc tests', () => {
                                 'author':
                                     'Dr. Author'
                             }
+							// eslint-disable-next-line @typescript-eslint/no-unused-vars
                         }, tx).then(value2 => {
                         books.delete({
                             key: 'id',
                             val: 1
+							// eslint-disable-next-line @typescript-eslint/no-unused-vars
                         }, tx).then(value3 => done())
                     })
                 })
