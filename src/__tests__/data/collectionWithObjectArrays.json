@@ -1,0 +1,37 @@
+{
+  "title": "collectionWithObjectArrays",
+  "additionalProperties": false,
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "number"
+    },
+    "name": {
+      "type": "string"
+    },
+    "knownAddresses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "city": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "zipcode": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "primary_key": [
+    "_id"
+  ]
+}
