@@ -1,0 +1,37 @@
+{
+  "title": "basicCollection",
+  "additionalProperties": false,
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "number",
+      "autoGenerate": true
+    },
+    "name": {
+      "type": "string"
+    },
+    "uuid": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "int32Number": {
+      "type": "number",
+      "format": "int32"
+    },
+    "int64Number": {
+      "type": "number",
+      "format": "int64"
+    },
+    "date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "bytes": {
+      "type": "string",
+      "format": "byte"
+    }
+  },
+  "primary_key": [
+    "id"
+  ]
+}

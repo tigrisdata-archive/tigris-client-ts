@@ -1,0 +1,74 @@
+{
+  "title": "multiLevelPrimitiveArray",
+  "additionalProperties": false,
+  "type": "object",
+  "properties": {
+    "oneDArray": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "twoDArray": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "threeDArray": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "fourDArray": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "fiveDArray": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "primary_key": [
+    "_id"
+  ]
+}
