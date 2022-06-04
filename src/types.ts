@@ -244,26 +244,21 @@ export enum LogicalOperator {
 	OR = '$or',
 }
 
+export enum SelectorFilterOperator {
+	EQ = '$eq'
+}
+
 export enum UpdateFieldsOperator {
     SET = '$set',
 }
 
 export type FieldTypes = string | number | boolean | bigint;
 
-export type Filter = {
-	key: string;
-	val: FieldTypes;
+export type LogicalFilter<T> = {
+	op: LogicalOperator;
+	selectorFilters?: Array<SelectorFilter<T>>;
+	logicalFilters?: Array<LogicalFilter<T>>;
 };
-
-export type Filters = Record<string, FieldTypes>;
-
-export type LogicalFilter = {
-	logicalOperator: LogicalOperator;
-	filters?: Array<Filter>;
-	logicalFilters?: Array<LogicalFilter>;
-};
-
-export type LogicalFilters = Record<string, Array<Filters | LogicalFilters>>;
 
 export type ReadFields = {
     include?: Array<string>;
@@ -278,3 +273,52 @@ export type UpdateFields = {
 export type UpdateField = {
     [key: string]: FieldTypes | undefined;
 }
+/**
+Generates all possible paths for type parameter T. By recursively iterating over its keys. While
+ iterating the keys it makes the keys available in string form and in non string form both. For
+ example
+
+ interface IUser {
+  name: string;
+  id: number
+  address: Address;
+ }
+
+ interface Address {
+  city: string
+  state: string
+ }
+
+ and Paths<IUser> will make these keys available
+ name, id, address (object type) and also in the string form
+ "name", "id", "address.city", "address.state"
+
+ */
+type Paths<T, P extends string = ""> = {
+	[K in keyof T]: T[K] extends object
+		? T[K] extends any[]
+			? `${P}${K & string}`
+			: Paths<T[K], `${P}${K & string}.`> extends infer O
+				? `${O & string}` | `${P}${K & string}`
+				: never
+		: `${P}${K & string}`
+}[keyof T]
+
+/**
+ * This type helps to infer the type of the path that Paths (above) has generated.
+ */
+type PathType<T, P extends string> = P extends keyof T
+	? T[P]
+	: P extends `${infer L}.${infer R}`
+		? L extends keyof T
+			? PathType<T[L], R>
+			: never
+		: never
+
+type Selector<T> = Partial<{
+	[K in Paths<T>]: Partial<PathType<T, K & string>>
+}>
+export type SelectorFilter<T> = Partial<{
+	op?: SelectorFilterOperator,
+	fields: Selector<T>
+}>
