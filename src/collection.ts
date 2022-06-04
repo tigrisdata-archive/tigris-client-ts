@@ -17,7 +17,7 @@ import {
 	DeleteRequestOptions,
 	DeleteResponse,
 	DMLMetadata,
-	Filter,
+	SelectorFilter,
 	InsertOptions,
 	InsertResponse,
 	LogicalFilter,
@@ -99,7 +99,7 @@ export class Collection<T extends TigrisCollectionType> {
 	}
 
 	readOne(
-		filter: Filter | LogicalFilter,
+		filter: SelectorFilter<T> | LogicalFilter<T>,
 		readFields?: ReadFields,
 		tx?: Session
 	): Promise<T | void> {
@@ -108,7 +108,7 @@ export class Collection<T extends TigrisCollectionType> {
 				.setDb(this._db)
 				.setCollection(this._collectionName)
 				.setOptions(new ProtoReadRequestOptions().setLimit(1))
-				.setFilter(Utility.stringToUint8Array(Utility.filterString(filter)));
+				.setFilter(Utility.stringToUint8Array(Utility.filterToString(filter)));
 
 			if (readFields) {
 				readRequest.setFields(Utility.stringToUint8Array(Utility.readFieldString(readFields)));
@@ -139,7 +139,7 @@ export class Collection<T extends TigrisCollectionType> {
 	}
 
 	read(
-		filter: Filter | LogicalFilter,
+		filter: SelectorFilter<T> | LogicalFilter<T>,
 		reader: ReaderCallback<T>,
 		readFields?: ReadFields,
 		tx?: Session
@@ -147,7 +147,7 @@ export class Collection<T extends TigrisCollectionType> {
 		const readRequest = new ProtoReadRequest()
 			.setDb(this._db)
 			.setCollection(this._collectionName)
-			.setFilter(Utility.stringToUint8Array(Utility.filterString(filter)));
+			.setFilter(Utility.stringToUint8Array(Utility.filterToString(filter)));
 
 		if (readFields) {
 			readRequest.setFields(Utility.stringToUint8Array(Utility.readFieldString(readFields)));
@@ -174,7 +174,7 @@ export class Collection<T extends TigrisCollectionType> {
 	}
 
 	delete(
-		filter: Filter | LogicalFilter,
+		filter: SelectorFilter<T> | LogicalFilter<T>,
 		tx?: Session,
 		_options?: DeleteRequestOptions
 	): Promise<DeleteResponse> {
@@ -182,7 +182,7 @@ export class Collection<T extends TigrisCollectionType> {
 			const deleteRequest = new ProtoDeleteRequest()
 				.setDb(this._db)
 				.setCollection(this._collectionName)
-				.setFilter(Utility.stringToUint8Array(Utility.filterString(filter)));
+				.setFilter(Utility.stringToUint8Array(Utility.filterToString(filter)));
 
 			if (tx) {
 				deleteRequest.setOptions(
@@ -207,7 +207,7 @@ export class Collection<T extends TigrisCollectionType> {
 	}
 
 	update(
-		filter: Filter | LogicalFilter,
+		filter: SelectorFilter<T> | LogicalFilter<T>,
 		fields: UpdateFields,
 		tx?: Session,
 		_options?: UpdateRequestOptions
@@ -216,7 +216,7 @@ export class Collection<T extends TigrisCollectionType> {
 			const updateRequest = new ProtoUpdateRequest()
 				.setDb(this._db)
 				.setCollection(this._collectionName)
-				.setFilter(Utility.stringToUint8Array(Utility.filterString(filter)))
+				.setFilter(Utility.stringToUint8Array(Utility.filterToString(filter)))
 				.setFields(Utility.stringToUint8Array(Utility.updateFieldsString(fields)));
 
 			if (tx) {
