@@ -1,12 +1,9 @@
 import {
 	LogicalFilter,
 	LogicalOperator,
-	ReadFields,
 	SelectorFilter,
 	SelectorFilterOperator,
 	TigrisCollectionType,
-	UpdateFields,
-	UpdateFieldsOperator
 } from "../types";
 import {Utility} from '../utility';
 
@@ -200,54 +197,6 @@ describe('success tests', () => {
 			logicalFilters: [logicalFilter1, logicalFilter2]
 		}
 		expect(Utility._logicalFilterToString(nestedLogicalFilter)).toBe('{"$and":[{"$or":[{"name":"alice"},{"rank":1}]},{"$or":[{"name":"emma"},{"rank":1}]}]}');
-	});
-
-	it('readFields1', () => {
-		const readFields: ReadFields = {
-			include: ['id', 'title'],
-		};
-		expect(Utility.readFieldString(readFields)).toBe('{"id":true,"title":true}');
-	});
-	it('readFields2', () => {
-		const readFields: ReadFields = {
-			exclude: ['id', 'title'],
-		};
-		expect(Utility.readFieldString(readFields)).toBe('{"id":false,"title":false}');
-	});
-	it('readFields3', () => {
-		const readFields: ReadFields = {
-			include: ['id', 'title'],
-			exclude: ['author']
-		};
-		expect(Utility.readFieldString(readFields)).toBe('{"id":true,"title":true,"author":false}');
-	});
-
-	it('updateFields', () => {
-		const updateFields: UpdateFields = {
-			operator: UpdateFieldsOperator.SET,
-			fields: {
-				title: 'New Title',
-				price: 499,
-				active: true,
-			}
-		};
-		expect(Utility.updateFieldsString(updateFields)).toBe('{"$set":{"title":"New Title","price":499,"active":true}}');
-	});
-
-	it('jsonSerDe', () => {
-		const user: IUser =
-			{
-				id: BigInt('9223372036854775807'),
-				name: 'Alice',
-				balance: 123
-			};
-		const userString = Utility.objToJsonString(user);
-		expect(userString).toBe('{"id":9223372036854775807,"name":"Alice","balance":123}');
-
-		const deserializedUser = Utility.jsonStringToObj<IUser>('{"id":9223372036854775807,"name":"Alice","balance":123}');
-		expect(deserializedUser.id).toBe(BigInt('9223372036854775807'))
-		expect(deserializedUser.name).toBe('Alice')
-		expect(deserializedUser.balance).toBe(123)
 	});
 });
 
