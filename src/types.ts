@@ -197,15 +197,33 @@ export class UpdateResponse extends DMLResponse {
 
 }
 
-export class WriteOptions {}
+export class CreateOrUpdateCollectionsResponse extends TigrisResponse {
+	private readonly _message: string;
 
-export class DeleteRequestOptions {}
+	constructor(message: string, status: string) {
+		super(status)
+		this._message = message;
+	}
 
-export class ReadRequestOptions {}
+	get message(): string {
+		return this._message;
+	}
+}
 
-export class UpdateRequestOptions {}
+export class WriteOptions {
+}
 
-export class TransactionOptions {}
+export class DeleteRequestOptions {
+}
+
+export class ReadRequestOptions {
+}
+
+export class UpdateRequestOptions {
+}
+
+export class TransactionOptions {
+}
 
 export class CommitTransactionResponse extends TigrisResponse {
 	constructor(status: string) {
@@ -291,6 +309,10 @@ export enum TigrisDataTypes {
 	ARRAY = 'array'
 }
 
+export type CollectionSchemaDefinition<T> = {
+	collectionName: string;
+	schema: TigrisSchema<T>;
+}
 export type TigrisSchema<T> = {
 	[K in keyof T]: (
 		{

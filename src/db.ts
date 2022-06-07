@@ -1,23 +1,28 @@
-import { TigrisClient } from "./proto/server/v1/api_grpc_pb";
+import {TigrisClient} from "./proto/server/v1/api_grpc_pb";
 import {
 	CollectionDescription,
 	CollectionInfo,
 	CollectionMetadata,
 	CollectionOptions,
+	CreateOrUpdateCollectionsResponse,
 	DatabaseDescription,
 	DatabaseMetadata,
 	DropCollectionResponse,
+	TigrisCollectionType,
+	TigrisSchema,
 	TransactionOptions,
 } from "./types";
 import {
 	BeginTransactionRequest as ProtoBeginTransactionRequest,
-	ListCollectionsRequest as ProtoListCollectionsRequest,
 	CollectionOptions as ProtoCollectionOptions,
-	DropCollectionRequest as ProtoDropCollectionRequest,
+	CreateOrUpdateCollectionRequest as ProtoCreateOrUpdateCollectionRequest,
 	DescribeDatabaseRequest as ProtoDescribeDatabaseRequest,
+	DropCollectionRequest as ProtoDropCollectionRequest,
+	ListCollectionsRequest as ProtoListCollectionsRequest
 } from "./proto/server/v1/api_pb";
-import { Collection } from "./collection";
-import { Session } from "./session";
+import {Collection} from "./collection";
+import {Session} from "./session";
+import {Utility} from "./utility";
 
 /**
  * Tigris Database
@@ -29,6 +34,30 @@ export class DB {
 	constructor(db: string, grpcClient: TigrisClient) {
 		this._db = db;
 		this.grpcClient = grpcClient;
+	}
+
+	public createOrUpdateCollection<T extends TigrisCollectionType>(
+		collectionName: string, schema: TigrisSchema<T>): Promise<CreateOrUpdateCollectionsResponse> {
+		return new Promise<CreateOrUpdateCollectionsResponse>((resolve, reject) => {
+			const createOrUpdateCollectionRequest = new ProtoCreateOrUpdateCollectionRequest()
+				.setDb(this._db)
+				.setCollection(collectionName)
+				.setOnlyCreate(false)
+				.setSchema(Utility.stringToUint8Array(Utility._toJSONSchema(collectionName, schema)))
+
+			this.grpcClient.createOrUpdateCollection(
+				createOrUpdateCollectionRequest,
+				(error, response) => {
+					if (error) {
+						reject(error)
+						return;
+					}
+					resolve(new CreateOrUpdateCollectionsResponse(
+						'Collections created successfully',
+						Utility._toJSONSchema(collectionName, schema)
+					));
+				});
+		});
 	}
 
 	public listCollections(options?: CollectionOptions): Promise<Array<CollectionInfo>> {

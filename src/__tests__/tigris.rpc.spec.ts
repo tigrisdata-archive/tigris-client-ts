@@ -2,10 +2,13 @@ import {Server, ServerCredentials} from '@grpc/grpc-js';
 import {TigrisService} from '../proto/server/v1/api_grpc_pb';
 import TestService, {TestTigrisService} from './test-service';
 import {
+	CollectionSchemaDefinition,
 	DatabaseOptions,
 	LogicalOperator,
 	SelectorFilterOperator,
 	TigrisCollectionType,
+	TigrisDataTypes,
+	TigrisSchema,
 	UpdateFieldsOperator
 } from "../types";
 import {Tigris} from '../tigris';
@@ -381,6 +384,37 @@ describe('success rpc tests', () => {
 		});
 	});
 
+	it('createOrUpdateCollections', () => {
+		const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
+		const db3 = tigris.getDatabase('db3');
+		const bookSchema: TigrisSchema<IBook> = {
+			id: {
+				type: TigrisDataTypes.INT64,
+				primary_key: {
+					order: 1,
+					autoGenerate: true
+				}
+			},
+			author: {
+				type: TigrisDataTypes.STRING
+			},
+			title: {
+				type: TigrisDataTypes.STRING
+			},
+			tags: {
+				type: TigrisDataTypes.ARRAY,
+				items: {
+					type: TigrisDataTypes.STRING
+				}
+			}
+		}
+		return db3.createOrUpdateCollection('books', bookSchema).then(value => {
+			expect(value.message).toBe('Collections created successfully');
+			// for test mock service returning schema to validate the schema was properly
+			// constructed and seen by server
+			expect(value.status).toBe('{"title":"books","additionalProperties":false,"type":"object","properties":{"id":{"type":"number","format":"int64","autoGenerate":true},"author":{"type":"string"},"title":{"type":"string"},"tags":{"type":"array","items":{"type":"string"}}},"primary_key":["id"]}');
+		});
+	});
 });
 
 export interface IBook extends TigrisCollectionType {
