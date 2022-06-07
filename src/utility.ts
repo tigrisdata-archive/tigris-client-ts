@@ -96,8 +96,8 @@ export const Utility = {
 	txToMetadata(tx: Session): Metadata {
 		const metadata = new Metadata();
 		if (tx) {
-			metadata.set("tx-id", tx.id);
-			metadata.set("tx-origin", tx.origin);
+			metadata.set("Tigris-Tx-Id", tx.id);
+			metadata.set("Tigris-Tx-Origin", tx.origin);
 		}
 		return metadata;
 	},

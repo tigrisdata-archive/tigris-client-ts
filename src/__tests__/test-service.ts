@@ -114,15 +114,20 @@ export class TestTigrisService {
 			call: ServerUnaryCall<CreateOrUpdateCollectionRequest, CreateOrUpdateCollectionResponse>,
 			// eslint-disable-next-line @typescript-eslint/no-unused-vars
 			callback: sendUnaryData<CreateOrUpdateCollectionResponse>
-		): void {},
+		): void {
+			const reply: CreateOrUpdateCollectionResponse = new CreateOrUpdateCollectionResponse();
+			reply.setStatus('Collections created successfully');
+			reply.setStatus(call.request.getCollection())
+			callback(undefined, reply)
+		},
 		/* eslint-enable @typescript-eslint/no-empty-function */
 		delete(
 			call: ServerUnaryCall<DeleteRequest, DeleteResponse>,
 			callback: sendUnaryData<DeleteResponse>
 		): void {
 			if (call.request.getDb() === "test-tx") {
-				const txIdHeader = call.metadata.get("tx-id").toString();
-				const txOriginHeader = call.metadata.get("tx-origin").toString();
+				const txIdHeader = call.metadata.get("Tigris-Tx-Id").toString();
+				const txOriginHeader = call.metadata.get("Tigris-Tx-Origin").toString();
 				if (txIdHeader != TestTigrisService.txId || txOriginHeader != TestTigrisService.txOrigin) {
 					callback(new Error("transaction mismatch - delete"));
 					return;
@@ -201,8 +206,8 @@ export class TestTigrisService {
 			callback: sendUnaryData<InsertResponse>
 		): void {
 			if (call.request.getDb() === "test-tx") {
-				const txIdHeader = call.metadata.get("tx-id").toString();
-				const txOriginHeader = call.metadata.get("tx-origin").toString();
+				const txIdHeader = call.metadata.get("Tigris-Tx-Id").toString();
+				const txOriginHeader = call.metadata.get("Tigris-Tx-Origin").toString();
 				if (txIdHeader != TestTigrisService.txId || txOriginHeader != TestTigrisService.txOrigin) {
 					callback(new Error("transaction mismatch - insert"));
 					return;
@@ -258,8 +263,8 @@ export class TestTigrisService {
 		// eslint-disable-next-line @typescript-eslint/no-empty-function
 		read(call: ServerWritableStream<ReadRequest, ReadResponse>): void {
 			if (call.request.getDb() === "test-tx") {
-				const txIdHeader = call.metadata.get("tx-id").toString();
-				const txOriginHeader = call.metadata.get("tx-origin").toString();
+				const txIdHeader = call.metadata.get("Tigris-Tx-Id").toString();
+				const txOriginHeader = call.metadata.get("Tigris-Tx-Origin").toString();
 				if (txIdHeader != TestTigrisService.txId || txOriginHeader != TestTigrisService.txOrigin) {
 					// figure out error
 					// Server code.
@@ -357,8 +362,8 @@ export class TestTigrisService {
 			callback: sendUnaryData<UpdateResponse>
 		): void {
 			if (call.request.getDb() === "test-tx") {
-				const txIdHeader = call.metadata.get("tx-id").toString();
-				const txOriginHeader = call.metadata.get("tx-origin").toString();
+				const txIdHeader = call.metadata.get("Tigris-Tx-Id").toString();
+				const txOriginHeader = call.metadata.get("Tigris-Tx-Origin").toString();
 				if (txIdHeader != TestTigrisService.txId || txOriginHeader != TestTigrisService.txOrigin) {
 					callback(new Error("transaction mismatch - update"));
 					return;
