@@ -2,7 +2,6 @@ import {Server, ServerCredentials} from '@grpc/grpc-js';
 import {TigrisService} from '../proto/server/v1/api_grpc_pb';
 import TestService, {TestTigrisService} from './test-service';
 import {
-	CollectionSchemaDefinition,
 	DatabaseOptions,
 	LogicalOperator,
 	SelectorFilterOperator,
@@ -168,6 +167,22 @@ describe('success rpc tests', () => {
 			expect(value.status).toBe('inserted: "{\\"author\\":\\"author name\\",\\"id\\":0,\\"tags\\":[\\"science\\"],\\"title\\":\\"science book\\"}"');
 		})
 		return insertionPromise;
+	});
+
+	it('insertOrReplace', () => {
+		const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
+		const db1 = tigris.getDatabase('db3');
+		const insertOrReplacePromise = db1.getCollection<IBook>('books').insertOrReplace({
+			author: "author name",
+			id: 0,
+			tags: ['science'],
+			title: 'science book'
+		});
+		insertOrReplacePromise.then(value => {
+			expect(value.status).toBe('insertedOrReplaced: "{\\"author\\":\\"author' +
+				' name\\",\\"id\\":0,\\"tags\\":[\\"science\\"],\\"title\\":\\"science book\\"}"');
+		})
+		return insertOrReplacePromise;
 	});
 
 	it('delete', () => {
