@@ -181,6 +181,14 @@ export class InsertResponse extends DMLResponse {
 
 }
 
+export class InsertOrReplaceResponse extends DMLResponse {
+
+	constructor(status: string, metadata: DMLMetadata) {
+		super(status, metadata);
+	}
+
+}
+
 export class DeleteResponse extends DMLResponse {
 
 	constructor(status: string, metadata: DMLMetadata) {
@@ -238,23 +246,9 @@ export class RollbackTransactionResponse extends TigrisResponse {
 	}
 }
 
-export class InsertOptions {
-	private readonly _status: string;
-	private readonly _message: string;
+export class InsertOptions {}
 
-	constructor(status: string, message: string) {
-		this._status = status;
-		this._message = message;
-	}
-
-	get status(): string {
-		return this._status;
-	}
-
-	get message(): string {
-		return this._message;
-	}
-}
+export class InsertOrReplaceOptions {}
 
 
 // Marker interface
@@ -309,10 +303,6 @@ export enum TigrisDataTypes {
 	ARRAY = 'array'
 }
 
-export type CollectionSchemaDefinition<T> = {
-	collectionName: string;
-	schema: TigrisSchema<T>;
-}
 export type TigrisSchema<T> = {
 	[K in keyof T]: (
 		{

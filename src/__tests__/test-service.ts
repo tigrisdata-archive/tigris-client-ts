@@ -345,7 +345,27 @@ export class TestTigrisService {
 			call: ServerUnaryCall<ReplaceRequest, ReplaceResponse>,
 			// eslint-disable-next-line @typescript-eslint/no-unused-vars
 			callback: sendUnaryData<ReplaceResponse>
-		): void {},
+		): void {
+			if (call.request.getDb() === "test-tx") {
+				const txIdHeader = call.metadata.get("Tigris-Tx-Id").toString();
+				const txOriginHeader = call.metadata.get("Tigris-Tx-Origin").toString();
+				if (txIdHeader != TestTigrisService.txId || txOriginHeader != TestTigrisService.txOrigin) {
+					callback(new Error("transaction mismatch - insertOrReplace"));
+					return;
+				}
+			}
+			const reply: ReplaceResponse = new ReplaceResponse();
+			reply.setStatus(
+				"insertedOrReplaced: " +
+				JSON.stringify(new TextDecoder().decode(call.request.getDocumentsList_asU8()[0]))
+			);
+			reply.setMetadata(
+				new ResponseMetadata()
+					.setCreatedAt(new google_protobuf_timestamp_pb.Timestamp())
+					.setUpdatedAt(new google_protobuf_timestamp_pb.Timestamp())
+			);
+			callback(undefined, reply);
+		},
 		rollbackTransaction(
 			call: ServerUnaryCall<RollbackTransactionRequest, RollbackTransactionResponse>,
 			callback: sendUnaryData<RollbackTransactionResponse>

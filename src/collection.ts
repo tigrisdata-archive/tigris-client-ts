@@ -1,37 +1,42 @@
 import * as grpc from "@grpc/grpc-js";
-import { TigrisClient } from "./proto/server/v1/api_grpc_pb";
+import {TigrisClient} from "./proto/server/v1/api_grpc_pb";
 import {
+	DeleteRequest as ProtoDeleteRequest,
+	DeleteRequestOptions as ProtoDeleteRequestOptions,
 	InsertRequest as ProtoInsertRequest,
 	InsertRequestOptions as ProtoInsertRequestOptions,
 	ReadRequest as ProtoReadRequest,
-	ReadResponse as ProtoReadResponse,
 	ReadRequestOptions as ProtoReadRequestOptions,
-	DeleteRequest as ProtoDeleteRequest,
+	ReadResponse as ProtoReadResponse,
+	ReplaceRequest as ProtoReplaceRequest,
 	UpdateRequest as ProtoUpdateRequest,
-	WriteOptions as ProtoWriteOptions,
-	DeleteRequestOptions as ProtoDeleteRequestOptions,
 	UpdateRequestOptions as ProtoUpdateRequestOptions,
+	WriteOptions as ProtoWriteOptions
 } from "./proto/server/v1/api_pb";
-import { Session } from "./session";
+import {Session} from "./session";
 import {
 	DeleteRequestOptions,
 	DeleteResponse,
 	DMLMetadata,
-	SelectorFilter,
 	InsertOptions,
+	InsertOrReplaceOptions,
+	InsertOrReplaceResponse,
 	InsertResponse,
 	LogicalFilter,
 	ReadFields,
+	SelectorFilter,
 	TigrisCollectionType,
 	UpdateFields,
 	UpdateRequestOptions,
 	UpdateResponse,
 } from "./types";
-import { Utility } from "./utility";
+import {Utility} from "./utility";
 
 export interface ReaderCallback<T> {
 	onNext(doc: T): void;
+
 	onEnd(): void;
+
 	onError(error: Error): void;
 }
 
@@ -98,6 +103,50 @@ export class Collection<T extends TigrisCollectionType> {
 		return this.insertMany(tx, options, doc);
 	}
 
+	insertOrReplaceMany(tx?: Session, options?: InsertOrReplaceOptions, ...docs: Array<T>): Promise<InsertOrReplaceResponse> {
+		return new Promise<InsertOrReplaceResponse>((resolve, reject) => {
+			const docsArray = new Array<Uint8Array | string>();
+			for (const doc of docs) {
+				docsArray.push(new TextEncoder().encode(Utility.objToJsonString(doc)));
+			}
+			const protoRequest = new ProtoReplaceRequest()
+				.setDb(this._db)
+				.setCollection(this._collectionName)
+				.setDocumentsList(docsArray)
+
+			if (tx) {
+				if (protoRequest.getOptions()) {
+					if (protoRequest.getOptions().getWriteOptions()) {
+						protoRequest.getOptions().getWriteOptions().setTxCtx(Utility.txApiToProto(tx));
+					} else {
+						protoRequest
+							.getOptions()
+							.setWriteOptions(new ProtoWriteOptions().setTxCtx(Utility.txApiToProto(tx)));
+					}
+				} else {
+					protoRequest.setOptions(
+						new ProtoInsertRequestOptions().setWriteOptions(
+							new ProtoWriteOptions().setTxCtx(Utility.txApiToProto(tx))
+						)
+					);
+				}
+			}
+			this._grpcClient.replace(protoRequest, (error, response) => {
+				if (error) {
+					reject(error)
+				} else {
+					const metadata: DMLMetadata = new DMLMetadata(
+						response.getMetadata().getCreatedAt(),
+						response.getMetadata().getUpdatedAt()
+					);
+					resolve(new InsertOrReplaceResponse(response.getStatus(), metadata));
+				}
+			});
+		});
+	}
+	insertOrReplace(doc: T, tx?: Session, options?: InsertOptions): Promise<InsertResponse> {
+		return this.insertOrReplaceMany(tx, options, doc);
+	}
 	readOne(
 		filter: SelectorFilter<T> | LogicalFilter<T>,
 		readFields?: ReadFields,
