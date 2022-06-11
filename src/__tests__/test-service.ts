@@ -1,10 +1,12 @@
-import { ITigrisServer, TigrisService } from "../proto/server/v1/api_grpc_pb";
-import { sendUnaryData, ServerUnaryCall, ServerWritableStream } from "@grpc/grpc-js";
-import { v4 as uuidv4 } from "uuid";
+import {ITigrisServer, TigrisService} from "../proto/server/v1/api_grpc_pb";
+import {sendUnaryData, ServerUnaryCall, ServerWritableStream} from "@grpc/grpc-js";
+import {v4 as uuidv4} from "uuid";
 import {
 	BeginTransactionRequest,
 	BeginTransactionResponse,
+	CollectionDescription,
 	CollectionInfo,
+	CollectionMetadata,
 	CommitTransactionRequest,
 	CommitTransactionResponse,
 	CreateDatabaseRequest,
@@ -23,6 +25,8 @@ import {
 	DropCollectionResponse,
 	DropDatabaseRequest,
 	DropDatabaseResponse,
+	GetInfoRequest,
+	GetInfoResponse,
 	InsertRequest,
 	InsertResponse,
 	ListCollectionsRequest,
@@ -33,21 +37,17 @@ import {
 	ReadResponse,
 	ReplaceRequest,
 	ReplaceResponse,
+	ResponseMetadata,
 	RollbackTransactionRequest,
 	RollbackTransactionResponse,
 	StreamRequest,
 	StreamResponse,
+	TransactionCtx,
 	UpdateRequest,
 	UpdateResponse,
-	CollectionMetadata,
-	CollectionDescription,
-	ResponseMetadata,
-	GetInfoRequest,
-	GetInfoResponse,
-	TransactionCtx,
 } from "../proto/server/v1/api_pb";
 import * as google_protobuf_timestamp_pb from "google-protobuf/google/protobuf/timestamp_pb";
-import { Utility } from "./../utility";
+import {Utility} from "./../utility";
 
 export class TestTigrisService {
 	private static DBS: string[] = [];
@@ -214,9 +214,14 @@ export class TestTigrisService {
 				}
 			}
 			const reply: InsertResponse = new InsertResponse();
+			const keyList: Array<string> = [];
+			for (let i = 1; i <= call.request.getDocumentsList().length; i++) {
+				keyList.push(Utility._base64Encode('{"id":' + i + '}'));
+			}
+			reply.setKeysList(keyList)
 			reply.setStatus(
 				"inserted: " +
-					JSON.stringify(new TextDecoder().decode(call.request.getDocumentsList_asU8()[0]))
+				JSON.stringify(new TextDecoder().decode(call.request.getDocumentsList_asU8()[0]))
 			);
 			reply.setMetadata(
 				new ResponseMetadata()
@@ -355,6 +360,11 @@ export class TestTigrisService {
 				}
 			}
 			const reply: ReplaceResponse = new ReplaceResponse();
+			const keyList: Array<string> = [];
+			for (let i = 1; i <= call.request.getDocumentsList().length; i++) {
+				keyList.push(Utility._base64Encode('{"id":' + i + '}'));
+			}
+			reply.setKeysList(keyList);
 			reply.setStatus(
 				"insertedOrReplaced: " +
 				JSON.stringify(new TextDecoder().decode(call.request.getDocumentsList_asU8()[0]))
@@ -392,9 +402,9 @@ export class TestTigrisService {
 			const reply: UpdateResponse = new UpdateResponse();
 			reply.setStatus(
 				"updated: " +
-					Utility.uint8ArrayToString(call.request.getFilter_asU8()) +
-					", " +
-					Utility.uint8ArrayToString(call.request.getFields_asU8())
+				Utility.uint8ArrayToString(call.request.getFilter_asU8()) +
+				", " +
+				Utility.uint8ArrayToString(call.request.getFields_asU8())
 			);
 			reply.setMetadata(
 				new ResponseMetadata()

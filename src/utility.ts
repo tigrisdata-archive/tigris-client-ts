@@ -240,8 +240,9 @@ export const Utility = {
 		switch (fieldType.valueOf()) {
 			case TigrisDataTypes.INT32:
 			case TigrisDataTypes.INT64:
-			case TigrisDataTypes.NUMBER:
 			case TigrisDataTypes.NUMBER_BIGINT:
+				return 'integer';
+			case TigrisDataTypes.NUMBER:
 				return 'number';
 			case TigrisDataTypes.STRING:
 			case TigrisDataTypes.UUID:
@@ -270,5 +271,11 @@ export const Utility = {
 
 	_readTestDataFile(path: string): string {
 		return Utility.objToJsonString(Utility.jsonStringToObj(fs.readFileSync('src/__tests__/data/'+path, 'utf8')));
+	},
+	_base64Encode(input: string): string {
+		return Buffer.from(input).toString("base64");
+	},
+	_base64Decode(b64String: string): string {
+		return Buffer.from(b64String).toString("binary");
 	},
 };

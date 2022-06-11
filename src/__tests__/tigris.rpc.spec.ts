@@ -163,9 +163,9 @@ describe('success rpc tests', () => {
 			tags: ['science'],
 			title: 'science book'
 		});
-		insertionPromise.then(value => {
-			expect(value.status).toBe('inserted: "{\\"author\\":\\"author name\\",\\"id\\":0,\\"tags\\":[\\"science\\"],\\"title\\":\\"science book\\"}"');
-		})
+		insertionPromise.then(insertedBook => {
+			expect(insertedBook.id).toBe(1)
+		});
 		return insertionPromise;
 	});
 
@@ -178,9 +178,8 @@ describe('success rpc tests', () => {
 			tags: ['science'],
 			title: 'science book'
 		});
-		insertOrReplacePromise.then(value => {
-			expect(value.status).toBe('insertedOrReplaced: "{\\"author\\":\\"author' +
-				' name\\",\\"id\\":0,\\"tags\\":[\\"science\\"],\\"title\\":\\"science book\\"}"');
+		insertOrReplacePromise.then(insertedOrReplacedBook => {
+			expect(insertedOrReplacedBook.id).toBe(1)
 		})
 		return insertOrReplacePromise;
 	});
@@ -427,7 +426,7 @@ describe('success rpc tests', () => {
 			expect(value.message).toBe('Collections created successfully');
 			// for test mock service returning schema to validate the schema was properly
 			// constructed and seen by server
-			expect(value.status).toBe('{"title":"books","additionalProperties":false,"type":"object","properties":{"id":{"type":"number","format":"int64","autoGenerate":true},"author":{"type":"string"},"title":{"type":"string"},"tags":{"type":"array","items":{"type":"string"}}},"primary_key":["id"]}');
+			expect(value.status).toBe('{"title":"books","additionalProperties":false,"type":"object","properties":{"id":{"type":"integer","format":"int64","autoGenerate":true},"author":{"type":"string"},"title":{"type":"string"},"tags":{"type":"array","items":{"type":"string"}}},"primary_key":["id"]}');
 		});
 	});
 });

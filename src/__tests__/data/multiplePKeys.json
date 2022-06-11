@@ -4,7 +4,8 @@
   "type": "object",
   "properties": {
     "id": {
-      "type": "number"
+      "type": "integer",
+      "format": "int64"
     },
     "name": {
       "type": "string"
@@ -15,11 +16,11 @@
       "autoGenerate": true
     },
     "int32Number": {
-      "type": "number",
+      "type": "integer",
       "format": "int32"
     },
     "int64Number": {
-      "type": "number",
+      "type": "integer",
       "format": "int64"
     },
     "date": {

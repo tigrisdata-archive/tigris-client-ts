@@ -6,7 +6,7 @@ describe('schema tests', () => {
 	it('basicCollection', () => {
 		const schema: TigrisSchema<BasicCollection> = {
 			id: {
-				type: TigrisDataTypes.NUMBER,
+				type: TigrisDataTypes.INT32,
 				primary_key: {
 					order: 1,
 					autoGenerate: true
@@ -38,7 +38,7 @@ describe('schema tests', () => {
 	it('multiplePKeys', () => {
 		const schema: TigrisSchema<BasicCollection> = {
 			id: {
-				type: TigrisDataTypes.NUMBER,
+				type: TigrisDataTypes.INT64,
 				primary_key: {
 					order: 2, // intentionally the order is skewed to test
 				}

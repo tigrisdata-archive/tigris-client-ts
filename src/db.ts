@@ -39,11 +39,13 @@ export class DB {
 	public createOrUpdateCollection<T extends TigrisCollectionType>(
 		collectionName: string, schema: TigrisSchema<T>): Promise<CreateOrUpdateCollectionsResponse> {
 		return new Promise<CreateOrUpdateCollectionsResponse>((resolve, reject) => {
+			const rawJSONSchema: string = Utility._toJSONSchema(collectionName, schema);
+			console.log(rawJSONSchema)
 			const createOrUpdateCollectionRequest = new ProtoCreateOrUpdateCollectionRequest()
 				.setDb(this._db)
 				.setCollection(collectionName)
 				.setOnlyCreate(false)
-				.setSchema(Utility.stringToUint8Array(Utility._toJSONSchema(collectionName, schema)))
+				.setSchema(Utility.stringToUint8Array(rawJSONSchema))
 
 			this.grpcClient.createOrUpdateCollection(
 				createOrUpdateCollectionRequest,
