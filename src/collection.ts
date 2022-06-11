@@ -20,8 +20,6 @@ import {
 	DMLMetadata,
 	InsertOptions,
 	InsertOrReplaceOptions,
-	InsertOrReplaceResponse,
-	InsertResponse,
 	LogicalFilter,
 	ReadFields,
 	SelectorFilter,
@@ -55,8 +53,8 @@ export class Collection<T extends TigrisCollectionType> {
 		return this._collectionName;
 	}
 
-	insertMany(tx?: Session, _options?: InsertOptions, ...docs: Array<T>): Promise<InsertResponse> {
-		return new Promise<InsertResponse>((resolve, reject) => {
+	insertMany(tx?: Session, _options?: InsertOptions, ...docs: Array<T>): Promise<Array<T>> {
+		return new Promise<Array<T>>((resolve, reject) => {
 			const docsArray = new Array<Uint8Array | string>();
 			for (const doc of docs) {
 				docsArray.push(new TextEncoder().encode(Utility.objToJsonString(doc)));
@@ -89,22 +87,34 @@ export class Collection<T extends TigrisCollectionType> {
 				if (error) {
 					reject(error);
 				} else {
-					const metadata: DMLMetadata = new DMLMetadata(
-						response.getMetadata().getCreatedAt(),
-						response.getMetadata().getUpdatedAt()
-					);
-					resolve(new InsertResponse(response.getStatus(), metadata));
+					let docIndex = 0;
+					const clonedDocs: T[] = Object.assign([], docs);
+
+					for (const value of response.getKeysList_asU8()) {
+						const keyValueJsonObj: object = Utility.jsonStringToObj(Utility.uint8ArrayToString(value));
+						for (const fieldName of Object.keys(keyValueJsonObj)) {
+							Reflect.set(clonedDocs[docIndex], fieldName, keyValueJsonObj[fieldName])
+							docIndex++;
+						}
+					}
+					resolve(clonedDocs);
 				}
 			});
 		});
 	}
 
-	insert(doc: T, tx?: Session, options?: InsertOptions): Promise<InsertResponse> {
-		return this.insertMany(tx, options, doc);
+	insert(doc: T, tx?: Session, options?: InsertOptions): Promise<T> {
+		return new Promise<T>((resolve, reject) => {
+			this.insertMany(tx, options, doc).then(docs => {
+				resolve(docs[0])
+			}).catch(error => {
+				reject(error);
+			});
+		});
 	}
 
-	insertOrReplaceMany(tx?: Session, options?: InsertOrReplaceOptions, ...docs: Array<T>): Promise<InsertOrReplaceResponse> {
-		return new Promise<InsertOrReplaceResponse>((resolve, reject) => {
+	insertOrReplaceMany(tx?: Session, options?: InsertOrReplaceOptions, ...docs: Array<T>): Promise<Array<T>> {
+		return new Promise<Array<T>>((resolve, reject) => {
 			const docsArray = new Array<Uint8Array | string>();
 			for (const doc of docs) {
 				docsArray.push(new TextEncoder().encode(Utility.objToJsonString(doc)));
@@ -135,18 +145,29 @@ export class Collection<T extends TigrisCollectionType> {
 				if (error) {
 					reject(error)
 				} else {
-					const metadata: DMLMetadata = new DMLMetadata(
-						response.getMetadata().getCreatedAt(),
-						response.getMetadata().getUpdatedAt()
-					);
-					resolve(new InsertOrReplaceResponse(response.getStatus(), metadata));
+					let docIndex = 0;
+					const clonedDocs: T[] = Object.assign([], docs);
+					for (const value of response.getKeysList_asU8()) {
+						const keyValueJsonObj: object = Utility.jsonStringToObj(Utility.uint8ArrayToString(value));
+						for (const fieldName of Object.keys(keyValueJsonObj)) {
+							Reflect.set(clonedDocs[docIndex], fieldName, keyValueJsonObj[fieldName])
+							docIndex++;
+						}
+					}
+					resolve(clonedDocs);
 				}
 			});
 		});
 	}
-	insertOrReplace(doc: T, tx?: Session, options?: InsertOptions): Promise<InsertResponse> {
-		return this.insertOrReplaceMany(tx, options, doc);
+
+	insertOrReplace(doc: T, tx?: Session, options?: InsertOptions): Promise<T> {
+		return new Promise<T>((resolve, reject) => {
+			this.insertOrReplaceMany(tx, options, doc)
+				.then(docs => resolve(docs[0]))
+				.catch(error => reject(error))
+		});
 	}
+
 	readOne(
 		filter: SelectorFilter<T> | LogicalFilter<T>,
 		readFields?: ReadFields,
