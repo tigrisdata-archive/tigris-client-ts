@@ -209,6 +209,33 @@ export class DeleteRequestOptions {
 }
 
 export class ReadRequestOptions {
+	private _limit: number;
+	private _skip: number;
+	private _offset: string;
+
+	get limit(): number {
+		return this._limit;
+	}
+
+	set limit(value: number) {
+		this._limit = value;
+	}
+
+	get skip(): number {
+		return this._skip;
+	}
+
+	set skip(value: number) {
+		this._skip = value;
+	}
+
+	get offset(): string {
+		return this._offset;
+	}
+
+	set offset(value: string) {
+		this._offset = value;
+	}
 }
 
 export class UpdateRequestOptions {
@@ -230,10 +257,24 @@ export class RollbackTransactionResponse extends TigrisResponse {
 	}
 }
 
-export class InsertOptions {}
+export class InsertOptions {
+}
 
-export class InsertOrReplaceOptions {}
+export class InsertOrReplaceOptions {
+}
 
+export class ServerMetadata {
+	private readonly _serverVersion: string
+
+	constructor(serverVersion: string) {
+		this._serverVersion = serverVersion;
+	}
+
+
+	get serverVersion(): string {
+		return this._serverVersion;
+	}
+}
 
 // Marker interface
 // eslint-disable-next-line @typescript-eslint/no-empty-interface

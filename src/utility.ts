@@ -273,9 +273,9 @@ export const Utility = {
 		return Utility.objToJsonString(Utility.jsonStringToObj(fs.readFileSync('src/__tests__/data/'+path, 'utf8')));
 	},
 	_base64Encode(input: string): string {
-		return Buffer.from(input).toString("base64");
+		return Buffer.from(input, 'binary').toString('base64');
 	},
 	_base64Decode(b64String: string): string {
-		return Buffer.from(b64String).toString("binary");
+		return Buffer.from(b64String, 'base64').toString('binary');
 	},
 };
