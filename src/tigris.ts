@@ -1,15 +1,22 @@
-import { TigrisClient } from "./proto/server/v1/api_grpc_pb";
+import {TigrisClient} from "./proto/server/v1/api_grpc_pb";
 import * as grpc from "@grpc/grpc-js";
-import { status } from "@grpc/grpc-js";
+import {status} from "@grpc/grpc-js";
 import {
 	CreateDatabaseRequest as ProtoCreateDatabaseRequest,
 	DatabaseOptions as ProtoDatabaseOptions,
 	DropDatabaseRequest as ProtoDropDatabaseRequest,
-	ListDatabasesRequest as ProtoListDatabasesRequest,
+	GetInfoRequest as ProtoGetInfoRequest,
+	ListDatabasesRequest as ProtoListDatabasesRequest
 } from "./proto/server/v1/api_pb";
-import { DatabaseInfo, DatabaseMetadata, DatabaseOptions, DropDatabaseResponse } from "./types";
+import {
+	DatabaseInfo,
+	DatabaseMetadata,
+	DatabaseOptions,
+	DropDatabaseResponse,
+	ServerMetadata
+} from "./types";
 
-import { DB } from "./db";
+import {DB} from "./db";
 
 export interface TigrisClientConfig {
 	serverUrl: string;
@@ -86,9 +93,21 @@ export class Tigris {
 	public getDatabase(db: string): DB {
 		return new DB(db, this.grpcClient);
 	}
+
+	public getServerMetadata(): Promise<ServerMetadata> {
+		return new Promise<ServerMetadata>((resolve, reject) => {
+			this.grpcClient.getInfo(new ProtoGetInfoRequest(), (error, response) => {
+				if (error) {
+					reject(error);
+				} else {
+					resolve(new ServerMetadata(response.getServerVersion()));
+				}
+			})
+		});
+	}
 }
 
 /**
- * Default instance of the Tigrisclient
+ * Default instance of the Tigris client
  */
-export default new Tigris({ serverUrl: `${process.env.TIGRIS_SERVER_URL}` });
+export default new Tigris({serverUrl: `${process.env.TIGRIS_SERVER_URL}`});

@@ -9,6 +9,7 @@ import {
 	ReadRequestOptions as ProtoReadRequestOptions,
 	ReadResponse as ProtoReadResponse,
 	ReplaceRequest as ProtoReplaceRequest,
+	ReplaceRequestOptions as ProtoReplaceRequestOptions,
 	UpdateRequest as ProtoUpdateRequest,
 	UpdateRequestOptions as ProtoUpdateRequestOptions,
 	WriteOptions as ProtoWriteOptions
@@ -22,6 +23,7 @@ import {
 	InsertOrReplaceOptions,
 	LogicalFilter,
 	ReadFields,
+	ReadRequestOptions,
 	SelectorFilter,
 	TigrisCollectionType,
 	UpdateFields,
@@ -135,7 +137,7 @@ export class Collection<T extends TigrisCollectionType> {
 					}
 				} else {
 					protoRequest.setOptions(
-						new ProtoInsertRequestOptions().setWriteOptions(
+						new ProtoReplaceRequestOptions().setWriteOptions(
 							new ProtoWriteOptions().setTxCtx(Utility.txApiToProto(tx))
 						)
 					);
@@ -185,7 +187,7 @@ export class Collection<T extends TigrisCollectionType> {
 			}
 
 			if (tx) {
-				readRequest.setOptions(new ProtoReadRequestOptions().setTxCtx(Utility.txApiToProto(tx)));
+				readRequest.getOptions().setTxCtx(Utility.txApiToProto(tx));
 			}
 
 			const stream: grpc.ClientReadableStream<ProtoReadResponse> = this._grpcClient.read(
@@ -194,9 +196,7 @@ export class Collection<T extends TigrisCollectionType> {
 			);
 
 			stream.on("data", (readResponse: ProtoReadResponse) => {
-				const doc = JSON.parse(
-					Buffer.from(readResponse.getData_asB64(), "base64").toString("binary")
-				);
+				const doc = JSON.parse(Utility._base64Decode(readResponse.getData_asB64()));
 				resolve(doc);
 			});
 
@@ -212,7 +212,8 @@ export class Collection<T extends TigrisCollectionType> {
 		filter: SelectorFilter<T> | LogicalFilter<T>,
 		reader: ReaderCallback<T>,
 		readFields?: ReadFields,
-		tx?: Session
+		tx?: Session,
+		options?: ReadRequestOptions
 	) {
 		const readRequest = new ProtoReadRequest()
 			.setDb(this._db)
@@ -227,15 +228,31 @@ export class Collection<T extends TigrisCollectionType> {
 			readRequest.setOptions(new ProtoReadRequestOptions().setTxCtx(Utility.txApiToProto(tx)));
 		}
 
+		if (options) {
+			if (!readRequest.getOptions()) {
+				readRequest.setOptions(new ProtoReadRequestOptions());
+			}
+
+			if (options.skip) {
+				readRequest.getOptions().setSkip(options.skip);
+			}
+
+			if (options.limit) {
+				readRequest.getOptions().setLimit(options.limit);
+			}
+
+			if (options.offset) {
+				readRequest.getOptions().setOffset(Utility.stringToUint8Array(options.offset))
+			}
+		}
+
 		const stream: grpc.ClientReadableStream<ProtoReadResponse> = this._grpcClient.read(
 			readRequest,
 			Utility.txToMetadata(tx)
 		);
 
 		stream.on("data", (readResponse: ProtoReadResponse) => {
-			const doc: T = Utility.jsonStringToObj<T>(
-				Buffer.from(readResponse.getData_asB64(), "base64").toString("binary")
-			);
+			const doc: T = Utility.jsonStringToObj<T>(Utility._base64Decode(readResponse.getData_asB64()));
 			reader.onNext(doc);
 		});
 

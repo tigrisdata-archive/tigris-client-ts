@@ -419,7 +419,11 @@ export class TestTigrisService {
 			call: ServerUnaryCall<GetInfoRequest, GetInfoResponse>,
 			// eslint-disable-next-line @typescript-eslint/no-unused-vars
 			callback: sendUnaryData<GetInfoResponse>
-		): void {},
+		): void {
+			const reply: GetInfoResponse = new GetInfoResponse();
+			reply.setServerVersion('1.0.0-test-service');
+			callback(undefined, reply);
+		},
 		/* eslint-enable @typescript-eslint/no-empty-function */
 	};
 }

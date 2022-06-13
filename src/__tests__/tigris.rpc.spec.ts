@@ -4,7 +4,7 @@ import TestService, {TestTigrisService} from './test-service';
 import {
 	DatabaseOptions,
 	LogicalOperator,
-	SelectorFilterOperator,
+	SelectorFilterOperator, ServerMetadata,
 	TigrisCollectionType,
 	TigrisDataTypes,
 	TigrisSchema,
@@ -428,6 +428,15 @@ describe('success rpc tests', () => {
 			// constructed and seen by server
 			expect(value.status).toBe('{"title":"books","additionalProperties":false,"type":"object","properties":{"id":{"type":"integer","format":"int64","autoGenerate":true},"author":{"type":"string"},"title":{"type":"string"},"tags":{"type":"array","items":{"type":"string"}}},"primary_key":["id"]}');
 		});
+	});
+
+	it('serverMetadata', () => {
+		const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
+		const serverMetadataPromise = tigris.getServerMetadata();
+		serverMetadataPromise.then(value => {
+			expect(value.serverVersion).toBe('1.0.0-test-service');
+		})
+		return serverMetadataPromise;
 	});
 });
 
