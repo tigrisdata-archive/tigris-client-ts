@@ -4,7 +4,7 @@ import TestService, {TestTigrisService} from './test-service';
 import {
 	DatabaseOptions,
 	LogicalOperator,
-	SelectorFilterOperator, ServerMetadata,
+	SelectorFilterOperator,
 	TigrisCollectionType,
 	TigrisDataTypes,
 	TigrisSchema,
@@ -25,7 +25,7 @@ describe('success rpc tests', () => {
 			ServerCredentials.createInsecure(),
 			(err: Error | null) => {
 				if (err) {
-					console.log(err)
+					console.log(err);
 				} else {
 					server.start();
 				}
@@ -83,7 +83,7 @@ describe('success rpc tests', () => {
 	it('getDatabase', () => {
 		const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
 		const db1 = tigris.getDatabase('db1');
-		expect(db1.db).toBe('db1')
+		expect(db1.db).toBe('db1');
 	});
 
 	it('listCollections1', () => {
@@ -98,7 +98,7 @@ describe('success rpc tests', () => {
 			expect(value[2].name).toBe('db1_coll_3');
 			expect(value[3].name).toBe('db1_coll_4');
 			expect(value[4].name).toBe('db1_coll_5');
-		})
+		});
 		return listCollectionPromise;
 	});
 
@@ -114,7 +114,7 @@ describe('success rpc tests', () => {
 			expect(value[2].name).toBe('db3_coll_3');
 			expect(value[3].name).toBe('db3_coll_4');
 			expect(value[4].name).toBe('db3_coll_5');
-		})
+		});
 		return listCollectionPromise;
 	});
 
@@ -124,14 +124,14 @@ describe('success rpc tests', () => {
 
 		const databaseDescriptionPromise = db1.describe();
 		databaseDescriptionPromise.then(value => {
-			expect(value.db).toBe('db3')
-			expect(value.collectionsDescription.length).toBe(5)
+			expect(value.db).toBe('db3');
+			expect(value.collectionsDescription.length).toBe(5);
 			expect(value.collectionsDescription[0].collection).toBe('db3_coll_1');
 			expect(value.collectionsDescription[1].collection).toBe('db3_coll_2');
 			expect(value.collectionsDescription[2].collection).toBe('db3_coll_3');
 			expect(value.collectionsDescription[3].collection).toBe('db3_coll_4');
 			expect(value.collectionsDescription[4].collection).toBe('db3_coll_5');
-		})
+		});
 		return databaseDescriptionPromise;
 	});
 
@@ -143,7 +143,7 @@ describe('success rpc tests', () => {
 		dropCollectionPromise.then(value => {
 			expect(value.status).toBe('dropped');
 			expect(value.message).toBe('db3_coll_2 dropped successfully');
-		})
+		});
 		return dropCollectionPromise;
 	});
 
@@ -164,7 +164,7 @@ describe('success rpc tests', () => {
 			title: 'science book'
 		});
 		insertionPromise.then(insertedBook => {
-			expect(insertedBook.id).toBe(1)
+			expect(insertedBook.id).toBe(1);
 		});
 		return insertionPromise;
 	});
@@ -179,8 +179,8 @@ describe('success rpc tests', () => {
 			title: 'science book'
 		});
 		insertOrReplacePromise.then(insertedOrReplacedBook => {
-			expect(insertedOrReplacedBook.id).toBe(1)
-		})
+			expect(insertedOrReplacedBook.id).toBe(1);
+		});
 		return insertOrReplacePromise;
 	});
 
@@ -195,7 +195,7 @@ describe('success rpc tests', () => {
 		});
 		deletionPromise.then(value => {
 			expect(value.status).toBe('deleted: {"id":1}');
-		})
+		});
 		return deletionPromise;
 	});
 
@@ -217,7 +217,7 @@ describe('success rpc tests', () => {
 			});
 		updatePromise.then(value => {
 			expect(value.status).toBe('updated: {"id":1}, {"$set":{"title":"New Title"}}');
-		})
+		});
 		return updatePromise;
 	});
 
@@ -234,9 +234,9 @@ describe('success rpc tests', () => {
 			const book: IBook = <IBook>value;
 			expect(book.id).toBe(1);
 			expect(book.title).toBe('A Passage to India');
-			expect(book.author).toBe('E.M. Forster')
-			expect(book.tags).toStrictEqual(["Novel", "India"])
-		})
+			expect(book.author).toBe('E.M. Forster');
+			expect(book.tags).toStrictEqual(["Novel", "India"]);
+		});
 		return readOnePromise;
 	});
 
@@ -251,7 +251,7 @@ describe('success rpc tests', () => {
 		});
 		readOnePromise.then((value) => {
 			expect(value).toBe(undefined);
-		})
+		});
 		return readOnePromise;
 	});
 
@@ -279,9 +279,9 @@ describe('success rpc tests', () => {
 			const book: IBook = <IBook>value;
 			expect(book.id).toBe(3);
 			expect(book.title).toBe('In Search of Lost Time');
-			expect(book.author).toBe('Marcel Proust')
-			expect(book.tags).toStrictEqual(["Novel", "Childhood"])
-		})
+			expect(book.author).toBe('Marcel Proust');
+			expect(book.tags).toStrictEqual(["Novel", "Childhood"]);
+		});
 		return readOnePromise;
 	});
 
@@ -305,7 +305,7 @@ describe('success rpc tests', () => {
 			},
 			onNext(book: IBook) {
 				bookCounter++;
-				expect(book.author).toBe('Marcel Proust')
+				expect(book.author).toBe('Marcel Proust');
 			},
 			// eslint-disable-next-line @typescript-eslint/no-unused-vars
 			onError(error: Error) {
@@ -317,44 +317,44 @@ describe('success rpc tests', () => {
 	it('beginTx', () => {
 		const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
 		const db3 = tigris.getDatabase('db3');
-		const beginTxPromise = db3.beginTransaction()
+		const beginTxPromise = db3.beginTransaction();
 		beginTxPromise.then(value => {
 			expect(value.id).toBe('id-test');
 			expect(value.origin).toBe('origin-test');
-		})
+		});
 		return beginTxPromise;
 	});
 
 	it('commitTx', (done) => {
 		const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
 		const db3 = tigris.getDatabase('db3');
-		const beginTxPromise = db3.beginTransaction()
+		const beginTxPromise = db3.beginTransaction();
 		beginTxPromise.then(session => {
-			const commitTxResponse = session.commit()
+			const commitTxResponse = session.commit();
 			commitTxResponse.then(value => {
 				expect(value.status).toBe('committed-test');
 				done();
-			})
-		})
+			});
+		});
 	});
 
 	it('rollbackTx', (done) => {
 		const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
 		const db3 = tigris.getDatabase('db3');
-		const beginTxPromise = db3.beginTransaction()
+		const beginTxPromise = db3.beginTransaction();
 		beginTxPromise.then(session => {
-			const rollbackTransactionResponsePromise = session.rollback()
+			const rollbackTransactionResponsePromise = session.rollback();
 			rollbackTransactionResponsePromise.then(value => {
 				expect(value.status).toBe('rollback-test');
 				done();
-			})
-		})
+			});
+		});
 	});
 
 	it('transact', (done) => {
 		const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
 		const txDB = tigris.getDatabase('test-tx');
-		const books = txDB.getCollection<IBook>('books')
+		const books = txDB.getCollection<IBook>('books');
 		txDB.transact(tx => {
 			books.insert(
 				{
@@ -370,7 +370,7 @@ describe('success rpc tests', () => {
 					fields: {
 						id: 1
 					}
-				}, undefined, tx).then(value1 => {
+				}, undefined, tx).then(() => {
 					books.update({
 							op: SelectorFilterOperator.EQ,
 							fields: {
@@ -384,17 +384,16 @@ describe('success rpc tests', () => {
 									'Dr. Author'
 							}
 							// eslint-disable-next-line @typescript-eslint/no-unused-vars
-						}, tx).then(value2 => {
+						}, tx).then(() => {
 						books.delete({
 							op: SelectorFilterOperator.EQ,
 							fields: {
 								id: 1
 							}
-						}, tx).then(value3 => done())
-					})
-				})
-			})
-
+						}, tx).then(() => done());
+					});
+				});
+			});
 		});
 	});
 
@@ -421,7 +420,7 @@ describe('success rpc tests', () => {
 					type: TigrisDataTypes.STRING
 				}
 			}
-		}
+		};
 		return db3.createOrUpdateCollection('books', bookSchema).then(value => {
 			expect(value.message).toBe('Collections created successfully');
 			// for test mock service returning schema to validate the schema was properly
@@ -435,7 +434,7 @@ describe('success rpc tests', () => {
 		const serverMetadataPromise = tigris.getServerMetadata();
 		serverMetadataPromise.then(value => {
 			expect(value.serverVersion).toBe('1.0.0-test-service');
-		})
+		});
 		return serverMetadataPromise;
 	});
 });

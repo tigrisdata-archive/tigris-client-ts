@@ -30,7 +30,7 @@ describe('schema tests', () => {
 			bytes: {
 				type: TigrisDataTypes.BYTE_STRING
 			}
-		}
+		};
 		expect(Utility._toJSONSchema('basicCollection', schema))
 			.toBe(Utility._readTestDataFile('basicCollection.json'));
 	});
@@ -65,7 +65,7 @@ describe('schema tests', () => {
 			bytes: {
 				type: TigrisDataTypes.BYTE_STRING
 			}
-		}
+		};
 		expect(Utility._toJSONSchema('multiplePKeys', schema))
 			.toBe(Utility._readTestDataFile('multiplePKeys.json'));
 	});
@@ -81,7 +81,7 @@ describe('schema tests', () => {
 			zipcode: {
 				type: TigrisDataTypes.NUMBER
 			}
-		}
+		};
 		const schema: TigrisSchema<NestedCollection> = {
 			id: {
 				type: TigrisDataTypes.NUMBER
@@ -92,7 +92,7 @@ describe('schema tests', () => {
 			address: {
 				type: addressSchema
 			}
-		}
+		};
 		expect(Utility._toJSONSchema('nestedCollection', schema))
 			.toBe(Utility._readTestDataFile('nestedCollection.json'));
 	});
@@ -111,7 +111,7 @@ describe('schema tests', () => {
 					type: TigrisDataTypes.STRING
 				}
 			}
-		}
+		};
 		expect(Utility._toJSONSchema('collectionWithPrimitiveArrays', schema))
 			.toBe(Utility._readTestDataFile('collectionWithPrimitiveArrays.json'));
 	});
@@ -127,7 +127,7 @@ describe('schema tests', () => {
 			zipcode: {
 				type: TigrisDataTypes.NUMBER
 			}
-		}
+		};
 		const schema: TigrisSchema<CollectionWithObjectArrays> = {
 			id: {
 				type: TigrisDataTypes.NUMBER
@@ -141,7 +141,7 @@ describe('schema tests', () => {
 					type: addressSchema
 				}
 			}
-		}
+		};
 		expect(Utility._toJSONSchema('collectionWithObjectArrays', schema))
 			.toBe(Utility._readTestDataFile('collectionWithObjectArrays.json'));
 	});
@@ -208,7 +208,7 @@ describe('schema tests', () => {
 					}
 				}
 			}
-		}
+		};
 		expect(Utility._toJSONSchema('multiLevelPrimitiveArray', schema))
 			.toBe(Utility._readTestDataFile('multiLevelPrimitiveArray.json'));
 	});
@@ -224,7 +224,7 @@ describe('schema tests', () => {
 			zipcode: {
 				type: TigrisDataTypes.NUMBER
 			}
-		}
+		};
 		const schema: TigrisSchema<MultiLevelObjectArray> = {
 			oneDArray: {
 				type: TigrisDataTypes.ARRAY,
@@ -286,7 +286,7 @@ describe('schema tests', () => {
 					}
 				}
 			}
-		}
+		};
 		expect(Utility._toJSONSchema('multiLevelObjectArray', schema))
 			.toBe(Utility._readTestDataFile('multiLevelObjectArray.json'));
 	});

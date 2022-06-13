@@ -15,7 +15,7 @@ describe('success tests', () => {
 			fields: {
 				name: 'Alice'
 			}
-		}
+		};
 		expect(Utility._selectorFilterToString(filter1)).toBe('{"name":"Alice"}');
 
 		const filter2: SelectorFilter<IUser> = {
@@ -23,7 +23,7 @@ describe('success tests', () => {
 			fields: {
 				id: BigInt(123)
 			}
-		}
+		};
 		expect(Utility._selectorFilterToString(filter2)).toBe('{"id":123}');
 
 		const filter3: SelectorFilter<IUser1> = {
@@ -31,7 +31,7 @@ describe('success tests', () => {
 			fields: {
 				isActive: true
 			}
-		}
+		};
 		expect(Utility._selectorFilterToString(filter3)).toBe('{"isActive":true}');
 	});
 
@@ -42,7 +42,7 @@ describe('success tests', () => {
 				id: BigInt(1),
 				name: 'alice',
 			}
-		}
+		};
 		expect(Utility._selectorFilterToString(tigrisFilter)).toBe('{"id":1,"name":"alice"}');
 	});
 
@@ -54,7 +54,7 @@ describe('success tests', () => {
 				name: 'alice',
 				balance: 12.34
 			}
-		}
+		};
 		expect(Utility._selectorFilterToString(tigrisFilter)).toBe('{"id":1,"name":"alice","balance":12.34}');
 	});
 
@@ -69,7 +69,7 @@ describe('success tests', () => {
 					city: 'San Francisco'
 				}
 			}
-		}
+		};
 		expect(Utility._selectorFilterToString(tigrisFilter)).toBe('{"id":1,"name":"alice","balance":12.34,"address.city":"San Francisco"}');
 	});
 
@@ -90,7 +90,7 @@ describe('success tests', () => {
 					}
 				}
 			]
-		}
+		};
 		expect(Utility._logicalFilterToString(logicalFilter)).toBe('{"$or":[{"name":"alice"},{"name":"emma"}]}');
 	});
 
@@ -111,7 +111,7 @@ describe('success tests', () => {
 					}
 				}
 			]
-		}
+		};
 		expect(Utility._logicalFilterToString(logicalFilter)).toBe('{"$and":[{"name":"alice"},{"rank":1}]}');
 	});
 
@@ -132,7 +132,7 @@ describe('success tests', () => {
 					}
 				}
 			]
-		}
+		};
 		const logicalFilter2: LogicalFilter<IUser2> = {
 			op: LogicalOperator.AND,
 			selectorFilters: [
@@ -149,11 +149,11 @@ describe('success tests', () => {
 					}
 				}
 			]
-		}
+		};
 		const nestedLogicalFilter: LogicalFilter<IUser2> = {
 			op: LogicalOperator.OR,
 			logicalFilters: [logicalFilter1, logicalFilter2]
-		}
+		};
 		expect(Utility._logicalFilterToString(nestedLogicalFilter)).toBe('{"$or":[{"$and":[{"name":"alice"},{"rank":1}]},{"$and":[{"name":"emma"},{"rank":1}]}]}');
 	});
 
@@ -174,7 +174,7 @@ describe('success tests', () => {
 					}
 				}
 			]
-		}
+		};
 		const logicalFilter2: LogicalFilter<IUser2> = {
 			op: LogicalOperator.OR,
 			selectorFilters: [
@@ -191,11 +191,11 @@ describe('success tests', () => {
 					}
 				}
 			]
-		}
+		};
 		const nestedLogicalFilter: LogicalFilter<IUser2> = {
 			op: LogicalOperator.AND,
 			logicalFilters: [logicalFilter1, logicalFilter2]
-		}
+		};
 		expect(Utility._logicalFilterToString(nestedLogicalFilter)).toBe('{"$and":[{"$or":[{"name":"alice"},{"rank":1}]},{"$or":[{"name":"emma"},{"rank":1}]}]}');
 	});
 });

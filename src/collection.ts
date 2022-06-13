@@ -286,8 +286,8 @@ export class Collection<T extends TigrisCollectionType> {
 					const metadata: DMLMetadata = new DMLMetadata(
 						response.getMetadata().getCreatedAt(),
 						response.getMetadata().getUpdatedAt()
-					);
-					resolve(new DeleteResponse(response.getStatus(), metadata));
+					)
+					resolve(new DeleteResponse(response.getStatus(), metadata))
 				}
 			});
 		});

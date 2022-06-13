@@ -117,8 +117,8 @@ export class TestTigrisService {
 		): void {
 			const reply: CreateOrUpdateCollectionResponse = new CreateOrUpdateCollectionResponse();
 			reply.setStatus('Collections created successfully');
-			reply.setStatus(call.request.getCollection())
-			callback(undefined, reply)
+			reply.setStatus(call.request.getCollection());
+			callback(undefined, reply);
 		},
 		/* eslint-enable @typescript-eslint/no-empty-function */
 		delete(
@@ -218,7 +218,7 @@ export class TestTigrisService {
 			for (let i = 1; i <= call.request.getDocumentsList().length; i++) {
 				keyList.push(Utility._base64Encode('{"id":' + i + '}'));
 			}
-			reply.setKeysList(keyList)
+			reply.setKeysList(keyList);
 			reply.setStatus(
 				"inserted: " +
 				JSON.stringify(new TextDecoder().decode(call.request.getDocumentsList_asU8()[0]))

@@ -16,9 +16,9 @@ describe('success tests', () => {
 		expect(userString).toBe('{"id":9223372036854775807,"name":"Alice","balance":123}');
 
 		const deserializedUser = Utility.jsonStringToObj<IUser>('{"id":9223372036854775807,"name":"Alice","balance":123}');
-		expect(deserializedUser.id).toBe(BigInt('9223372036854775807'))
-		expect(deserializedUser.name).toBe('Alice')
-		expect(deserializedUser.balance).toBe(123)
+		expect(deserializedUser.id).toBe(BigInt('9223372036854775807'));
+		expect(deserializedUser.name).toBe('Alice');
+		expect(deserializedUser.balance).toBe(123);
 	});
 });
 
