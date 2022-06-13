@@ -32,7 +32,7 @@
 		"copy_api": "copyfiles -u 2 \"./src/proto/**/*.{js,ts}\" \"./dist/proto\"",
 		"tsc": "tsc && npm run copy_api",
 		"build": "npm install && npm run update_api && npm run protoc && npm run tsc",
-		"test": "jest --runInBand",
+		"test": "jest --runInBand --coverage",
 		"all": "npm run clean && npm run update_api && npm run protoc && npm run lint && npm run build",
 		"prepare": "npm run update_api && npm run protoc && npm run tsc",
 		"prepublishOnly": "npm test && npm run lint",
