@@ -40,18 +40,18 @@ export class DB {
 		collectionName: string, schema: TigrisSchema<T>): Promise<CreateOrUpdateCollectionsResponse> {
 		return new Promise<CreateOrUpdateCollectionsResponse>((resolve, reject) => {
 			const rawJSONSchema: string = Utility._toJSONSchema(collectionName, schema);
-			console.log(rawJSONSchema)
+			console.log(rawJSONSchema);
 			const createOrUpdateCollectionRequest = new ProtoCreateOrUpdateCollectionRequest()
 				.setDb(this._db)
 				.setCollection(collectionName)
 				.setOnlyCreate(false)
-				.setSchema(Utility.stringToUint8Array(rawJSONSchema))
+				.setSchema(Utility.stringToUint8Array(rawJSONSchema));
 
 			this.grpcClient.createOrUpdateCollection(
 				createOrUpdateCollectionRequest,
 				(error, response) => {
 					if (error) {
-						reject(error)
+						reject(error);
 						return;
 					}
 					resolve(new CreateOrUpdateCollectionsResponse(
@@ -137,31 +137,18 @@ export class DB {
 	public transact(fn: (tx: Session) => void) {
 		let sessionVar: Session;
 		this.beginTransaction()
-			.then((session) => {
+			.then(async (session) => {
 				// tx started
 				sessionVar = session;
 				try {
 					// invoke user code
-					fn(session);
+					await fn(session);
 					// user code successful
-					return session.commit();
+					await session.commit();
 				} catch (error) {
 					// failed to run user code
-					// if session was already started, roll it back and throw error
-					sessionVar.rollback().finally(() => {
-						throw error;
-					});
-					// if session was not yet started, throw error
-					throw error;
-				}
-			})
-			.catch((error) => {
-				// failed to begin transaction
-				if (sessionVar) {
-					sessionVar.rollback().finally(() => {
-						throw error;
-					});
-				} else {
+					await session.rollback();
+					// pass error to user
 					throw error;
 				}
 			});

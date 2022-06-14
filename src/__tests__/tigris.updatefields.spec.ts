@@ -8,7 +8,7 @@ describe('success tests', () => {
 
 	it('updateFields', () => {
 		const updateFields: UpdateFields = {
-			operator: UpdateFieldsOperator.SET,
+			op: UpdateFieldsOperator.SET,
 			fields: {
 				title: 'New Title',
 				price: 499,
