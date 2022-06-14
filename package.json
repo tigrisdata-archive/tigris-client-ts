@@ -1,6 +1,6 @@
 {
 	"name": "@tigrisdata/core",
-	"version": "1.0.0-alpha.5",
+	"version": "1.0.0-alpha.6",
 	"description": "Tigris client for Typescript",
 	"author": "Tigris Data (https://www.tigrisdata.com/)",
 	"contributors": [
