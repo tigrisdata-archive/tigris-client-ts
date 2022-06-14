@@ -102,7 +102,7 @@ export class Tigris {
 				} else {
 					resolve(new ServerMetadata(response.getServerVersion()));
 				}
-			})
+			});
 		});
 	}
 }
