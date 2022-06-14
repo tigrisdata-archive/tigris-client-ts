@@ -370,7 +370,7 @@ describe('success rpc tests', () => {
 					fields: {
 						id: 1
 					}
-				}, undefined, tx).then(() => {
+				}, tx).then(() => {
 					books.update({
 							op: SelectorFilterOperator.EQ,
 							fields: {

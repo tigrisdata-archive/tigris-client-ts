@@ -95,7 +95,7 @@ export class Collection<T extends TigrisCollectionType> {
 					for (const value of response.getKeysList_asU8()) {
 						const keyValueJsonObj: object = Utility.jsonStringToObj(Utility.uint8ArrayToString(value));
 						for (const fieldName of Object.keys(keyValueJsonObj)) {
-							Reflect.set(clonedDocs[docIndex], fieldName, keyValueJsonObj[fieldName])
+							Reflect.set(clonedDocs[docIndex], fieldName, keyValueJsonObj[fieldName]);
 							docIndex++;
 						}
 					}
@@ -108,7 +108,7 @@ export class Collection<T extends TigrisCollectionType> {
 	insert(doc: T, tx?: Session, options?: InsertOptions): Promise<T> {
 		return new Promise<T>((resolve, reject) => {
 			this.insertMany(tx, options, doc).then(docs => {
-				resolve(docs[0])
+				resolve(docs[0]);
 			}).catch(error => {
 				reject(error);
 			});
@@ -124,7 +124,7 @@ export class Collection<T extends TigrisCollectionType> {
 			const protoRequest = new ProtoReplaceRequest()
 				.setDb(this._db)
 				.setCollection(this._collectionName)
-				.setDocumentsList(docsArray)
+				.setDocumentsList(docsArray);
 
 			if (tx) {
 				if (protoRequest.getOptions()) {
@@ -145,14 +145,14 @@ export class Collection<T extends TigrisCollectionType> {
 			}
 			this._grpcClient.replace(protoRequest, (error, response) => {
 				if (error) {
-					reject(error)
+					reject(error);
 				} else {
 					let docIndex = 0;
 					const clonedDocs: T[] = Object.assign([], docs);
 					for (const value of response.getKeysList_asU8()) {
 						const keyValueJsonObj: object = Utility.jsonStringToObj(Utility.uint8ArrayToString(value));
 						for (const fieldName of Object.keys(keyValueJsonObj)) {
-							Reflect.set(clonedDocs[docIndex], fieldName, keyValueJsonObj[fieldName])
+							Reflect.set(clonedDocs[docIndex], fieldName, keyValueJsonObj[fieldName]);
 							docIndex++;
 						}
 					}
@@ -166,14 +166,14 @@ export class Collection<T extends TigrisCollectionType> {
 		return new Promise<T>((resolve, reject) => {
 			this.insertOrReplaceMany(tx, options, doc)
 				.then(docs => resolve(docs[0]))
-				.catch(error => reject(error))
+				.catch(error => reject(error));
 		});
 	}
 
 	readOne(
 		filter: SelectorFilter<T> | LogicalFilter<T>,
+		tx?: Session,
 		readFields?: ReadFields,
-		tx?: Session
 	): Promise<T | void> {
 		return new Promise<T | void>((resolve, reject) => {
 			const readRequest = new ProtoReadRequest()
@@ -242,7 +242,7 @@ export class Collection<T extends TigrisCollectionType> {
 			}
 
 			if (options.offset) {
-				readRequest.getOptions().setOffset(Utility.stringToUint8Array(options.offset))
+				readRequest.getOptions().setOffset(Utility.stringToUint8Array(options.offset));
 			}
 		}
 
@@ -286,8 +286,8 @@ export class Collection<T extends TigrisCollectionType> {
 					const metadata: DMLMetadata = new DMLMetadata(
 						response.getMetadata().getCreatedAt(),
 						response.getMetadata().getUpdatedAt()
-					)
-					resolve(new DeleteResponse(response.getStatus(), metadata))
+					);
+					resolve(new DeleteResponse(response.getStatus(), metadata));
 				}
 			});
 		});
