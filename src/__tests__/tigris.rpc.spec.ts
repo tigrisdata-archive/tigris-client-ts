@@ -210,7 +210,7 @@ describe('success rpc tests', () => {
 				}
 			},
 			{
-				operator: UpdateFieldsOperator.SET,
+				op: UpdateFieldsOperator.SET,
 				fields: {
 					title: 'New Title'
 				}
@@ -378,7 +378,7 @@ describe('success rpc tests', () => {
 							}
 						},
 						{
-							operator: UpdateFieldsOperator.SET,
+							op: UpdateFieldsOperator.SET,
 							fields: {
 								'author':
 									'Dr. Author'

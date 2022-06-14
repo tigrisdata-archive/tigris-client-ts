@@ -43,7 +43,7 @@ export class Session {
 
 	public rollback(): Promise<RollbackTransactionResponse> {
 		return new Promise<RollbackTransactionResponse>((resolve, reject) => {
-			const txCtx = new ProtoTransactionCtx().setId(this.id).setOrigin(this.origin);
+			const txCtx = new ProtoTransactionCtx().setId(this._id).setOrigin(this._origin);
 			const request = new ProtoRollbackTransactionRequest().setDb(this.db).setTxCtx(txCtx);
 			this.grpcClient.rollbackTransaction(request, (error, response) => {
 				if (error) {

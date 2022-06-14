@@ -1,6 +1,6 @@
 export class DatabaseInfo {
-	private readonly _name: string
-	private readonly _metadata: DatabaseMetadata
+	private readonly _name: string;
+	private readonly _metadata: DatabaseMetadata;
 
 	constructor(name: string, metadata: DatabaseMetadata) {
 		this._name = name;
@@ -17,8 +17,8 @@ export class DatabaseInfo {
 }
 
 export class CollectionInfo {
-	private readonly _name: string
-	private readonly _metadata: CollectionMetadata
+	private readonly _name: string;
+	private readonly _metadata: CollectionMetadata;
 
 	constructor(name: string, metadata: CollectionMetadata) {
 		this._name = name;
@@ -34,17 +34,13 @@ export class CollectionInfo {
 	}
 }
 
-export class DatabaseMetadata {
-}
+export class DatabaseMetadata {}
 
-export class CollectionMetadata {
-}
+export class CollectionMetadata {}
 
-export class DatabaseOptions {
-}
+export class DatabaseOptions {}
 
-export class CollectionOptions {
-}
+export class CollectionOptions {}
 
 export class DropDatabaseResponse {
 	private readonly _status: string;
@@ -164,7 +160,7 @@ export class DMLResponse extends TigrisResponse {
 	private readonly _metadata: DMLMetadata;
 
 	constructor(status: string, metadata: DMLMetadata) {
-		super(status)
+		super(status);
 		this._metadata = metadata;
 	}
 
@@ -193,7 +189,7 @@ export class CreateOrUpdateCollectionsResponse extends TigrisResponse {
 	private readonly _message: string;
 
 	constructor(message: string, status: string) {
-		super(status)
+		super(status);
 		this._message = message;
 	}
 
@@ -202,11 +198,9 @@ export class CreateOrUpdateCollectionsResponse extends TigrisResponse {
 	}
 }
 
-export class WriteOptions {
-}
+export class WriteOptions {}
 
-export class DeleteRequestOptions {
-}
+export class DeleteRequestOptions {}
 
 export class ReadRequestOptions {
 	private _limit: number;
@@ -238,11 +232,9 @@ export class ReadRequestOptions {
 	}
 }
 
-export class UpdateRequestOptions {
-}
+export class UpdateRequestOptions {}
 
-export class TransactionOptions {
-}
+export class TransactionOptions {}
 
 export class CommitTransactionResponse extends TigrisResponse {
 	constructor(status: string) {
@@ -257,14 +249,12 @@ export class RollbackTransactionResponse extends TigrisResponse {
 	}
 }
 
-export class InsertOptions {
-}
+export class InsertOptions {}
 
-export class InsertOrReplaceOptions {
-}
+export class InsertOrReplaceOptions {}
 
 export class ServerMetadata {
-	private readonly _serverVersion: string
+	private readonly _serverVersion: string;
 
 	constructor(serverVersion: string) {
 		this._serverVersion = serverVersion;
@@ -305,16 +295,16 @@ export type LogicalFilter<T> = {
 export type ReadFields = {
 	include?: Array<string>;
 	exclude?: Array<string>;
-}
+};
 
 export type UpdateFields = {
-	operator: UpdateFieldsOperator,
+	op: UpdateFieldsOperator,
 	fields: UpdateField
-}
+};
 
 export type UpdateField = {
 	[key: string]: FieldTypes | undefined;
-}
+};
 
 export enum TigrisDataTypes {
 	STRING = 'string',
@@ -336,16 +326,18 @@ export type TigrisSchema<T> = {
 			items?: TigrisArrayItem
 		}
 		)
-}
+};
 
 export type TigrisArrayItem = {
 	type: TigrisDataTypes | TigrisSchema<any>
 	items?: TigrisArrayItem | TigrisDataTypes
-}
+};
+
 export type TigrisPrimaryKey = {
 	order: number,
 	autoGenerate?: boolean
-}
+};
+
 /**
 Generates all possible paths for type parameter T. By recursively iterating over its keys. While
  iterating the keys it makes the keys available in string form and in non string form both. For
@@ -375,7 +367,7 @@ type Paths<T, P extends string = ""> = {
 				? `${O & string}` | `${P}${K & string}`
 				: never
 		: `${P}${K & string}`
-}[keyof T]
+}[keyof T];
 
 /**
  * This type helps to infer the type of the path that Paths (above) has generated.
@@ -386,12 +378,13 @@ type PathType<T, P extends string> = P extends keyof T
 		? L extends keyof T
 			? PathType<T[L], R>
 			: never
-		: never
+		: never;
 
 type Selector<T> = Partial<{
 	[K in Paths<T>]: Partial<PathType<T, K & string>>
-}>
+}>;
+
 export type SelectorFilter<T> = Partial<{
 	op?: SelectorFilterOperator,
 	fields: Selector<T>
-}>
+}>;

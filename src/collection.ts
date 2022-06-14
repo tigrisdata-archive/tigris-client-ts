@@ -174,8 +174,8 @@ export class Collection<T extends TigrisCollectionType> {
 		filter: SelectorFilter<T> | LogicalFilter<T>,
 		tx?: Session,
 		readFields?: ReadFields,
-	): Promise<T | void> {
-		return new Promise<T | void>((resolve, reject) => {
+	): Promise<T | undefined> {
+		return new Promise<T>((resolve, reject) => {
 			const readRequest = new ProtoReadRequest()
 				.setDb(this._db)
 				.setCollection(this._collectionName)
@@ -203,7 +203,7 @@ export class Collection<T extends TigrisCollectionType> {
 			stream.on("error", reject);
 
 			stream.on("end", () => {
-				resolve();
+				resolve(undefined);
 			});
 		});
 	}
@@ -266,6 +266,9 @@ export class Collection<T extends TigrisCollectionType> {
 		_options?: DeleteRequestOptions
 	): Promise<DeleteResponse> {
 		return new Promise<DeleteResponse>((resolve, reject) => {
+			if(!filter){
+				reject(new Error('No filter specified'))
+			}
 			const deleteRequest = new ProtoDeleteRequest()
 				.setDb(this._db)
 				.setCollection(this._collectionName)
