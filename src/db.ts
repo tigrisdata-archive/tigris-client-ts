@@ -37,8 +37,8 @@ export class DB {
 	}
 
 	public createOrUpdateCollection<T extends TigrisCollectionType>(
-		collectionName: string, schema: TigrisSchema<T>): Promise<CreateOrUpdateCollectionsResponse> {
-		return new Promise<CreateOrUpdateCollectionsResponse>((resolve, reject) => {
+		collectionName: string, schema: TigrisSchema<T>): Promise<Collection<T>> {
+		return new Promise<Collection<T>>((resolve, reject) => {
 			const rawJSONSchema: string = Utility._toJSONSchema(collectionName, schema);
 			console.log(rawJSONSchema);
 			const createOrUpdateCollectionRequest = new ProtoCreateOrUpdateCollectionRequest()
@@ -54,10 +54,7 @@ export class DB {
 						reject(error);
 						return;
 					}
-					resolve(new CreateOrUpdateCollectionsResponse(
-						'Collections created successfully',
-						Utility._toJSONSchema(collectionName, schema)
-					));
+					resolve(new Collection(collectionName, this._db, this.grpcClient));
 				});
 		});
 	}
