@@ -24,6 +24,7 @@ import {
 	LogicalFilter,
 	ReadFields,
 	ReadRequestOptions,
+	Selector,
 	SelectorFilter,
 	TigrisCollectionType,
 	UpdateFields,
@@ -171,7 +172,7 @@ export class Collection<T extends TigrisCollectionType> {
 	}
 
 	readOne(
-		filter: SelectorFilter<T> | LogicalFilter<T>,
+		filter: SelectorFilter<T> | LogicalFilter<T> | Selector<T>,
 		tx?: Session,
 		readFields?: ReadFields,
 	): Promise<T | undefined> {
@@ -209,7 +210,7 @@ export class Collection<T extends TigrisCollectionType> {
 	}
 
 	read(
-		filter: SelectorFilter<T> | LogicalFilter<T>,
+		filter: SelectorFilter<T> | LogicalFilter<T> | Selector<T>,
 		reader: ReaderCallback<T>,
 		readFields?: ReadFields,
 		tx?: Session,
@@ -261,12 +262,12 @@ export class Collection<T extends TigrisCollectionType> {
 	}
 
 	delete(
-		filter: SelectorFilter<T> | LogicalFilter<T>,
+		filter: SelectorFilter<T> | LogicalFilter<T> | Selector<T>,
 		tx?: Session,
 		_options?: DeleteRequestOptions
 	): Promise<DeleteResponse> {
 		return new Promise<DeleteResponse>((resolve, reject) => {
-			if(!filter){
+			if (!filter) {
 				reject(new Error('No filter specified'))
 			}
 			const deleteRequest = new ProtoDeleteRequest()
@@ -297,7 +298,7 @@ export class Collection<T extends TigrisCollectionType> {
 	}
 
 	update(
-		filter: SelectorFilter<T> | LogicalFilter<T>,
+		filter: SelectorFilter<T> | LogicalFilter<T> | Selector<T>,
 		fields: UpdateFields,
 		tx?: Session,
 		_options?: UpdateRequestOptions

@@ -4,7 +4,7 @@ import {
 } from "../types";
 import {Utility} from '../utility';
 
-describe('success tests', () => {
+describe('updateFields tests', () => {
 
 	it('updateFields', () => {
 		const updateFields: UpdateFields = {

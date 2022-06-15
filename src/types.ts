@@ -385,7 +385,7 @@ type PathType<T, P extends string> = P extends keyof T
 			: never
 		: never;
 
-type Selector<T> = Partial<{
+export type Selector<T> = Partial<{
 	[K in Paths<T>]: Partial<PathType<T, K & string>>
 }>;
 
