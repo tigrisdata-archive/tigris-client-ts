@@ -3,7 +3,7 @@ import {
 } from "../types";
 import {Utility} from '../utility';
 
-describe('success tests', () => {
+describe('readFields tests', () => {
 	it('readFields1', () => {
 		const readFields: ReadFields = {
 			include: ['id', 'title'],

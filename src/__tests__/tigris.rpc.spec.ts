@@ -12,7 +12,7 @@ import {
 } from "../types";
 import {Tigris} from '../tigris';
 
-describe('success rpc tests', () => {
+describe('rpc tests', () => {
 	let server: Server;
 	const SERVER_PORT = 5002;
 	beforeAll(() => {
@@ -169,6 +169,23 @@ describe('success rpc tests', () => {
 		return insertionPromise;
 	});
 
+	it('insertWithOptionalField', () => {
+		const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
+		const db1 = tigris.getDatabase('db3');
+		const randomNumber: number = Math.floor(Math.random() * 100);
+		// pass the random number in author field. mock server reads author and sets as the
+		// primaryKey field.
+		const insertionPromise = db1.getCollection<IBook1>('books-with-optional-field').insert({
+			author: "" + randomNumber,
+			tags: ['science'],
+			title: 'science book'
+		});
+		insertionPromise.then(insertedBook => {
+			expect(insertedBook.id).toBe(randomNumber);
+		});
+		return insertionPromise;
+	});
+
 	it('insertOrReplace', () => {
 		const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
 		const db1 = tigris.getDatabase('db3');
@@ -180,6 +197,23 @@ describe('success rpc tests', () => {
 		});
 		insertOrReplacePromise.then(insertedOrReplacedBook => {
 			expect(insertedOrReplacedBook.id).toBe(1);
+		});
+		return insertOrReplacePromise;
+	});
+
+	it('insertOrReplaceWithOptionalField', () => {
+		const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
+		const db1 = tigris.getDatabase('db3');
+		const randomNumber: number = Math.floor(Math.random() * 100);
+		// pass the random number in author field. mock server reads author and sets as the
+		// primaryKey field.
+		const insertOrReplacePromise = db1.getCollection<IBook1>('books-with-optional-field').insertOrReplace({
+			author: "" + randomNumber,
+			tags: ['science'],
+			title: 'science book'
+		});
+		insertOrReplacePromise.then(insertedOrReplacedBook => {
+			expect(insertedOrReplacedBook.id).toBe(randomNumber);
 		});
 		return insertOrReplacePromise;
 	});
@@ -438,6 +472,13 @@ describe('success rpc tests', () => {
 
 export interface IBook extends TigrisCollectionType {
 	id: number;
+	title: string;
+	author: string;
+	tags?: string[];
+}
+
+export interface IBook1 extends TigrisCollectionType {
+	id?: number;
 	title: string;
 	author: string;
 	tags?: string[];

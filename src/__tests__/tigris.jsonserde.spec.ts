@@ -3,7 +3,7 @@ import {
 } from "../types";
 import {Utility} from '../utility';
 
-describe('success tests', () => {
+describe('JSON serde tests', () => {
 
 	it('jsonSerDe', () => {
 		const user: IUser =

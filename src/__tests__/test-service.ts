@@ -213,10 +213,16 @@ export class TestTigrisService {
 					return;
 				}
 			}
+
 			const reply: InsertResponse = new InsertResponse();
 			const keyList: Array<string> = [];
 			for (let i = 1; i <= call.request.getDocumentsList().length; i++) {
-				keyList.push(Utility._base64Encode('{"id":' + i + '}'));
+				if(call.request.getCollection() === 'books-with-optional-field'){
+					const extractedKeyFromAuthor: number = JSON.parse(Utility._base64Decode(call.request.getDocumentsList_asB64()[i-1]))['author'];
+					keyList.push(Utility._base64Encode('{"id":'+extractedKeyFromAuthor+'}'));
+				} else {
+					keyList.push(Utility._base64Encode('{"id":' + i + '}'));
+				}
 			}
 			reply.setKeysList(keyList);
 			reply.setStatus(
@@ -362,7 +368,12 @@ export class TestTigrisService {
 			const reply: ReplaceResponse = new ReplaceResponse();
 			const keyList: Array<string> = [];
 			for (let i = 1; i <= call.request.getDocumentsList().length; i++) {
-				keyList.push(Utility._base64Encode('{"id":' + i + '}'));
+				if(call.request.getCollection() === 'books-with-optional-field'){
+					const extractedKeyFromAuthor: number = JSON.parse(Utility._base64Decode(call.request.getDocumentsList_asB64()[i-1]))['author'];
+					keyList.push(Utility._base64Encode('{"id":'+extractedKeyFromAuthor+'}'));
+				} else {
+					keyList.push(Utility._base64Encode('{"id":' + i + '}'));
+				}
 			}
 			reply.setKeysList(keyList);
 			reply.setStatus(

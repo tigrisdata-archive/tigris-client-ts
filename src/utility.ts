@@ -3,8 +3,9 @@ import json_bigint from "json-bigint";
 import {TransactionCtx as ProtoTransactionCtx} from "./proto/server/v1/api_pb";
 import {Session} from "./session";
 import {
-	LogicalFilter,
+	LogicalFilter, LogicalOperator,
 	ReadFields,
+	Selector,
 	SelectorFilter,
 	SelectorFilterOperator,
 	TigrisCollectionType,
@@ -23,11 +24,19 @@ export const Utility = {
 		return new TextDecoder().decode(input);
 	},
 
-	filterToString<T>(filter: SelectorFilter<T> | LogicalFilter<T>): string {
+	filterToString<T>(filter: SelectorFilter<T> | LogicalFilter<T> | Selector<T>): string {
 		// eslint-disable-next-line no-prototype-builtins
-		return filter.hasOwnProperty("logicalOperator")
-			? Utility._logicalFilterToString(filter as LogicalFilter<T>)
-			: this.objToJsonString(this._selectorFilterToJSONObj(filter as SelectorFilter<T>));
+		if (filter.hasOwnProperty('op') && (filter['op'] === LogicalOperator.AND || filter['op'] === LogicalOperator.OR)) {
+			// LogicalFilter
+			return Utility._logicalFilterToString(filter as LogicalFilter<T>);
+			// eslint-disable-next-line no-prototype-builtins
+		} else if (filter.hasOwnProperty('op')) {
+			// SelectorFilter
+			return Utility._selectorFilterToString(filter as SelectorFilter<T>);
+		} else {
+			// Selector (default operator $eq)
+			return Utility.objToJsonString(filter);
+		}
 	},
 
 	_selectorFilterToString<T extends TigrisCollectionType>(filter: SelectorFilter<T>): string {
@@ -184,10 +193,10 @@ export const Utility = {
 		for (const property of Object.keys(schema)) {
 			let thisProperty = {};
 			// single flat property? OR the property referring to another type (nested collection)
-			if (typeof schema[property].type === 'object' || (!(schema[property]['items'] ||schema[property]['type']))) {
+			if (typeof schema[property].type === 'object' || (!(schema[property]['items'] || schema[property]['type']))) {
 				thisProperty['type'] = 'object';
 				thisProperty['properties'] = this._getSchemaProperties(schema[property]['type'], pkeyMap);
-			} else if (schema[property].type!= TigrisDataTypes.ARRAY.valueOf()
+			} else if (schema[property].type != TigrisDataTypes.ARRAY.valueOf()
 				&& typeof schema[property].type != 'object') {
 				thisProperty['type'] = this._getType(schema[property].type);
 				const format = this._getFormat(schema[property].type);
@@ -203,7 +212,7 @@ export const Utility = {
 						thisProperty['autoGenerate'] = true;
 					}
 				}
-			// array type?
+				// array type?
 			} else if (schema[property].type === TigrisDataTypes.ARRAY.valueOf()) {
 				thisProperty = this._getArrayBlock(schema[property], pkeyMap);
 			}
@@ -217,7 +226,7 @@ export const Utility = {
 		arrayBlock['type'] = 'array';
 		arrayBlock['items'] = {};
 		// array of array?
-		if (arraySchema['items']['type']===TigrisDataTypes.ARRAY.valueOf()) {
+		if (arraySchema['items']['type'] === TigrisDataTypes.ARRAY.valueOf()) {
 			arrayBlock['items'] = this._getArrayBlock(arraySchema['items'], pkeyMap);
 			// array of custom type?
 		} else if (typeof arraySchema['items']['type'] === 'object') {
@@ -226,7 +235,7 @@ export const Utility = {
 			// within array: single flat property?
 		} else {
 			arrayBlock['items']['type'] = this._getType(arraySchema['items']['type'] as TigrisDataTypes);
-			const format = this._getFormat(arraySchema['items']['type']  as TigrisDataTypes);
+			const format = this._getFormat(arraySchema['items']['type'] as TigrisDataTypes);
 			if (format) {
 				arrayBlock['items']['format'] = format;
 			}
@@ -268,7 +277,7 @@ export const Utility = {
 	},
 
 	_readTestDataFile(path: string): string {
-		return Utility.objToJsonString(Utility.jsonStringToObj(fs.readFileSync('src/__tests__/data/'+path, 'utf8')));
+		return Utility.objToJsonString(Utility.jsonStringToObj(fs.readFileSync('src/__tests__/data/' + path, 'utf8')));
 	},
 
 	_base64Encode(input: string): string {
