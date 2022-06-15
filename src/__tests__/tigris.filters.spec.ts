@@ -1,6 +1,7 @@
 import {
 	LogicalFilter,
-	LogicalOperator, Selector,
+	LogicalOperator,
+	Selector,
 	SelectorFilter,
 	SelectorFilterOperator,
 	TigrisCollectionType,
@@ -10,7 +11,7 @@ import {Utility} from '../utility';
 describe('filters tests', () => {
 	it('simpleSelectorFilterTest', () => {
 		const filter1: Selector<IUser> = {
-				name: 'Alice'
+			name: 'Alice'
 		};
 		expect(Utility.filterToString(filter1)).toBe('{"name":"Alice"}');
 
@@ -25,6 +26,35 @@ describe('filters tests', () => {
 		expect(Utility.filterToString(filter3)).toBe('{"isActive":true}');
 
 	});
+
+	it('simplerSelectorWithinLogicalFilterTest', () => {
+		const filter1: LogicalFilter<IUser> = {
+			op: LogicalOperator.AND,
+			selectorFilters: [
+				{
+					name: 'Alice'
+				},
+				{
+					balance: 100
+				}
+			]
+		};
+		expect(Utility.filterToString(filter1)).toBe('{"$and":[{"name":"Alice"},{"balance":100}]}');
+
+		const filter2: LogicalFilter<IUser> = {
+			op: LogicalOperator.OR,
+			selectorFilters: [
+				{
+					name: 'Alice'
+				},
+				{
+					name: 'Emma'
+				}
+			]
+		};
+		expect(Utility.filterToString(filter2)).toBe('{"$or":[{"name":"Alice"},{"name":"Emma"}]}');
+	});
+
 	it('basicSelectorFilterTest', () => {
 		const filter1: SelectorFilter<IUser> = {
 			op: SelectorFilterOperator.EQ,
