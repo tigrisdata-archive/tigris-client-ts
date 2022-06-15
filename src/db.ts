@@ -4,13 +4,14 @@ import {
 	CollectionInfo,
 	CollectionMetadata,
 	CollectionOptions,
-	CreateOrUpdateCollectionsResponse,
+	CommitTransactionResponse,
 	DatabaseDescription,
 	DatabaseMetadata,
 	DropCollectionResponse,
 	TigrisCollectionType,
 	TigrisSchema,
 	TransactionOptions,
+	TransactionResponse,
 } from "./types";
 import {
 	BeginTransactionRequest as ProtoBeginTransactionRequest,
@@ -131,24 +132,29 @@ export class DB {
 		return new Collection<T>(collectionName, this.db, this.grpcClient);
 	}
 
-	public transact(fn: (tx: Session) => void) {
-		let sessionVar: Session;
-		this.beginTransaction()
-			.then(async (session) => {
-				// tx started
-				sessionVar = session;
-				try {
-					// invoke user code
-					await fn(session);
-					// user code successful
-					await session.commit();
-				} catch (error) {
-					// failed to run user code
-					await session.rollback();
-					// pass error to user
-					throw error;
-				}
-			});
+	public transact(fn: (tx: Session) => void): Promise<TransactionResponse> {
+		return new Promise<TransactionResponse>((resolve, reject) => {
+			let sessionVar: Session;
+			this.beginTransaction()
+				.then(async (session) => {
+					// tx started
+					sessionVar = session;
+					try {
+						// invoke user code
+						await fn(session);
+						// user code successful
+						const commitResponse: CommitTransactionResponse = await session.commit();
+						if (commitResponse) {
+							resolve(new TransactionResponse('transaction successful'));
+						}
+					} catch (error) {
+						// failed to run user code
+						await session.rollback();
+						// pass error to user
+						reject(error);
+					}
+				}).catch(error => reject(error));
+		});
 	}
 
 	public beginTransaction(options?: TransactionOptions): Promise<Session> {

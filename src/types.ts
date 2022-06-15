@@ -249,6 +249,11 @@ export class RollbackTransactionResponse extends TigrisResponse {
 	}
 }
 
+export class TransactionResponse extends TigrisResponse {
+	constructor(status: string) {
+		super(status);
+	}
+}
 export class InsertOptions {}
 
 export class InsertOrReplaceOptions {}
