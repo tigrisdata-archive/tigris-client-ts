@@ -53,7 +53,7 @@ export const Utility = {
 			return filter.fields;
 		}
 		// add support later
-		return {};
+		return filter;
 	},
 
 	_logicalFilterToString<T>(filter: LogicalFilter<T>): string {

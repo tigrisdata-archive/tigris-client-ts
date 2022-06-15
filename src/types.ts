@@ -185,19 +185,6 @@ export class UpdateResponse extends DMLResponse {
 
 }
 
-export class CreateOrUpdateCollectionsResponse extends TigrisResponse {
-	private readonly _message: string;
-
-	constructor(message: string, status: string) {
-		super(status);
-		this._message = message;
-	}
-
-	get message(): string {
-		return this._message;
-	}
-}
-
 export class WriteOptions {}
 
 export class DeleteRequestOptions {}
@@ -293,7 +280,7 @@ export type FieldTypes = string | number | boolean | bigint | BigInteger;
 
 export type LogicalFilter<T> = {
 	op: LogicalOperator;
-	selectorFilters?: Array<SelectorFilter<T>>;
+	selectorFilters?: Array<SelectorFilter<T> | Selector<T>>;
 	logicalFilters?: Array<LogicalFilter<T>>;
 };
 
