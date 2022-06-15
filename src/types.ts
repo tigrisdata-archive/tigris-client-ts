@@ -304,10 +304,9 @@ export type ReadFields = {
 
 export type UpdateFields = {
 	op: UpdateFieldsOperator,
-	fields: UpdateField
+	fields: SimpleUpdateField
 };
-
-export type UpdateField = {
+export type SimpleUpdateField = {
 	[key: string]: FieldTypes | undefined;
 };
 

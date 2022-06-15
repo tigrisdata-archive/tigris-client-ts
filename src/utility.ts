@@ -3,15 +3,17 @@ import json_bigint from "json-bigint";
 import {TransactionCtx as ProtoTransactionCtx} from "./proto/server/v1/api_pb";
 import {Session} from "./session";
 import {
-	LogicalFilter, LogicalOperator,
+	LogicalFilter,
+	LogicalOperator,
 	ReadFields,
 	Selector,
 	SelectorFilter,
-	SelectorFilterOperator,
+	SelectorFilterOperator, SimpleUpdateField,
 	TigrisCollectionType,
 	TigrisDataTypes,
 	TigrisSchema,
-	UpdateFields
+	UpdateFields,
+	UpdateFieldsOperator
 } from "./types";
 import * as fs from "node:fs";
 
@@ -80,12 +82,22 @@ export const Utility = {
 		return this.objToJsonString({...include, ...exclude});
 	},
 
-	updateFieldsString(updateFields: UpdateFields) {
-		const {op, fields} = updateFields;
+	updateFieldsString(updateFields: UpdateFields | SimpleUpdateField) {
+		// UpdateFields
+		// eslint-disable-next-line no-prototype-builtins
+		if (updateFields.hasOwnProperty('op')) {
+			const {op, fields} = (updateFields as UpdateFields);
 
-		return this.objToJsonString({
-			[op]: fields,
-		});
+			return this.objToJsonString({
+				[op]: fields,
+			});
+		} else {
+			// SimpleUpdateField
+			return Utility.updateFieldsString({
+				op: UpdateFieldsOperator.SET,
+				fields: (updateFields as SimpleUpdateField)
+			});
+		}
 	},
 
 	objToJsonString(obj: unknown): string {

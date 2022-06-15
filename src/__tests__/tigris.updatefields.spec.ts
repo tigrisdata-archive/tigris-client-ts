@@ -1,7 +1,4 @@
-import {
-	UpdateFields,
-	UpdateFieldsOperator
-} from "../types";
+import {SimpleUpdateField, UpdateFields, UpdateFieldsOperator} from "../types";
 import {Utility} from '../utility';
 
 describe('updateFields tests', () => {
@@ -14,6 +11,15 @@ describe('updateFields tests', () => {
 				price: 499,
 				active: true,
 			}
+		};
+		expect(Utility.updateFieldsString(updateFields)).toBe('{"$set":{"title":"New Title","price":499,"active":true}}');
+	});
+
+	it('simpleUpdateField', () => {
+		const updateFields: SimpleUpdateField = {
+			title: 'New Title',
+			price: 499,
+			active: true,
 		};
 		expect(Utility.updateFieldsString(updateFields)).toBe('{"$set":{"title":"New Title","price":499,"active":true}}');
 	});

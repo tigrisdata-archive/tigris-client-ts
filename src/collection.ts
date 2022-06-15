@@ -25,7 +25,7 @@ import {
 	ReadFields,
 	ReadRequestOptions,
 	Selector,
-	SelectorFilter,
+	SelectorFilter, SimpleUpdateField,
 	TigrisCollectionType,
 	UpdateFields,
 	UpdateRequestOptions,
@@ -268,7 +268,7 @@ export class Collection<T extends TigrisCollectionType> {
 	): Promise<DeleteResponse> {
 		return new Promise<DeleteResponse>((resolve, reject) => {
 			if (!filter) {
-				reject(new Error('No filter specified'))
+				reject(new Error('No filter specified'));
 			}
 			const deleteRequest = new ProtoDeleteRequest()
 				.setDb(this._db)
@@ -299,7 +299,7 @@ export class Collection<T extends TigrisCollectionType> {
 
 	update(
 		filter: SelectorFilter<T> | LogicalFilter<T> | Selector<T>,
-		fields: UpdateFields,
+		fields: (UpdateFields | SimpleUpdateField),
 		tx?: Session,
 		_options?: UpdateRequestOptions
 	): Promise<UpdateResponse> {
