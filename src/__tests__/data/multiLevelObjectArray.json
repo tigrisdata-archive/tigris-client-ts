@@ -118,12 +118,12 @@
         }
       }
     },
-    "_id": {
+    "id": {
       "type": "string",
       "format": "uuid"
     }
   },
   "primary_key": [
-    "_id"
+    "id"
   ]
 }

@@ -72,6 +72,7 @@ export class TestTigrisService {
 
 	public impl: ITigrisServer = {
 		// eslint-disable-next-line @typescript-eslint/no-empty-function
+		search(): void {},
 		beginTransaction(
 			call: ServerUnaryCall<BeginTransactionRequest, BeginTransactionResponse>,
 			callback: sendUnaryData<BeginTransactionResponse>
@@ -434,7 +435,8 @@ export class TestTigrisService {
 			const reply: GetInfoResponse = new GetInfoResponse();
 			reply.setServerVersion('1.0.0-test-service');
 			callback(undefined, reply);
-		},
+		}
+
 		/* eslint-enable @typescript-eslint/no-empty-function */
 	};
 }
