@@ -184,11 +184,11 @@ export const Utility = {
 	_postProcessSchema(result: object, pkeyMap: object): object {
 		if (Object.keys(pkeyMap).length === 0) {
 			// if no pkeys was used defined. add implicit pkey
-			result['properties']['_id'] = {
+			result['properties']['id'] = {
 				'type': 'string',
 				'format': 'uuid'
 			};
-			result['primary_key'] = ['_id'];
+			result['primary_key'] = ['id'];
 		} else {
 			result['primary_key'] = [];
 			// add primary_key in order
