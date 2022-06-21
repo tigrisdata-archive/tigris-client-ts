@@ -1,15 +1,14 @@
 import * as grpc from "@grpc/grpc-js";
 import {TigrisClient} from "./proto/server/v1/api_grpc_pb";
+import * as server_v1_api_pb from "./proto/server/v1/api_pb";
 import {
 	DeleteRequest as ProtoDeleteRequest,
 	DeleteRequestOptions as ProtoDeleteRequestOptions,
 	InsertRequest as ProtoInsertRequest,
-	InsertRequestOptions as ProtoInsertRequestOptions,
 	ReadRequest as ProtoReadRequest,
 	ReadRequestOptions as ProtoReadRequestOptions,
 	ReadResponse as ProtoReadResponse,
 	ReplaceRequest as ProtoReplaceRequest,
-	ReplaceRequestOptions as ProtoReplaceRequestOptions,
 	UpdateRequest as ProtoUpdateRequest,
 	UpdateRequestOptions as ProtoUpdateRequestOptions,
 	WriteOptions as ProtoWriteOptions
@@ -25,7 +24,8 @@ import {
 	ReadFields,
 	ReadRequestOptions,
 	Selector,
-	SelectorFilter, SimpleUpdateField,
+	SelectorFilter,
+	SimpleUpdateField,
 	TigrisCollectionType,
 	UpdateFields,
 	UpdateRequestOptions,
@@ -68,26 +68,8 @@ export class Collection<T extends TigrisCollectionType> {
 				.setCollection(this._collectionName)
 				.setDocumentsList(docsArray);
 
-			if (tx) {
-				if (protoRequest.getOptions()) {
-					if (protoRequest.getOptions().getWriteOptions()) {
-						protoRequest.getOptions().getWriteOptions().setTxCtx(Utility.txApiToProto(tx));
-					} else {
-						protoRequest
-							.getOptions()
-							.setWriteOptions(new ProtoWriteOptions().setTxCtx(Utility.txApiToProto(tx)));
-					}
-				} else {
-					protoRequest.setOptions(
-						new ProtoInsertRequestOptions().setWriteOptions(
-							new ProtoWriteOptions().setTxCtx(Utility.txApiToProto(tx))
-						)
-					);
-				}
-			}
-
-			this._grpcClient.insert(protoRequest, Utility.txToMetadata(tx), (error, response) => {
-				if (error) {
+			this._grpcClient.insert(protoRequest, Utility.txToMetadata(tx), (error: grpc.ServiceError, response: server_v1_api_pb.InsertResponse): void => {
+				if (error !== undefined && error !== null) {
 					reject(error);
 				} else {
 					let docIndex = 0;
@@ -127,25 +109,8 @@ export class Collection<T extends TigrisCollectionType> {
 				.setCollection(this._collectionName)
 				.setDocumentsList(docsArray);
 
-			if (tx) {
-				if (protoRequest.getOptions()) {
-					if (protoRequest.getOptions().getWriteOptions()) {
-						protoRequest.getOptions().getWriteOptions().setTxCtx(Utility.txApiToProto(tx));
-					} else {
-						protoRequest
-							.getOptions()
-							.setWriteOptions(new ProtoWriteOptions().setTxCtx(Utility.txApiToProto(tx)));
-					}
-				} else {
-					protoRequest.setOptions(
-						new ProtoReplaceRequestOptions().setWriteOptions(
-							new ProtoWriteOptions().setTxCtx(Utility.txApiToProto(tx))
-						)
-					);
-				}
-			}
-			this._grpcClient.replace(protoRequest, (error, response) => {
-				if (error) {
+			this._grpcClient.replace(protoRequest, Utility.txToMetadata(tx), (error: grpc.ServiceError, response: server_v1_api_pb.ReplaceResponse): void => {
+				if (error !== undefined && error !== null) {
 					reject(error);
 				} else {
 					let docIndex = 0;
@@ -163,7 +128,7 @@ export class Collection<T extends TigrisCollectionType> {
 		});
 	}
 
-	insertOrReplace(doc: T, tx?: Session, options?: InsertOptions): Promise<T> {
+	insertOrReplace(doc: T, tx ?: Session, options ?: InsertOptions): Promise<T> {
 		return new Promise<T>((resolve, reject) => {
 			this.insertOrReplaceMany(tx, options, doc)
 				.then(docs => resolve(docs[0]))
@@ -173,8 +138,8 @@ export class Collection<T extends TigrisCollectionType> {
 
 	readOne(
 		filter: SelectorFilter<T> | LogicalFilter<T> | Selector<T>,
-		tx?: Session,
-		readFields?: ReadFields,
+		tx ?: Session,
+		readFields ?: ReadFields,
 	): Promise<T | undefined> {
 		return new Promise<T>((resolve, reject) => {
 			const readRequest = new ProtoReadRequest()
@@ -185,10 +150,6 @@ export class Collection<T extends TigrisCollectionType> {
 
 			if (readFields) {
 				readRequest.setFields(Utility.stringToUint8Array(Utility.readFieldString(readFields)));
-			}
-
-			if (tx) {
-				readRequest.getOptions().setTxCtx(Utility.txApiToProto(tx));
 			}
 
 			const stream: grpc.ClientReadableStream<ProtoReadResponse> = this._grpcClient.read(
@@ -212,9 +173,9 @@ export class Collection<T extends TigrisCollectionType> {
 	read(
 		filter: SelectorFilter<T> | LogicalFilter<T> | Selector<T>,
 		reader: ReaderCallback<T>,
-		readFields?: ReadFields,
-		tx?: Session,
-		options?: ReadRequestOptions
+		readFields ?: ReadFields,
+		tx ?: Session,
+		options ?: ReadRequestOptions
 	) {
 		const readRequest = new ProtoReadRequest()
 			.setDb(this._db)
@@ -223,10 +184,6 @@ export class Collection<T extends TigrisCollectionType> {
 
 		if (readFields) {
 			readRequest.setFields(Utility.stringToUint8Array(Utility.readFieldString(readFields)));
-		}
-
-		if (tx) {
-			readRequest.setOptions(new ProtoReadRequestOptions().setTxCtx(Utility.txApiToProto(tx)));
 		}
 
 		if (options) {
@@ -263,9 +220,10 @@ export class Collection<T extends TigrisCollectionType> {
 
 	delete(
 		filter: SelectorFilter<T> | LogicalFilter<T> | Selector<T>,
-		tx?: Session,
-		_options?: DeleteRequestOptions
-	): Promise<DeleteResponse> {
+		tx ?: Session,
+		_options ?: DeleteRequestOptions
+	):
+		Promise<DeleteResponse> {
 		return new Promise<DeleteResponse>((resolve, reject) => {
 			if (!filter) {
 				reject(new Error('No filter specified'));
@@ -274,14 +232,6 @@ export class Collection<T extends TigrisCollectionType> {
 				.setDb(this._db)
 				.setCollection(this._collectionName)
 				.setFilter(Utility.stringToUint8Array(Utility.filterToString(filter)));
-
-			if (tx) {
-				deleteRequest.setOptions(
-					new ProtoDeleteRequestOptions().setWriteOptions(
-						new ProtoWriteOptions().setTxCtx(Utility.txApiToProto(tx))
-					)
-				);
-			}
 
 			this._grpcClient.delete(deleteRequest, Utility.txToMetadata(tx), (error, response) => {
 				if (error) {
@@ -300,8 +250,8 @@ export class Collection<T extends TigrisCollectionType> {
 	update(
 		filter: SelectorFilter<T> | LogicalFilter<T> | Selector<T>,
 		fields: (UpdateFields | SimpleUpdateField),
-		tx?: Session,
-		_options?: UpdateRequestOptions
+		tx ?: Session,
+		_options ?: UpdateRequestOptions
 	): Promise<UpdateResponse> {
 		return new Promise<UpdateResponse>((resolve, reject) => {
 			const updateRequest = new ProtoUpdateRequest()
@@ -309,14 +259,6 @@ export class Collection<T extends TigrisCollectionType> {
 				.setCollection(this._collectionName)
 				.setFilter(Utility.stringToUint8Array(Utility.filterToString(filter)))
 				.setFields(Utility.stringToUint8Array(Utility.updateFieldsString(fields)));
-
-			if (tx) {
-				updateRequest.setOptions(
-					new ProtoUpdateRequestOptions().setWriteOptions(
-						new ProtoWriteOptions().setTxCtx(Utility.txApiToProto(tx))
-					)
-				);
-			}
 
 			this._grpcClient.update(updateRequest, Utility.txToMetadata(tx), (error, response) => {
 				if (error) {

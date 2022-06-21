@@ -1,6 +1,7 @@
 import {ITigrisServer, TigrisService} from "../proto/server/v1/api_grpc_pb";
 import {sendUnaryData, ServerUnaryCall, ServerWritableStream} from "@grpc/grpc-js";
 import {v4 as uuidv4} from "uuid";
+import * as server_v1_api_pb from "../proto/server/v1/api_pb";
 import {
 	BeginTransactionRequest,
 	BeginTransactionResponse,
@@ -25,6 +26,8 @@ import {
 	DropCollectionResponse,
 	DropDatabaseRequest,
 	DropDatabaseResponse,
+	EventsRequest,
+	EventsResponse,
 	GetInfoRequest,
 	GetInfoResponse,
 	InsertRequest,
@@ -40,14 +43,12 @@ import {
 	ResponseMetadata,
 	RollbackTransactionRequest,
 	RollbackTransactionResponse,
-	StreamRequest,
-	StreamResponse,
 	TransactionCtx,
 	UpdateRequest,
-	UpdateResponse,
+	UpdateResponse
 } from "../proto/server/v1/api_pb";
 import * as google_protobuf_timestamp_pb from "google-protobuf/google/protobuf/timestamp_pb";
-import {Utility} from "./../utility";
+import {Utility} from "../utility";
 
 export class TestTigrisService {
 	private static DBS: string[] = [];
@@ -72,7 +73,13 @@ export class TestTigrisService {
 
 	public impl: ITigrisServer = {
 		// eslint-disable-next-line @typescript-eslint/no-empty-function
+		events(_call: ServerWritableStream<EventsRequest, EventsResponse>): void {},
+		// eslint-disable-next-line @typescript-eslint/no-empty-function
 		search(): void {},
+		// eslint-disable-next-line @typescript-eslint/no-empty-function
+		publish(_call: ServerUnaryCall<server_v1_api_pb.PublishRequest, server_v1_api_pb.PublishResponse>, _callback: sendUnaryData<server_v1_api_pb.PublishResponse>): void{},
+		// eslint-disable-next-line @typescript-eslint/no-empty-function
+		subscribe(_call: ServerWritableStream<server_v1_api_pb.SubscribeRequest, server_v1_api_pb.SubscribeResponse>): void{},
 		beginTransaction(
 			call: ServerUnaryCall<BeginTransactionRequest, BeginTransactionResponse>,
 			callback: sendUnaryData<BeginTransactionResponse>
@@ -146,9 +153,9 @@ export class TestTigrisService {
 		/* eslint-disable @typescript-eslint/no-empty-function */
 		describeCollection(
 			// eslint-disable-next-line @typescript-eslint/no-unused-vars
-			call: ServerUnaryCall<DescribeCollectionRequest, DescribeCollectionResponse>,
+			_call: ServerUnaryCall<DescribeCollectionRequest, DescribeCollectionResponse>,
 			// eslint-disable-next-line @typescript-eslint/no-unused-vars
-			callback: sendUnaryData<DescribeCollectionResponse>
+			_callback: sendUnaryData<DescribeCollectionResponse>
 		): void {},
 		/* eslint-enable @typescript-eslint/no-empty-function */
 
@@ -218,9 +225,9 @@ export class TestTigrisService {
 			const reply: InsertResponse = new InsertResponse();
 			const keyList: Array<string> = [];
 			for (let i = 1; i <= call.request.getDocumentsList().length; i++) {
-				if(call.request.getCollection() === 'books-with-optional-field'){
-					const extractedKeyFromAuthor: number = JSON.parse(Utility._base64Decode(call.request.getDocumentsList_asB64()[i-1]))['author'];
-					keyList.push(Utility._base64Encode('{"id":'+extractedKeyFromAuthor+'}'));
+				if (call.request.getCollection() === 'books-with-optional-field') {
+					const extractedKeyFromAuthor: number = JSON.parse(Utility._base64Decode(call.request.getDocumentsList_asB64()[i - 1]))['author'];
+					keyList.push(Utility._base64Encode('{"id":' + extractedKeyFromAuthor + '}'));
 				} else {
 					keyList.push(Utility._base64Encode('{"id":' + i + '}'));
 				}
@@ -369,9 +376,9 @@ export class TestTigrisService {
 			const reply: ReplaceResponse = new ReplaceResponse();
 			const keyList: Array<string> = [];
 			for (let i = 1; i <= call.request.getDocumentsList().length; i++) {
-				if(call.request.getCollection() === 'books-with-optional-field'){
-					const extractedKeyFromAuthor: number = JSON.parse(Utility._base64Decode(call.request.getDocumentsList_asB64()[i-1]))['author'];
-					keyList.push(Utility._base64Encode('{"id":'+extractedKeyFromAuthor+'}'));
+				if (call.request.getCollection() === 'books-with-optional-field') {
+					const extractedKeyFromAuthor: number = JSON.parse(Utility._base64Decode(call.request.getDocumentsList_asB64()[i - 1]))['author'];
+					keyList.push(Utility._base64Encode('{"id":' + extractedKeyFromAuthor + '}'));
 				} else {
 					keyList.push(Utility._base64Encode('{"id":' + i + '}'));
 				}
@@ -396,8 +403,6 @@ export class TestTigrisService {
 			reply.setStatus("rollback-test");
 			callback(undefined, reply);
 		},
-		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		stream(call: ServerWritableStream<StreamRequest, StreamResponse>): void {},
 		/* eslint-enable @typescript-eslint/no-empty-function */
 		update(
 			call: ServerUnaryCall<UpdateRequest, UpdateResponse>,
@@ -435,9 +440,7 @@ export class TestTigrisService {
 			const reply: GetInfoResponse = new GetInfoResponse();
 			reply.setServerVersion('1.0.0-test-service');
 			callback(undefined, reply);
-		}
-
-		/* eslint-enable @typescript-eslint/no-empty-function */
+		},
 	};
 }
 
