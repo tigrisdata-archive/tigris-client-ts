@@ -15,11 +15,13 @@
     },
     "plugins": [
         "@typescript-eslint",
-        "functional"
+        "functional",
+		"unused-imports"
     ],
     "rules": {
         "unicorn/prevent-abbreviations": "off",
         "@typescript-eslint/no-empty-interface": "warn",
-		"@typescript-eslint/semi": ["error"]
+		"@typescript-eslint/semi": ["error"],
+		"unused-imports/no-unused-imports": "error"
     }
 }

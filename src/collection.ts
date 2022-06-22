@@ -3,15 +3,12 @@ import {TigrisClient} from "./proto/server/v1/api_grpc_pb";
 import * as server_v1_api_pb from "./proto/server/v1/api_pb";
 import {
 	DeleteRequest as ProtoDeleteRequest,
-	DeleteRequestOptions as ProtoDeleteRequestOptions,
 	InsertRequest as ProtoInsertRequest,
 	ReadRequest as ProtoReadRequest,
 	ReadRequestOptions as ProtoReadRequestOptions,
 	ReadResponse as ProtoReadResponse,
 	ReplaceRequest as ProtoReplaceRequest,
 	UpdateRequest as ProtoUpdateRequest,
-	UpdateRequestOptions as ProtoUpdateRequestOptions,
-	WriteOptions as ProtoWriteOptions
 } from "./proto/server/v1/api_pb";
 import {Session} from "./session";
 import {
@@ -165,6 +162,7 @@ export class Collection<T extends TigrisCollectionType> {
 			stream.on("error", reject);
 
 			stream.on("end", () => {
+				/* eslint unicorn/no-useless-undefined: ["error", {"checkArguments": false}]*/
 				resolve(undefined);
 			});
 		});

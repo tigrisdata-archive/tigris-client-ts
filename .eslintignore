@@ -1,3 +1,7 @@
 ## generated code
 src/proto/server/v1/*.js
 src/proto/server/v1/*.ts
+src/proto/google/api/*.d.ts
+src/proto/google/api/*.ts
+src/proto/google/api/*.js
+

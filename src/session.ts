@@ -2,7 +2,6 @@ import { TigrisClient } from "./proto/server/v1/api_grpc_pb";
 import {
 	CommitTransactionRequest as ProtoCommitTransactionRequest,
 	RollbackTransactionRequest as ProtoRollbackTransactionRequest,
-	TransactionCtx as ProtoTransactionCtx,
 } from "./proto/server/v1/api_pb";
 import { CommitTransactionResponse, RollbackTransactionResponse } from "./types";
 import {Utility} from "./utility";
