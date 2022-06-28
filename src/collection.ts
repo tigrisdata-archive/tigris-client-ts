@@ -8,7 +8,9 @@ import {
 	ReadRequestOptions as ProtoReadRequestOptions,
 	ReadResponse as ProtoReadResponse,
 	ReplaceRequest as ProtoReplaceRequest,
-	UpdateRequest as ProtoUpdateRequest,
+	SearchRequest as ProtoSearchRequest,
+	SearchResponse as ProtoSearchResponse,
+	UpdateRequest as ProtoUpdateRequest
 } from "./proto/server/v1/api_pb";
 import {Session} from "./session";
 import {
@@ -29,9 +31,24 @@ import {
 	UpdateResponse,
 } from "./types";
 import {Utility} from "./utility";
+import {
+	createSearchRequestOptions,
+	MATCH_ALL_QUERY_STRING,
+	SearchRequest,
+	SearchRequestOptions,
+	SearchResult,
+} from "./search/types";
 
 export interface ReaderCallback<T> {
 	onNext(doc: T): void;
+
+	onEnd(): void;
+
+	onError(error: Error): void;
+}
+
+export interface SearchResultCallback<T> {
+	onNext(result: SearchResult<T>): void;
 
 	onEnd(): void;
 
@@ -214,6 +231,57 @@ export class Collection<T extends TigrisCollectionType> {
 
 		stream.on("error", (error) => reader.onError(error));
 		stream.on("end", () => reader.onEnd());
+	}
+
+	search(request: SearchRequest<T>, reader: SearchResultCallback<T>, options?: SearchRequestOptions) {
+		const requestOptions = createSearchRequestOptions(options);
+		const searchRequest = new ProtoSearchRequest()
+			.setDb(this._db)
+			.setCollection(this._collectionName)
+			.setQ(request.q ?? MATCH_ALL_QUERY_STRING)
+			.setPage(requestOptions.page)
+			.setPageSize(requestOptions.perPage);
+
+		if (typeof request.searchFields !== "undefined") {
+			searchRequest.setSearchFieldsList(request.searchFields);
+		}
+
+		if (typeof request.filter !== "undefined") {
+			searchRequest.setFilter(
+				Utility.stringToUint8Array(
+					Utility.filterToString(request.filter)
+				));
+		}
+
+		if (typeof request.facetQuery !== "undefined") {
+			searchRequest.setFacet(
+				Utility.stringToUint8Array(
+					Utility.objToJsonString(request.facetQuery)
+				));
+		}
+
+		if (typeof request.sort !== "undefined") {
+			searchRequest.setSort(
+				Utility.stringToUint8Array(
+					Utility.objToJsonString(request.sort)
+				));
+		}
+
+		if (typeof request.readFields !== "undefined") {
+			searchRequest.setFields(
+				Utility.stringToUint8Array(
+					Utility.readFieldString(request.readFields)
+				));
+		}
+
+		const stream: grpc.ClientReadableStream<ProtoSearchResponse> = this._grpcClient.search(searchRequest);
+		stream.on("data", (searchResponse: ProtoSearchResponse) => {
+			const searchResult: SearchResult<T> = SearchResult.from(searchResponse);
+			reader.onNext(searchResult);
+		});
+		stream.on("error", (error) => reader.onError(error));
+		stream.on("end", () => reader.onEnd());
+
 	}
 
 	delete(

@@ -11,6 +11,7 @@ import {
 	UpdateFieldsOperator
 } from "../types";
 import {Tigris} from '../tigris';
+import {createFacetQueryOptions, SearchResult} from "../search/types";
 
 describe('rpc tests', () => {
 	let server: Server;
@@ -346,6 +347,34 @@ describe('rpc tests', () => {
 				success = false;
 			}
 		});
+	});
+
+	it('search', (done) => {
+		const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
+		const db3 = tigris.getDatabase('db3');
+		let bookCounter = 0;
+		let success = true;
+		db3.getCollection('books')
+			.search({
+				q: 'philosophy',
+				facetQuery: {
+					tags: createFacetQueryOptions()
+				}
+			}, {
+				onEnd() {
+					expect(bookCounter).toBe(TestTigrisService.BOOKS_B64_BY_ID.size);
+					expect(success).toBe(true);
+					done();
+				},
+				onError(error: Error) {
+					success = false;
+				},
+				onNext(searchResult: SearchResult<IBook>) {
+					expect(searchResult.hits).toBeDefined();
+					expect(searchResult.facets).toBeDefined();
+					bookCounter += searchResult.hits.length;
+				}
+			});
 	});
 
 	it('beginTx', () => {
