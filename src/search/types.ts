@@ -53,7 +53,7 @@ export enum FacetQueryFieldType {
 }
 
 //TODO: implementation pending
-export type SortOrder = {};
+export type SortOrder = "undefined";
 
 export class SearchResult<T> {
 	private readonly _hits: Hit<T>[];

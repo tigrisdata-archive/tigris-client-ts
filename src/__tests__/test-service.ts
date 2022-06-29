@@ -91,14 +91,11 @@ export class TestTigrisService {
 
 	public impl: ITigrisServer = {
 		// eslint-disable-next-line @typescript-eslint/no-empty-function
-		events(_call: ServerWritableStream<EventsRequest, EventsResponse>): void {
-		},
+		events(_call: ServerWritableStream<EventsRequest, EventsResponse>): void {},
 		// eslint-disable-next-line @typescript-eslint/no-empty-function
-		publish(_call: ServerUnaryCall<server_v1_api_pb.PublishRequest, server_v1_api_pb.PublishResponse>, _callback: sendUnaryData<server_v1_api_pb.PublishResponse>): void {
-		},
+		publish(_call: ServerUnaryCall<server_v1_api_pb.PublishRequest, server_v1_api_pb.PublishResponse>, _callback: sendUnaryData<server_v1_api_pb.PublishResponse>): void {},
 		// eslint-disable-next-line @typescript-eslint/no-empty-function
-		subscribe(_call: ServerWritableStream<server_v1_api_pb.SubscribeRequest, server_v1_api_pb.SubscribeResponse>): void {
-		},
+		subscribe(_call: ServerWritableStream<server_v1_api_pb.SubscribeRequest, server_v1_api_pb.SubscribeResponse>): void {},
 		beginTransaction(
 			call: ServerUnaryCall<BeginTransactionRequest, BeginTransactionResponse>,
 			callback: sendUnaryData<BeginTransactionResponse>
@@ -175,8 +172,7 @@ export class TestTigrisService {
 			_call: ServerUnaryCall<DescribeCollectionRequest, DescribeCollectionResponse>,
 			// eslint-disable-next-line @typescript-eslint/no-unused-vars
 			_callback: sendUnaryData<DescribeCollectionResponse>
-		): void {
-		},
+		): void {},
 		/* eslint-enable @typescript-eslint/no-empty-function */
 
 		describeDatabase(
