@@ -27,7 +27,7 @@ import {
 	DropDatabaseRequest,
 	DropDatabaseResponse,
 	EventsRequest,
-	EventsResponse,
+	EventsResponse, FacetCount,
 	GetInfoRequest,
 	GetInfoResponse,
 	InsertRequest,
@@ -36,13 +36,19 @@ import {
 	ListCollectionsResponse,
 	ListDatabasesRequest,
 	ListDatabasesResponse,
+	Page,
 	ReadRequest,
 	ReadResponse,
 	ReplaceRequest,
 	ReplaceResponse,
 	ResponseMetadata,
 	RollbackTransactionRequest,
-	RollbackTransactionResponse,
+	RollbackTransactionResponse, SearchFacet,
+	SearchHit,
+	SearchHitMeta,
+	SearchMetadata,
+	SearchRequest,
+	SearchResponse,
 	TransactionCtx,
 	UpdateRequest,
 	UpdateResponse
@@ -55,6 +61,18 @@ export class TestTigrisService {
 	private static COLLECTION_MAP = new Map<string, Array<string>>();
 	private static txId: string;
 	private static txOrigin: string;
+	public static readonly BOOKS_B64_BY_ID: ReadonlyMap<string, string> = new Map([
+		// base64 of {"id":1,"title":"A Passage to India","author":"E.M. Forster","tags":["Novel","India"]}
+		["1", "eyJpZCI6MSwidGl0bGUiOiJBIFBhc3NhZ2UgdG8gSW5kaWEiLCJhdXRob3IiOiJFLk0uIEZvcnN0ZXIiLCJ0YWdzIjpbIk5vdmVsIiwiSW5kaWEiXX0="],
+		// base64 of {"id":3,"title":"In Search of Lost Time","author":"Marcel Proust","tags":["Novel","Childhood"]}
+		["3", "eyJpZCI6MywidGl0bGUiOiJJbiBTZWFyY2ggb2YgTG9zdCBUaW1lIiwiYXV0aG9yIjoiTWFyY2VsIFByb3VzdCIsInRhZ3MiOlsiTm92ZWwiLCJDaGlsZGhvb2QiXX0="],
+		// base64 of {"id":4,"title":"Swann's Way","author":"Marcel Proust"}
+		["4", "eyJpZCI6NCwidGl0bGUiOiJTd2FubidzIFdheSIsImF1dGhvciI6Ik1hcmNlbCBQcm91c3QifQ=="],
+		// base64 of {"id":5,"title":"Time Regained","author":"Marcel Proust"}
+		["5", "eyJpZCI6NSwidGl0bGUiOiJUaW1lIFJlZ2FpbmVkIiwiYXV0aG9yIjoiTWFyY2VsIFByb3VzdCJ9"],
+		// base64 of {"id":6,"title":"The Prisoner","author":"Marcel Proust"}
+		["6", "eyJpZCI6NiwidGl0bGUiOiJUaGUgUHJpc29uZXIiLCJhdXRob3IiOiJNYXJjZWwgUHJvdXN0In0="]
+	]);
 
 	static reset() {
 		TestTigrisService.DBS = [];
@@ -75,11 +93,9 @@ export class TestTigrisService {
 		// eslint-disable-next-line @typescript-eslint/no-empty-function
 		events(_call: ServerWritableStream<EventsRequest, EventsResponse>): void {},
 		// eslint-disable-next-line @typescript-eslint/no-empty-function
-		search(): void {},
+		publish(_call: ServerUnaryCall<server_v1_api_pb.PublishRequest, server_v1_api_pb.PublishResponse>, _callback: sendUnaryData<server_v1_api_pb.PublishResponse>): void {},
 		// eslint-disable-next-line @typescript-eslint/no-empty-function
-		publish(_call: ServerUnaryCall<server_v1_api_pb.PublishRequest, server_v1_api_pb.PublishResponse>, _callback: sendUnaryData<server_v1_api_pb.PublishResponse>): void{},
-		// eslint-disable-next-line @typescript-eslint/no-empty-function
-		subscribe(_call: ServerWritableStream<server_v1_api_pb.SubscribeRequest, server_v1_api_pb.SubscribeResponse>): void{},
+		subscribe(_call: ServerWritableStream<server_v1_api_pb.SubscribeRequest, server_v1_api_pb.SubscribeResponse>): void {},
 		beginTransaction(
 			call: ServerUnaryCall<BeginTransactionRequest, BeginTransactionResponse>,
 			callback: sendUnaryData<BeginTransactionResponse>
@@ -303,11 +319,9 @@ export class TestTigrisService {
 				call.request.getOptions().getLimit() == 1 &&
 				filter["id"] == 1
 			) {
-				// base64 of {"id":1,"title":"A Passage to India","author":"E.M. Forster","tags":["Novel","India"]}
+				// base64 of book id "1"
 				call.write(
-					new ReadResponse().setData(
-						"eyJpZCI6MSwidGl0bGUiOiJBIFBhc3NhZ2UgdG8gSW5kaWEiLCJhdXRob3IiOiJFLk0uIEZvcnN0ZXIiLCJ0YWdzIjpbIk5vdmVsIiwiSW5kaWEiXX0="
-					)
+					new ReadResponse().setData(TestTigrisService.BOOKS_B64_BY_ID.get("1"))
 				);
 				call.end();
 			} else if (
@@ -323,40 +337,50 @@ export class TestTigrisService {
 				filter["$and"] != undefined
 			) {
 				// case with logicalFilter passed in
-				// base64 of {"id":3,"title":"In Search of Lost Time","author":"Marcel Proust","tags":["Novel","Childhood"]}
+				// base64 of book id "3"
 				call.write(
-					new ReadResponse().setData(
-						"eyJpZCI6MywidGl0bGUiOiJJbiBTZWFyY2ggb2YgTG9zdCBUaW1lIiwiYXV0aG9yIjoiTWFyY2VsIFByb3VzdCIsInRhZ3MiOlsiTm92ZWwiLCJDaGlsZGhvb2QiXX0="
-					)
+					new ReadResponse().setData(TestTigrisService.BOOKS_B64_BY_ID.get("3"))
 				);
 				call.end();
 			} else {
-				// base64 of {"id":3,"title":"In Search of Lost Time","author":"Marcel Proust","tags":["Novel","Childhood"]}
-				call.write(
-					new ReadResponse().setData(
-						"eyJpZCI6MywidGl0bGUiOiJJbiBTZWFyY2ggb2YgTG9zdCBUaW1lIiwiYXV0aG9yIjoiTWFyY2VsIFByb3VzdCIsInRhZ3MiOlsiTm92ZWwiLCJDaGlsZGhvb2QiXX0="
-					)
-				);
-				// base64 of {"id":4,"title":"Swann's Way","author":"Marcel Proust"}
-				call.write(
-					new ReadResponse().setData(
-						"eyJpZCI6NCwidGl0bGUiOiJTd2FubidzIFdheSIsImF1dGhvciI6Ik1hcmNlbCBQcm91c3QifQ=="
-					)
-				);
-				// base64 of {"id":5,"title":"Time Regained","author":"Marcel Proust"}
-				call.write(
-					new ReadResponse().setData(
-						"eyJpZCI6NSwidGl0bGUiOiJUaW1lIFJlZ2FpbmVkIiwiYXV0aG9yIjoiTWFyY2VsIFByb3VzdCJ9"
-					)
-				);
-				// base64 of {"id":6,"title":"The Prisoner","author":"Marcel Proust"}
-				call.write(
-					new ReadResponse().setData(
-						"eyJpZCI6NiwidGl0bGUiOiJUaGUgUHJpc29uZXIiLCJhdXRob3IiOiJNYXJjZWwgUHJvdXN0In0="
-					)
-				);
+				// returns 4 books
+				for (const id of ["3", "4", "5", "6"]) {
+					call.write(new ReadResponse().setData(TestTigrisService.BOOKS_B64_BY_ID.get(id)));
+				}
 				call.end();
 			}
+		},
+		// eslint-disable-next-line @typescript-eslint/no-empty-function
+		search(call: ServerWritableStream<SearchRequest, SearchResponse>): void {
+			// empty search response to stream
+			call.write(new SearchResponse());
+
+			// with only meta and not page
+			const searchMeta = new SearchMetadata().setFound(5);
+			call.write(new SearchResponse().setMeta(searchMeta));
+
+			// with meta and page
+			const searchPage = new Page().setPerPage(1).setTotal(5).setCurrent(1);
+			call.write(new SearchResponse().setMeta(searchMeta.setPage(searchPage)));
+
+			// with facets, meta and page
+			const searchFacet = new SearchFacet().setCountsList(
+				[new FacetCount().setCount(2).setValue("Marcel Proust")]);
+			const resp = new SearchResponse().setMeta(searchMeta.setPage(searchPage));
+			resp.getFacetsMap().set("author", searchFacet);
+			call.write(resp);
+
+			// with first hit, meta and page
+			const searchHitMeta = new SearchHitMeta().setUpdatedAt(new google_protobuf_timestamp_pb.Timestamp());
+			const searchHit = new SearchHit().setMetadata(searchHitMeta);
+
+			// write all search hits to stream 1 by 1
+			// eslint-disable-next-line @typescript-eslint/no-unused-vars
+			for (const [_, value] of TestTigrisService.BOOKS_B64_BY_ID) {
+				searchHit.setData(value);
+				call.write(resp.setHitsList([searchHit]));
+			}
+			call.end();
 		},
 		/* eslint-disable @typescript-eslint/no-empty-function */
 		replace(
