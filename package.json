@@ -1,6 +1,6 @@
 {
 	"name": "@tigrisdata/core",
-	"version": "1.0.0-alpha.9",
+	"version": "1.0.0-alpha.10",
 	"description": "Tigris client for Typescript",
 	"author": "Tigris Data (https://www.tigrisdata.com/)",
 	"contributors": [
@@ -12,7 +12,11 @@
 		{
 			"name": "Jigar Joshi",
 			"url": "https://www.tigrisdata.com/"
-		}
+		},
+	  	{
+			"name": "Adil Ansari",
+		  	"url": "https://www.tigrisdata.com/"
+	  	}
 	],
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
