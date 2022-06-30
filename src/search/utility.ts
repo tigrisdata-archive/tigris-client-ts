@@ -3,7 +3,7 @@ import {FacetQueryFieldType, FacetQueryOptions, SearchRequestOptions} from "./ty
 export const Utility = {
 
 	createFacetQueryOptions(options?: Partial<FacetQueryOptions>): FacetQueryOptions {
-		const defaults = {size: 1, type: FacetQueryFieldType.VALUE};
+		const defaults = {size: 10, type: FacetQueryFieldType.VALUE};
 		return {...defaults, ...options};
 	},
 
