@@ -27,7 +27,7 @@ import {
 	DropDatabaseRequest,
 	DropDatabaseResponse,
 	EventsRequest,
-	EventsResponse,
+	EventsResponse, FacetCount,
 	GetInfoRequest,
 	GetInfoResponse,
 	InsertRequest,
@@ -43,7 +43,7 @@ import {
 	ReplaceResponse,
 	ResponseMetadata,
 	RollbackTransactionRequest,
-	RollbackTransactionResponse,
+	RollbackTransactionResponse, SearchFacet,
 	SearchHit,
 	SearchHitMeta,
 	SearchMetadata,
@@ -363,6 +363,13 @@ export class TestTigrisService {
 			const searchPage = new Page().setPerPage(1).setTotal(5).setCurrent(1);
 			call.write(new SearchResponse().setMeta(searchMeta.setPage(searchPage)));
 
+			// with facets, meta and page
+			const searchFacet = new SearchFacet().setCountsList(
+				[new FacetCount().setCount(2).setValue("Marcel Proust")]);
+			const resp = new SearchResponse().setMeta(searchMeta.setPage(searchPage));
+			resp.getFacetsMap().set("author", searchFacet);
+			call.write(resp);
+
 			// with first hit, meta and page
 			const searchHitMeta = new SearchHitMeta().setUpdatedAt(new google_protobuf_timestamp_pb.Timestamp());
 			const searchHit = new SearchHit().setMetadata(searchHitMeta);
@@ -371,7 +378,7 @@ export class TestTigrisService {
 			// eslint-disable-next-line @typescript-eslint/no-unused-vars
 			for (const [_, value] of TestTigrisService.BOOKS_B64_BY_ID) {
 				searchHit.setData(value);
-				call.write(new SearchResponse().setMeta(searchMeta).setHitsList([searchHit]));
+				call.write(resp.setHitsList([searchHit]));
 			}
 			call.end();
 		},

@@ -79,11 +79,12 @@ export class SearchResult<T> {
 	}
 
 	static from<T>(resp: ProtoSearchResponse): SearchResult<T> {
-		const respObj = resp.toObject();
-		const _meta = typeof respObj?.meta !== "undefined" ? SearchMeta.from(respObj.meta) : undefined;
+		const _meta = typeof resp?.getMeta() !== "undefined" ? SearchMeta.from(resp.getMeta()) : undefined;
 		const _hits: Hit<T>[] = resp.getHitsList().map(h => Hit.from(h));
-		const _facets: Map<string, FacetCountDistribution> = new Map(respObj.facetsMap.map(([k, v]) =>
-			[k, FacetCountDistribution.from(v)] ));
+		const _facets: Map<string, FacetCountDistribution> = new Map(
+			resp.getFacetsMap().toArray().map(
+				([k, _]) => [k, FacetCountDistribution.from(resp.getFacetsMap().get(k))]
+			));
 		return new SearchResult(_hits, _facets, _meta);
 	}
 }
@@ -107,7 +108,7 @@ export class Hit<T extends TigrisCollectionType> {
 
 	static from<T>(resp: ProtoSearchHit): Hit<T> {
 		const document = Utility.jsonStringToObj<T>(Utility._base64Decode(resp.getData_asB64()));
-		const meta = resp.hasMetadata() ? HitMeta.from(resp.getMetadata().toObject()) : undefined;
+		const meta = resp.hasMetadata() ? HitMeta.from(resp.getMetadata()) : undefined;
 		return new Hit<T>(document, meta);
 	}
 }
@@ -129,9 +130,9 @@ export class HitMeta {
 		return this._updatedAt;
 	}
 
-	static from(resp: ProtoSearchHitMeta.AsObject): HitMeta {
-		const _createdAt = typeof resp?.createdAt?.seconds !== "undefined" ? new Date(resp.createdAt.seconds * 1000) : undefined;
-		const _updatedAt = typeof resp?.updatedAt?.seconds !== "undefined" ? new Date(resp.updatedAt.seconds * 1000) : undefined;
+	static from(resp: ProtoSearchHitMeta): HitMeta {
+		const _createdAt = typeof resp?.getCreatedAt()?.getSeconds() !== "undefined" ? new Date(resp.getCreatedAt().getSeconds() * 1000) : undefined;
+		const _updatedAt = typeof resp?.getUpdatedAt()?.getSeconds() !== "undefined" ? new Date(resp.getUpdatedAt().getSeconds() * 1000) : undefined;
 
 		return new HitMeta(_createdAt, _updatedAt);
 	}
@@ -154,9 +155,9 @@ export class FacetCountDistribution {
 		return this._stats;
 	}
 
-	static from(resp: ProtoSearchFacet.AsObject): FacetCountDistribution {
-		const stats = typeof resp?.stats !== "undefined" ? FacetStats.from(resp.stats) : undefined;
-		const counts = resp.countsList.map(c => FacetCount.from(c));
+	static from(resp: ProtoSearchFacet): FacetCountDistribution {
+		const stats = typeof resp?.getStats() !== "undefined" ? FacetStats.from(resp.getStats()) : undefined;
+		const counts = resp.getCountsList().map(c => FacetCount.from(c));
 		return new FacetCountDistribution(counts, stats);
 	}
 }
@@ -178,8 +179,8 @@ export class FacetCount {
 		return this._count;
 	}
 
-	static from(resp: ProtoFacetCount.AsObject): FacetCount {
-		return new FacetCount(resp.value, resp.count);
+	static from(resp: ProtoFacetCount): FacetCount {
+		return new FacetCount(resp.getValue(), resp.getCount());
 	}
 }
 
@@ -218,13 +219,13 @@ export class FacetStats {
 		return this._sum;
 	}
 
-	static from(resp: ProtoFacetStats.AsObject): FacetStats {
+	static from(resp: ProtoFacetStats): FacetStats {
 		return new FacetStats(
-			resp?.avg ?? 0,
-			resp?.count ?? 0,
-			resp?.max ?? 0,
-			resp?.min ?? 0,
-			resp?.sum ?? 0
+			resp?.getAvg() ?? 0,
+			resp?.getCount() ?? 0,
+			resp?.getMax() ?? 0,
+			resp?.getMin() ?? 0,
+			resp?.getSum() ?? 0
 		);
 	}
 }
@@ -258,11 +259,11 @@ export class SearchMeta {
 		return this._totalPages;
 	}
 
-	static from(resp: ProtoSearchMetadata.AsObject): SearchMeta {
-		const found = resp?.found ?? 0;
-		const currentPage = resp?.page?.current ?? 0;
-		const perPage = resp?.page?.perPage ?? 0;
-		const totalPages = resp?.page?.total ?? 0;
+	static from(resp: ProtoSearchMetadata): SearchMeta {
+		const found = resp?.getFound() ?? 0;
+		const currentPage = resp?.getPage()?.getCurrent() ?? 0;
+		const perPage = resp?.getPage()?.getPerPage() ?? 0;
+		const totalPages = resp?.getPage()?.getTotal() ?? 0;
 		return new SearchMeta(found, currentPage, perPage, totalPages);
 	}
 }

@@ -354,7 +354,7 @@ describe('rpc tests', () => {
 		const db3 = tigris.getDatabase('db3');
 		let bookCounter = 0;
 		let success = true;
-		db3.getCollection('books')
+		db3.getCollection<IBook>('books')
 			.search({
 				q: 'philosophy',
 				facetQuery: {
@@ -368,6 +368,7 @@ describe('rpc tests', () => {
 				},
 				onError(error: Error) {
 					success = false;
+					fail(error);
 				},
 				onNext(searchResult: SearchResult<IBook>) {
 					expect(searchResult.hits).toBeDefined();
