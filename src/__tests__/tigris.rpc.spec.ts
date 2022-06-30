@@ -11,7 +11,8 @@ import {
 	UpdateFieldsOperator
 } from "../types";
 import {Tigris} from '../tigris';
-import {createFacetQueryOptions, SearchResult} from "../search/types";
+import {SearchResult} from "../search/types";
+import {Utility as SearchUtil} from "../search/utility";
 
 describe('rpc tests', () => {
 	let server: Server;
@@ -358,7 +359,7 @@ describe('rpc tests', () => {
 			.search({
 				q: 'philosophy',
 				facetQuery: {
-					tags: createFacetQueryOptions()
+					tags: SearchUtil.createFacetQueryOptions()
 				}
 			}, {
 				onEnd() {

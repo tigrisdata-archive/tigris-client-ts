@@ -32,12 +32,12 @@ import {
 } from "./types";
 import {Utility} from "./utility";
 import {
-	createSearchRequestOptions,
 	MATCH_ALL_QUERY_STRING,
 	SearchRequest,
 	SearchRequestOptions,
 	SearchResult,
 } from "./search/types";
+import {Utility as SearchUtil} from "./search/utility";
 
 export interface ReaderCallback<T> {
 	onNext(doc: T): void;
@@ -234,7 +234,7 @@ export class Collection<T extends TigrisCollectionType> {
 	}
 
 	search(request: SearchRequest<T>, reader: SearchResultCallback<T>, options?: SearchRequestOptions) {
-		const requestOptions = createSearchRequestOptions(options);
+		const requestOptions = SearchUtil.createSearchRequestOptions(options);
 		const searchRequest = new ProtoSearchRequest()
 			.setDb(this._db)
 			.setCollection(this._collectionName)
@@ -242,32 +242,32 @@ export class Collection<T extends TigrisCollectionType> {
 			.setPage(requestOptions.page)
 			.setPageSize(requestOptions.perPage);
 
-		if (typeof request.searchFields !== "undefined") {
+		if (request.searchFields !== undefined) {
 			searchRequest.setSearchFieldsList(request.searchFields);
 		}
 
-		if (typeof request.filter !== "undefined") {
+		if (request.filter !== undefined) {
 			searchRequest.setFilter(
 				Utility.stringToUint8Array(
 					Utility.filterToString(request.filter)
 				));
 		}
 
-		if (typeof request.facetQuery !== "undefined") {
+		if (request.facetQuery !== undefined) {
 			searchRequest.setFacet(
 				Utility.stringToUint8Array(
 					Utility.objToJsonString(request.facetQuery)
 				));
 		}
 
-		if (typeof request.sort !== "undefined") {
+		if (request.sort !== undefined) {
 			searchRequest.setSort(
 				Utility.stringToUint8Array(
 					Utility.objToJsonString(request.sort)
 				));
 		}
 
-		if (typeof request.readFields !== "undefined") {
+		if (request.readFields !== undefined) {
 			searchRequest.setFields(
 				Utility.stringToUint8Array(
 					Utility.readFieldString(request.readFields)

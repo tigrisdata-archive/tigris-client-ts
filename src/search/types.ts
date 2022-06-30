@@ -14,39 +14,36 @@ export const MATCH_ALL_QUERY_STRING = "";
 
 export type SearchRequest<T extends TigrisCollectionType> = {
 	q: string;
-	searchFields?: string[],
+	searchFields?: Array<string>,
 	filter?: SelectorFilter<T> | LogicalFilter<T> | Selector<T>,
 	facetQuery?: FacetFieldsQuery,
 	sort?: SortOrder,
 	readFields?: ReadFields;
 };
 
+/**
+ * Use `Utility.createSearchRequestOptions()` to generate using defaults
+ *
+ * @see {@link Utility.createSearchRequestOptions}
+ */
 export type SearchRequestOptions = {
 	page: number;
 	perPage: number;
 };
 
-export function createSearchRequestOptions(options?: Partial<SearchRequestOptions>): SearchRequestOptions {
-	const defaults = {page: 1, perPage: 10};
-	return {
-		...defaults,
-		...options
-	};
-}
-
 export type FacetFieldsQuery = {
 	[key: string]: FacetQueryOptions;
 };
 
+/**
+ * Use `Utility.createFacetQueryOptions()` to generate using defaults
+ *
+ * @see {@link Utility.createFacetQueryOptions}
+ */
 export type FacetQueryOptions = {
 	size: number;
 	type: FacetQueryFieldType;
 };
-
-export function createFacetQueryOptions(options?: Partial<FacetQueryOptions>): FacetQueryOptions {
-	const defaults = {size: 1, type: FacetQueryFieldType.VALUE};
-	return {...defaults, ...options};
-}
 
 export enum FacetQueryFieldType {
 	VALUE = "value"
@@ -56,17 +53,17 @@ export enum FacetQueryFieldType {
 export type SortOrder = "undefined";
 
 export class SearchResult<T> {
-	private readonly _hits: Hit<T>[];
+	private readonly _hits: Array<Hit<T>>;
 	private readonly _facets: Map<string, FacetCountDistribution>;
 	private readonly _meta: SearchMeta | undefined;
 
-	constructor(hits: Hit<T>[], facets: Map<string, FacetCountDistribution>, meta: SearchMeta | undefined) {
+	constructor(hits: Array<Hit<T>>, facets: Map<string, FacetCountDistribution>, meta: SearchMeta | undefined) {
 		this._hits = hits;
 		this._facets = facets;
 		this._meta = meta;
 	}
 
-	get hits(): Hit<T>[] {
+	get hits(): Array<Hit<T>> {
 		return this._hits;
 	}
 
@@ -80,7 +77,7 @@ export class SearchResult<T> {
 
 	static from<T>(resp: ProtoSearchResponse): SearchResult<T> {
 		const _meta = typeof resp?.getMeta() !== "undefined" ? SearchMeta.from(resp.getMeta()) : undefined;
-		const _hits: Hit<T>[] = resp.getHitsList().map(h => Hit.from(h));
+		const _hits: Array<Hit<T>> = resp.getHitsList().map(h => Hit.from(h));
 		const _facets: Map<string, FacetCountDistribution> = new Map(
 			resp.getFacetsMap().toArray().map(
 				([k, _]) => [k, FacetCountDistribution.from(resp.getFacetsMap().get(k))]
@@ -139,15 +136,15 @@ export class HitMeta {
 }
 
 export class FacetCountDistribution {
-	private readonly _counts: readonly FacetCount[];
+	private readonly _counts: ReadonlyArray<FacetCount>;
 	private readonly _stats: FacetStats | undefined;
 
-	constructor(counts: readonly FacetCount[], stats: FacetStats | undefined) {
+	constructor(counts: ReadonlyArray<FacetCount>, stats: FacetStats | undefined) {
 		this._counts = counts;
 		this._stats = stats;
 	}
 
-	get counts(): readonly FacetCount[] {
+	get counts(): ReadonlyArray<FacetCount> {
 		return this._counts;
 	}
 
