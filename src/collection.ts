@@ -3,6 +3,8 @@ import {TigrisClient} from "./proto/server/v1/api_grpc_pb";
 import * as server_v1_api_pb from "./proto/server/v1/api_pb";
 import {
 	DeleteRequest as ProtoDeleteRequest,
+	EventsRequest as ProtoEventsRequest,
+	EventsResponse as ProtoEventsResponse,
 	InsertRequest as ProtoInsertRequest,
 	ReadRequest as ProtoReadRequest,
 	ReadRequestOptions as ProtoReadRequestOptions,
@@ -17,6 +19,7 @@ import {
 	DeleteRequestOptions,
 	DeleteResponse,
 	DMLMetadata,
+	EventsRequestOptions,
 	InsertOptions,
 	InsertOrReplaceOptions,
 	LogicalFilter,
@@ -25,6 +28,7 @@ import {
 	Selector,
 	SelectorFilter,
 	SimpleUpdateField,
+	StreamEvent,
 	TigrisCollectionType,
 	UpdateFields,
 	UpdateRequestOptions,
@@ -48,6 +52,14 @@ export interface ReaderCallback<T> {
 
 export interface SearchResultCallback<T> {
 	onNext(result: SearchResult<T>): void;
+
+	onEnd(): void;
+
+	onError(error: Error): void;
+}
+
+export interface EventsCallback<T> {
+	onNext(event: StreamEvent<T>): void;
 
 	onEnd(): void;
 
@@ -337,5 +349,34 @@ export class Collection<T extends TigrisCollectionType> {
 				}
 			});
 		});
+	}
+
+	events(
+		events: EventsCallback<T>,
+		tx ?: Session,
+		_options ?: EventsRequestOptions
+	) {
+		const eventsRequest = new ProtoEventsRequest()
+		.setDb(this._db)
+		.setCollection(this._collectionName);
+
+		const stream: grpc.ClientReadableStream<ProtoEventsResponse> = this._grpcClient.events(
+			eventsRequest,
+			Utility.txToMetadata(tx)
+		);
+
+		stream.on("data", (eventsResponse: ProtoEventsResponse) => {
+			const event = eventsResponse.getEvent();
+			events.onNext(new StreamEvent<T>(
+				event.getTxId_asB64(),
+				event.getCollection(),
+				event.getOp(),
+				Utility.jsonStringToObj<T>(Utility._base64Decode(event.getData_asB64())),
+				event.getLast()
+			));
+		});
+
+		stream.on("error", (error) => events.onError(error));
+		stream.on("end", () => events.onEnd());
 	}
 }
