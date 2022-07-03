@@ -37,7 +37,6 @@ import {
 	SearchRequestOptions,
 	SearchResult,
 } from "./search/types";
-import {Utility as SearchUtil} from "./search/utility";
 
 export interface ReaderCallback<T> {
 	onNext(doc: T): void;
@@ -234,7 +233,7 @@ export class Collection<T extends TigrisCollectionType> {
 	}
 
 	search(request: SearchRequest<T>, reader: SearchResultCallback<T>, options?: SearchRequestOptions) {
-		const requestOptions = SearchUtil.createSearchRequestOptions(options);
+		const requestOptions = Utility.createSearchRequestOptions(options);
 		const searchRequest = new ProtoSearchRequest()
 			.setDb(this._db)
 			.setCollection(this._collectionName)

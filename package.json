@@ -37,7 +37,7 @@
 		"tsc": "tsc && npm run copy_api",
 		"build": "npm install && npm run update_api && npm run protoc && npm run tsc",
 		"test": "jest --runInBand --coverage",
-		"all": "npm run clean && npm run update_api && npm run protoc && npm run lint && npm run build",
+		"all": "npm run clean && npm run update_api && npm run build && npm run lint && npm run test",
 		"prepare": "npm run update_api && npm run protoc && npm run tsc",
 		"prepublishOnly": "npm test && npm run lint",
 		"preversion": "npm run lint",

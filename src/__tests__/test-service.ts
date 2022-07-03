@@ -356,11 +356,12 @@ export class TestTigrisService {
 			call.write(new SearchResponse());
 
 			// with only meta and not page
-			const searchMeta = new SearchMetadata().setFound(5);
+			const searchMeta = new SearchMetadata().setFound(5).setTotalPages(5);
 			call.write(new SearchResponse().setMeta(searchMeta));
 
 			// with meta and page
-			const searchPage = new Page().setPerPage(1).setTotal(5).setCurrent(1);
+			const searchPage = new Page().setSize(1).setCurrent(1);
+
 			call.write(new SearchResponse().setMeta(searchMeta.setPage(searchPage)));
 
 			// with facets, meta and page

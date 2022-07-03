@@ -230,14 +230,14 @@ export class FacetStats {
 export class SearchMeta {
 	private readonly _found: number;
 	private readonly _currentPage: number;
-	private readonly _perPage: number;
+	private readonly _size: number;
 	private readonly _totalPages: number;
 
-	constructor(found: number, currentPage: number, perPage: number, totalPages: number) {
+	constructor(found: number, currentPage: number, _size: number, totalPages: number) {
 		this._found = found;
 		this._currentPage = currentPage;
 		this._totalPages = totalPages;
-		this._perPage = perPage;
+		this._size = _size;
 	}
 
 	get found(): number {
@@ -248,8 +248,8 @@ export class SearchMeta {
 		return this._currentPage;
 	}
 
-	get perPage(): number {
-		return this._perPage;
+	get size(): number {
+		return this._size;
 	}
 
 	get totalPages(): number {
@@ -258,9 +258,9 @@ export class SearchMeta {
 
 	static from(resp: ProtoSearchMetadata): SearchMeta {
 		const found = resp?.getFound() ?? 0;
+		const totalPages = resp?.getTotalPages() ?? 0;
 		const currentPage = resp?.getPage()?.getCurrent() ?? 0;
-		const perPage = resp?.getPage()?.getPerPage() ?? 0;
-		const totalPages = resp?.getPage()?.getTotal() ?? 0;
-		return new SearchMeta(found, currentPage, perPage, totalPages);
+		const size = resp?.getPage()?.getSize() ?? 0;
+		return new SearchMeta(found, currentPage, size, totalPages);
 	}
 }

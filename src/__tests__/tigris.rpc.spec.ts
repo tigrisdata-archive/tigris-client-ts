@@ -12,7 +12,7 @@ import {
 } from "../types";
 import {Tigris} from '../tigris';
 import {SearchResult} from "../search/types";
-import {Utility as SearchUtil} from "../search/utility";
+import {Utility} from "../utility";
 
 describe('rpc tests', () => {
 	let server: Server;
@@ -359,7 +359,7 @@ describe('rpc tests', () => {
 			.search({
 				q: 'philosophy',
 				facetQuery: {
-					tags: SearchUtil.createFacetQueryOptions()
+					tags: Utility.createFacetQueryOptions()
 				}
 			}, {
 				onEnd() {

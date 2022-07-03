@@ -92,7 +92,7 @@ describe('SearchResponse parsing', () => {
 		expect(parsed.meta).toBeDefined();
 		expect(parsed.meta.found).toBe(0);
 		expect(parsed.meta.currentPage).toBe(0);
-		expect(parsed.meta.perPage).toBe(0);
+		expect(parsed.meta.size).toBe(0);
 		expect(parsed.meta.totalPages).toBe(0);
 	});
 
@@ -103,17 +103,17 @@ describe('SearchResponse parsing', () => {
 
 		expect(parsed.meta.found).toBe(5);
 		expect(parsed.meta.currentPage).toBe(0);
-		expect(parsed.meta.perPage).toBe(0);
+		expect(parsed.meta.size).toBe(0);
 		expect(parsed.meta.totalPages).toBe(0);
 	});
 
 	it ('generates meta appropriately with complete response', () => {
 		const input: ProtoSearchResponse = new ProtoSearchResponse();
-		const page: ProtoPage = new ProtoPage().setPerPage(3).setCurrent(2).setTotal(100);
-		input.setMeta(new ProtoSearchMetadata().setPage(page));
+		const page: ProtoPage = new ProtoPage().setSize(3).setCurrent(2);
+		input.setMeta(new ProtoSearchMetadata().setPage(page).setTotalPages(100));
 		const parsed: SearchResult<any> = SearchResult.from(input);
 
-		expect(parsed.meta.perPage).toBe(3);
+		expect(parsed.meta.size).toBe(3);
 		expect(parsed.meta.currentPage).toBe(2);
 		expect(parsed.meta.totalPages).toBe(100);
 	});
