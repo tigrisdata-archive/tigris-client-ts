@@ -80,6 +80,7 @@ export class SearchResult<T> {
 		const _hits: Array<Hit<T>> = resp.getHitsList().map(h => Hit.from(h));
 		const _facets: Map<string, FacetCountDistribution> = new Map(
 			resp.getFacetsMap().toArray().map(
+				// eslint-disable-next-line @typescript-eslint/no-unused-vars
 				([k, _]) => [k, FacetCountDistribution.from(resp.getFacetsMap().get(k))]
 			));
 		return new SearchResult(_hits, _facets, _meta);

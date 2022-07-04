@@ -1,26 +1,26 @@
 import {
 	ReadFields,
 } from "../types";
-import {Utility} from '../utility';
+import {Utility} from "../utility";
 
-describe('readFields tests', () => {
-	it('readFields1', () => {
+describe("readFields tests", () => {
+	it("readFields1", () => {
 		const readFields: ReadFields = {
-			include: ['id', 'title'],
+			include: ["id", "title"],
 		};
-		expect(Utility.readFieldString(readFields)).toBe('{"id":true,"title":true}');
+		expect(Utility.readFieldString(readFields)).toBe("{\"id\":true,\"title\":true}");
 	});
-	it('readFields2', () => {
+	it("readFields2", () => {
 		const readFields: ReadFields = {
-			exclude: ['id', 'title'],
+			exclude: ["id", "title"],
 		};
-		expect(Utility.readFieldString(readFields)).toBe('{"id":false,"title":false}');
+		expect(Utility.readFieldString(readFields)).toBe("{\"id\":false,\"title\":false}");
 	});
-	it('readFields3', () => {
+	it("readFields3", () => {
 		const readFields: ReadFields = {
-			include: ['id', 'title'],
-			exclude: ['author']
+			include: ["id", "title"],
+			exclude: ["author"]
 		};
-		expect(Utility.readFieldString(readFields)).toBe('{"id":true,"title":true,"author":false}');
+		expect(Utility.readFieldString(readFields)).toBe("{\"id\":true,\"title\":true,\"author\":false}");
 	});
 });

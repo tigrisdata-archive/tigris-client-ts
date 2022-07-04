@@ -1,6 +1,6 @@
-import {Server, ServerCredentials} from '@grpc/grpc-js';
-import {TigrisService} from '../proto/server/v1/api_grpc_pb';
-import TestService, {TestTigrisService} from './test-service';
+import {Server, ServerCredentials} from "@grpc/grpc-js";
+import {TigrisService} from "../proto/server/v1/api_grpc_pb";
+import TestService, {TestTigrisService} from "./test-service";
 import {
 	DatabaseOptions,
 	LogicalOperator,
@@ -10,11 +10,11 @@ import {
 	TigrisSchema,
 	UpdateFieldsOperator
 } from "../types";
-import {Tigris} from '../tigris';
+import {Tigris} from "../tigris";
 import {SearchResult} from "../search/types";
 import {Utility} from "../utility";
 
-describe('rpc tests', () => {
+describe("rpc tests", () => {
 	let server: Server;
 	const SERVER_PORT = 5002;
 	beforeAll(() => {
@@ -22,7 +22,7 @@ describe('rpc tests', () => {
 		TestTigrisService.reset();
 		server.addService(TigrisService, TestService.handler.impl);
 		server.bindAsync(
-			'0.0.0.0:' + SERVER_PORT,
+			"0.0.0.0:" + SERVER_PORT,
 			// test purpose only
 			ServerCredentials.createInsecure(),
 			(err: Error | null) => {
@@ -41,129 +41,129 @@ describe('rpc tests', () => {
 		server.forceShutdown();
 	});
 
-	it('listDatabase', () => {
-		const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
+	it("listDatabase", () => {
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const listDbsPromise = tigris.listDatabases();
 		listDbsPromise
 			.then((value) => {
 					expect(value.length).toBe(5);
-					expect(value[0].name).toBe('db1');
-					expect(value[1].name).toBe('db2');
-					expect(value[2].name).toBe('db3');
-					expect(value[3].name).toBe('db4');
-					expect(value[4].name).toBe('db5');
+					expect(value[0].name).toBe("db1");
+					expect(value[1].name).toBe("db2");
+					expect(value[2].name).toBe("db3");
+					expect(value[3].name).toBe("db4");
+					expect(value[4].name).toBe("db5");
 				},
 			);
 
 		return listDbsPromise;
 	});
 
-	it('createDatabaseIfNotExists', () => {
-		const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
-		const dbCreationPromise = tigris.createDatabaseIfNotExists('db6', new DatabaseOptions());
+	it("createDatabaseIfNotExists", () => {
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
+		const dbCreationPromise = tigris.createDatabaseIfNotExists("db6", new DatabaseOptions());
 		dbCreationPromise
 			.then((value) => {
-					expect(value.db).toBe('db6');
+					expect(value.db).toBe("db6");
 				},
 			);
 
 		return dbCreationPromise;
 	});
 
-	it('dropDatabase', () => {
-		const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
-		const dbDropPromise = tigris.dropDatabase('db6', new DatabaseOptions());
+	it("dropDatabase", () => {
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
+		const dbDropPromise = tigris.dropDatabase("db6", new DatabaseOptions());
 		dbDropPromise
 			.then((value) => {
-					expect(value.status).toBe('dropped');
-					expect(value.message).toBe('db6 dropped successfully');
+					expect(value.status).toBe("dropped");
+					expect(value.message).toBe("db6 dropped successfully");
 				},
 			);
 		return dbDropPromise;
 	});
 
-	it('getDatabase', () => {
-		const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
-		const db1 = tigris.getDatabase('db1');
-		expect(db1.db).toBe('db1');
+	it("getDatabase", () => {
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
+		const db1 = tigris.getDatabase("db1");
+		expect(db1.db).toBe("db1");
 	});
 
-	it('listCollections1', () => {
-		const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
-		const db1 = tigris.getDatabase('db1');
+	it("listCollections1", () => {
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
+		const db1 = tigris.getDatabase("db1");
 
 		const listCollectionPromise = db1.listCollections();
 		listCollectionPromise.then(value => {
 			expect(value.length).toBe(5);
-			expect(value[0].name).toBe('db1_coll_1');
-			expect(value[1].name).toBe('db1_coll_2');
-			expect(value[2].name).toBe('db1_coll_3');
-			expect(value[3].name).toBe('db1_coll_4');
-			expect(value[4].name).toBe('db1_coll_5');
+			expect(value[0].name).toBe("db1_coll_1");
+			expect(value[1].name).toBe("db1_coll_2");
+			expect(value[2].name).toBe("db1_coll_3");
+			expect(value[3].name).toBe("db1_coll_4");
+			expect(value[4].name).toBe("db1_coll_5");
 		});
 		return listCollectionPromise;
 	});
 
-	it('listCollections2', () => {
-		const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
-		const db1 = tigris.getDatabase('db3');
+	it("listCollections2", () => {
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
+		const db1 = tigris.getDatabase("db3");
 
 		const listCollectionPromise = db1.listCollections();
 		listCollectionPromise.then(value => {
 			expect(value.length).toBe(5);
-			expect(value[0].name).toBe('db3_coll_1');
-			expect(value[1].name).toBe('db3_coll_2');
-			expect(value[2].name).toBe('db3_coll_3');
-			expect(value[3].name).toBe('db3_coll_4');
-			expect(value[4].name).toBe('db3_coll_5');
+			expect(value[0].name).toBe("db3_coll_1");
+			expect(value[1].name).toBe("db3_coll_2");
+			expect(value[2].name).toBe("db3_coll_3");
+			expect(value[3].name).toBe("db3_coll_4");
+			expect(value[4].name).toBe("db3_coll_5");
 		});
 		return listCollectionPromise;
 	});
 
-	it('describeDatabase', () => {
-		const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
-		const db1 = tigris.getDatabase('db3');
+	it("describeDatabase", () => {
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
+		const db1 = tigris.getDatabase("db3");
 
 		const databaseDescriptionPromise = db1.describe();
 		databaseDescriptionPromise.then(value => {
-			expect(value.db).toBe('db3');
+			expect(value.db).toBe("db3");
 			expect(value.collectionsDescription.length).toBe(5);
-			expect(value.collectionsDescription[0].collection).toBe('db3_coll_1');
-			expect(value.collectionsDescription[1].collection).toBe('db3_coll_2');
-			expect(value.collectionsDescription[2].collection).toBe('db3_coll_3');
-			expect(value.collectionsDescription[3].collection).toBe('db3_coll_4');
-			expect(value.collectionsDescription[4].collection).toBe('db3_coll_5');
+			expect(value.collectionsDescription[0].collection).toBe("db3_coll_1");
+			expect(value.collectionsDescription[1].collection).toBe("db3_coll_2");
+			expect(value.collectionsDescription[2].collection).toBe("db3_coll_3");
+			expect(value.collectionsDescription[3].collection).toBe("db3_coll_4");
+			expect(value.collectionsDescription[4].collection).toBe("db3_coll_5");
 		});
 		return databaseDescriptionPromise;
 	});
 
-	it('dropCollection', () => {
-		const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
-		const db1 = tigris.getDatabase('db3');
+	it("dropCollection", () => {
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
+		const db1 = tigris.getDatabase("db3");
 
-		const dropCollectionPromise = db1.dropCollection('db3_coll_2');
+		const dropCollectionPromise = db1.dropCollection("db3_coll_2");
 		dropCollectionPromise.then(value => {
-			expect(value.status).toBe('dropped');
-			expect(value.message).toBe('db3_coll_2 dropped successfully');
+			expect(value.status).toBe("dropped");
+			expect(value.message).toBe("db3_coll_2 dropped successfully");
 		});
 		return dropCollectionPromise;
 	});
 
-	it('getCollection', () => {
-		const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
-		const db1 = tigris.getDatabase('db3');
-		const books = db1.getCollection<IBook>('books');
-		expect(books.collectionName).toBe('books');
+	it("getCollection", () => {
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
+		const db1 = tigris.getDatabase("db3");
+		const books = db1.getCollection<IBook>("books");
+		expect(books.collectionName).toBe("books");
 	});
 
-	it('insert', () => {
-		const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
-		const db1 = tigris.getDatabase('db3');
-		const insertionPromise = db1.getCollection<IBook>('books').insert({
+	it("insert", () => {
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
+		const db1 = tigris.getDatabase("db3");
+		const insertionPromise = db1.getCollection<IBook>("books").insert({
 			author: "author name",
 			id: 0,
-			tags: ['science'],
-			title: 'science book'
+			tags: ["science"],
+			title: "science book"
 		});
 		insertionPromise.then(insertedBook => {
 			expect(insertedBook.id).toBe(1);
@@ -171,16 +171,16 @@ describe('rpc tests', () => {
 		return insertionPromise;
 	});
 
-	it('insertWithOptionalField', () => {
-		const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
-		const db1 = tigris.getDatabase('db3');
+	it("insertWithOptionalField", () => {
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
+		const db1 = tigris.getDatabase("db3");
 		const randomNumber: number = Math.floor(Math.random() * 100);
 		// pass the random number in author field. mock server reads author and sets as the
 		// primaryKey field.
-		const insertionPromise = db1.getCollection<IBook1>('books-with-optional-field').insert({
+		const insertionPromise = db1.getCollection<IBook1>("books-with-optional-field").insert({
 			author: "" + randomNumber,
-			tags: ['science'],
-			title: 'science book'
+			tags: ["science"],
+			title: "science book"
 		});
 		insertionPromise.then(insertedBook => {
 			expect(insertedBook.id).toBe(randomNumber);
@@ -188,14 +188,14 @@ describe('rpc tests', () => {
 		return insertionPromise;
 	});
 
-	it('insertOrReplace', () => {
-		const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
-		const db1 = tigris.getDatabase('db3');
-		const insertOrReplacePromise = db1.getCollection<IBook>('books').insertOrReplace({
+	it("insertOrReplace", () => {
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
+		const db1 = tigris.getDatabase("db3");
+		const insertOrReplacePromise = db1.getCollection<IBook>("books").insertOrReplace({
 			author: "author name",
 			id: 0,
-			tags: ['science'],
-			title: 'science book'
+			tags: ["science"],
+			title: "science book"
 		});
 		insertOrReplacePromise.then(insertedOrReplacedBook => {
 			expect(insertedOrReplacedBook.id).toBe(1);
@@ -203,16 +203,16 @@ describe('rpc tests', () => {
 		return insertOrReplacePromise;
 	});
 
-	it('insertOrReplaceWithOptionalField', () => {
-		const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
-		const db1 = tigris.getDatabase('db3');
+	it("insertOrReplaceWithOptionalField", () => {
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
+		const db1 = tigris.getDatabase("db3");
 		const randomNumber: number = Math.floor(Math.random() * 100);
 		// pass the random number in author field. mock server reads author and sets as the
 		// primaryKey field.
-		const insertOrReplacePromise = db1.getCollection<IBook1>('books-with-optional-field').insertOrReplace({
+		const insertOrReplacePromise = db1.getCollection<IBook1>("books-with-optional-field").insertOrReplace({
 			author: "" + randomNumber,
-			tags: ['science'],
-			title: 'science book'
+			tags: ["science"],
+			title: "science book"
 		});
 		insertOrReplacePromise.then(insertedOrReplacedBook => {
 			expect(insertedOrReplacedBook.id).toBe(randomNumber);
@@ -220,25 +220,25 @@ describe('rpc tests', () => {
 		return insertOrReplacePromise;
 	});
 
-	it('delete', () => {
-		const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
-		const db1 = tigris.getDatabase('db3');
-		const deletionPromise = db1.getCollection<IBook>('books').delete({
+	it("delete", () => {
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
+		const db1 = tigris.getDatabase("db3");
+		const deletionPromise = db1.getCollection<IBook>("books").delete({
 			op: SelectorFilterOperator.EQ,
 			fields: {
 				id: 1
 			}
 		});
 		deletionPromise.then(value => {
-			expect(value.status).toBe('deleted: {"id":1}');
+			expect(value.status).toBe("deleted: {\"id\":1}");
 		});
 		return deletionPromise;
 	});
 
-	it('update', () => {
-		const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
-		const db1 = tigris.getDatabase('db3');
-		const updatePromise = db1.getCollection<IBook>('books').update(
+	it("update", () => {
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
+		const db1 = tigris.getDatabase("db3");
+		const updatePromise = db1.getCollection<IBook>("books").update(
 			{
 				op: SelectorFilterOperator.EQ,
 				fields: {
@@ -248,19 +248,19 @@ describe('rpc tests', () => {
 			{
 				op: UpdateFieldsOperator.SET,
 				fields: {
-					title: 'New Title'
+					title: "New Title"
 				}
 			});
 		updatePromise.then(value => {
-			expect(value.status).toBe('updated: {"id":1}, {"$set":{"title":"New Title"}}');
+			expect(value.status).toBe("updated: {\"id\":1}, {\"$set\":{\"title\":\"New Title\"}}");
 		});
 		return updatePromise;
 	});
 
-	it('readOne', () => {
-		const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
-		const db1 = tigris.getDatabase('db3');
-		const readOnePromise = db1.getCollection<IBook>('books').readOne({
+	it("readOne", () => {
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
+		const db1 = tigris.getDatabase("db3");
+		const readOnePromise = db1.getCollection<IBook>("books").readOne({
 			op: SelectorFilterOperator.EQ,
 			fields: {
 				id: 1
@@ -269,17 +269,17 @@ describe('rpc tests', () => {
 		readOnePromise.then(value => {
 			const book: IBook = <IBook>value;
 			expect(book.id).toBe(1);
-			expect(book.title).toBe('A Passage to India');
-			expect(book.author).toBe('E.M. Forster');
+			expect(book.title).toBe("A Passage to India");
+			expect(book.author).toBe("E.M. Forster");
 			expect(book.tags).toStrictEqual(["Novel", "India"]);
 		});
 		return readOnePromise;
 	});
 
-	it('readOneRecordNotFound', () => {
-		const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
-		const db1 = tigris.getDatabase('db3');
-		const readOnePromise = db1.getCollection<IBook>('books').readOne({
+	it("readOneRecordNotFound", () => {
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
+		const db1 = tigris.getDatabase("db3");
+		const readOnePromise = db1.getCollection<IBook>("books").readOne({
 			op: SelectorFilterOperator.EQ,
 			fields: {
 				id: 2
@@ -291,10 +291,10 @@ describe('rpc tests', () => {
 		return readOnePromise;
 	});
 
-	it('readOneWithLogicalFilter', () => {
-		const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
-		const db1 = tigris.getDatabase('db3');
-		const readOnePromise: Promise<IBook | void> = db1.getCollection<IBook>('books').readOne({
+	it("readOneWithLogicalFilter", () => {
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
+		const db1 = tigris.getDatabase("db3");
+		const readOnePromise: Promise<IBook | void> = db1.getCollection<IBook>("books").readOne({
 			op: LogicalOperator.AND,
 			selectorFilters: [
 				{
@@ -306,7 +306,7 @@ describe('rpc tests', () => {
 				{
 					op: SelectorFilterOperator.EQ,
 					fields: {
-						title: 'In Search of Lost Time'
+						title: "In Search of Lost Time"
 					}
 				}
 			]
@@ -314,23 +314,23 @@ describe('rpc tests', () => {
 		readOnePromise.then(value => {
 			const book: IBook = <IBook>value;
 			expect(book.id).toBe(3);
-			expect(book.title).toBe('In Search of Lost Time');
-			expect(book.author).toBe('Marcel Proust');
+			expect(book.title).toBe("In Search of Lost Time");
+			expect(book.author).toBe("Marcel Proust");
 			expect(book.tags).toStrictEqual(["Novel", "Childhood"]);
 		});
 		return readOnePromise;
 	});
 
-	it('readMany', (done) => {
-		const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
-		const db1 = tigris.getDatabase('db3');
+	it("readMany", (done) => {
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
+		const db1 = tigris.getDatabase("db3");
 		let bookCounter = 0;
 		let success = true;
 		success = true;
-		db1.getCollection<IBook>('books').read({
+		db1.getCollection<IBook>("books").read({
 			op: SelectorFilterOperator.EQ,
 			fields: {
-				author: 'Marcel Proust'
+				author: "Marcel Proust"
 			}
 		}, {
 			onEnd() {
@@ -341,23 +341,23 @@ describe('rpc tests', () => {
 			},
 			onNext(book: IBook) {
 				bookCounter++;
-				expect(book.author).toBe('Marcel Proust');
+				expect(book.author).toBe("Marcel Proust");
 			},
 			// eslint-disable-next-line @typescript-eslint/no-unused-vars
-			onError(error: Error) {
+			onError(_error: Error) {
 				success = false;
 			}
 		});
 	});
 
-	it('search', (done) => {
-		const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
-		const db3 = tigris.getDatabase('db3');
+	it("search", (done) => {
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
+		const db3 = tigris.getDatabase("db3");
 		let bookCounter = 0;
 		let success = true;
-		db3.getCollection<IBook>('books')
+		db3.getCollection<IBook>("books")
 			.search({
-				q: 'philosophy',
+				q: "philosophy",
 				facetQuery: {
 					tags: Utility.createFacetQueryOptions()
 				}
@@ -379,57 +379,57 @@ describe('rpc tests', () => {
 			});
 	});
 
-	it('beginTx', () => {
-		const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
-		const db3 = tigris.getDatabase('db3');
+	it("beginTx", () => {
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
+		const db3 = tigris.getDatabase("db3");
 		const beginTxPromise = db3.beginTransaction();
 		beginTxPromise.then(value => {
-			expect(value.id).toBe('id-test');
-			expect(value.origin).toBe('origin-test');
+			expect(value.id).toBe("id-test");
+			expect(value.origin).toBe("origin-test");
 		});
 		return beginTxPromise;
 	});
 
-	it('commitTx', (done) => {
-		const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
-		const db3 = tigris.getDatabase('db3');
+	it("commitTx", (done) => {
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
+		const db3 = tigris.getDatabase("db3");
 		const beginTxPromise = db3.beginTransaction();
 		beginTxPromise.then(session => {
 			const commitTxResponse = session.commit();
 			commitTxResponse.then(value => {
-				expect(value.status).toBe('committed-test');
+				expect(value.status).toBe("committed-test");
 				done();
 			});
 		});
 	});
 
-	it('rollbackTx', (done) => {
-		const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
-		const db3 = tigris.getDatabase('db3');
+	it("rollbackTx", (done) => {
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
+		const db3 = tigris.getDatabase("db3");
 		const beginTxPromise = db3.beginTransaction();
 		beginTxPromise.then(session => {
 			const rollbackTransactionResponsePromise = session.rollback();
 			rollbackTransactionResponsePromise.then(value => {
-				expect(value.status).toBe('rollback-test');
+				expect(value.status).toBe("rollback-test");
 				done();
 			});
 		});
 	});
 
-	it('transact', (done) => {
-		const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
-		const txDB = tigris.getDatabase('test-tx');
-		const books = txDB.getCollection<IBook>('books');
+	it("transact", (done) => {
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
+		const txDB = tigris.getDatabase("test-tx");
+		const books = txDB.getCollection<IBook>("books");
 		txDB.transact(tx => {
 			books.insert(
 				{
 					id: 1,
-					author: 'Alice',
-					title: 'Some book title'
+					author: "Alice",
+					title: "Some book title"
 				},
 				tx
 				// eslint-disable-next-line @typescript-eslint/no-unused-vars
-			).then(value => {
+			).then(_value => {
 				books.readOne({
 					op: SelectorFilterOperator.EQ,
 					fields: {
@@ -445,8 +445,8 @@ describe('rpc tests', () => {
 						{
 							op: UpdateFieldsOperator.SET,
 							fields: {
-								'author':
-									'Dr. Author'
+								"author":
+									"Dr. Author"
 							}
 							// eslint-disable-next-line @typescript-eslint/no-unused-vars
 						}, tx).then(() => {
@@ -462,9 +462,9 @@ describe('rpc tests', () => {
 		});
 	});
 
-	it('createOrUpdateCollections', () => {
-		const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
-		const db3 = tigris.getDatabase('db3');
+	it("createOrUpdateCollections", () => {
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
+		const db3 = tigris.getDatabase("db3");
 		const bookSchema: TigrisSchema<IBook> = {
 			id: {
 				type: TigrisDataTypes.INT64,
@@ -486,16 +486,16 @@ describe('rpc tests', () => {
 				}
 			}
 		};
-		return db3.createOrUpdateCollection('books', bookSchema).then(value => {
+		return db3.createOrUpdateCollection("books", bookSchema).then(value => {
 			expect(value).toBeDefined();
 		});
 	});
 
-	it('serverMetadata', () => {
-		const tigris = new Tigris({serverUrl: '0.0.0.0:' + SERVER_PORT});
+	it("serverMetadata", () => {
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const serverMetadataPromise = tigris.getServerMetadata();
 		serverMetadataPromise.then(value => {
-			expect(value.serverVersion).toBe('1.0.0-test-service');
+			expect(value.serverVersion).toBe("1.0.0-test-service");
 		});
 		return serverMetadataPromise;
 	});

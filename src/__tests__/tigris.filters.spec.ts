@@ -6,63 +6,63 @@ import {
 	SelectorFilterOperator,
 	TigrisCollectionType,
 } from "../types";
-import {Utility} from '../utility';
+import {Utility} from "../utility";
 
-describe('filters tests', () => {
-	it('simpleSelectorFilterTest', () => {
+describe("filters tests", () => {
+	it("simpleSelectorFilterTest", () => {
 		const filter1: Selector<IUser> = {
-			name: 'Alice'
+			name: "Alice"
 		};
-		expect(Utility.filterToString(filter1)).toBe('{"name":"Alice"}');
+		expect(Utility.filterToString(filter1)).toBe("{\"name\":\"Alice\"}");
 
 		const filter2: Selector<IUser> = {
 			balance: 100
 		};
-		expect(Utility.filterToString(filter2)).toBe('{"balance":100}');
+		expect(Utility.filterToString(filter2)).toBe("{\"balance\":100}");
 
 		const filter3: Selector<IUser1> = {
 			isActive: true
 		};
-		expect(Utility.filterToString(filter3)).toBe('{"isActive":true}');
+		expect(Utility.filterToString(filter3)).toBe("{\"isActive\":true}");
 
 	});
 
-	it('simplerSelectorWithinLogicalFilterTest', () => {
+	it("simplerSelectorWithinLogicalFilterTest", () => {
 		const filter1: LogicalFilter<IUser> = {
 			op: LogicalOperator.AND,
 			selectorFilters: [
 				{
-					name: 'Alice'
+					name: "Alice"
 				},
 				{
 					balance: 100
 				}
 			]
 		};
-		expect(Utility.filterToString(filter1)).toBe('{"$and":[{"name":"Alice"},{"balance":100}]}');
+		expect(Utility.filterToString(filter1)).toBe("{\"$and\":[{\"name\":\"Alice\"},{\"balance\":100}]}");
 
 		const filter2: LogicalFilter<IUser> = {
 			op: LogicalOperator.OR,
 			selectorFilters: [
 				{
-					name: 'Alice'
+					name: "Alice"
 				},
 				{
-					name: 'Emma'
+					name: "Emma"
 				}
 			]
 		};
-		expect(Utility.filterToString(filter2)).toBe('{"$or":[{"name":"Alice"},{"name":"Emma"}]}');
+		expect(Utility.filterToString(filter2)).toBe("{\"$or\":[{\"name\":\"Alice\"},{\"name\":\"Emma\"}]}");
 	});
 
-	it('basicSelectorFilterTest', () => {
+	it("basicSelectorFilterTest", () => {
 		const filter1: SelectorFilter<IUser> = {
 			op: SelectorFilterOperator.EQ,
 			fields: {
-				name: 'Alice'
+				name: "Alice"
 			}
 		};
-		expect(Utility.filterToString(filter1)).toBe('{"name":"Alice"}');
+		expect(Utility.filterToString(filter1)).toBe("{\"name\":\"Alice\"}");
 
 		const filter2: SelectorFilter<IUser> = {
 			op: SelectorFilterOperator.EQ,
@@ -70,7 +70,7 @@ describe('filters tests', () => {
 				id: BigInt(123)
 			}
 		};
-		expect(Utility.filterToString(filter2)).toBe('{"id":123}');
+		expect(Utility.filterToString(filter2)).toBe("{\"id\":123}");
 
 		const filter3: SelectorFilter<IUser1> = {
 			op: SelectorFilterOperator.EQ,
@@ -78,76 +78,76 @@ describe('filters tests', () => {
 				isActive: true
 			}
 		};
-		expect(Utility.filterToString(filter3)).toBe('{"isActive":true}');
+		expect(Utility.filterToString(filter3)).toBe("{\"isActive\":true}");
 	});
 
-	it('selectorFilter_1', () => {
+	it("selectorFilter_1", () => {
 		const tigrisFilter: SelectorFilter<Student> = {
 			op: SelectorFilterOperator.EQ,
 			fields: {
 				id: BigInt(1),
-				name: 'alice',
+				name: "alice",
 			}
 		};
-		expect(Utility.filterToString(tigrisFilter)).toBe('{"id":1,"name":"alice"}');
+		expect(Utility.filterToString(tigrisFilter)).toBe("{\"id\":1,\"name\":\"alice\"}");
 	});
 
-	it('selectorFilter_2', () => {
+	it("selectorFilter_2", () => {
 		const tigrisFilter: SelectorFilter<Student> = {
 			op: SelectorFilterOperator.EQ,
 			fields: {
 				id: BigInt(1),
-				name: 'alice',
+				name: "alice",
 				balance: 12.34
 			}
 		};
-		expect(Utility.filterToString(tigrisFilter)).toBe('{"id":1,"name":"alice","balance":12.34}');
+		expect(Utility.filterToString(tigrisFilter)).toBe("{\"id\":1,\"name\":\"alice\",\"balance\":12.34}");
 	});
 
-	it('selectorFilter_3', () => {
+	it("selectorFilter_3", () => {
 		const tigrisFilter: SelectorFilter<Student> = {
 			op: SelectorFilterOperator.EQ,
 			fields: {
 				id: BigInt(1),
-				name: 'alice',
+				name: "alice",
 				balance: 12.34,
 				address: {
-					city: 'San Francisco'
+					city: "San Francisco"
 				}
 			}
 		};
-		expect(Utility.filterToString(tigrisFilter)).toBe('{"id":1,"name":"alice","balance":12.34,"address.city":"San Francisco"}');
+		expect(Utility.filterToString(tigrisFilter)).toBe("{\"id\":1,\"name\":\"alice\",\"balance\":12.34,\"address.city\":\"San Francisco\"}");
 	});
 
-	it('logicalFilterTest1', () => {
+	it("logicalFilterTest1", () => {
 		const logicalFilter: LogicalFilter<IUser> = {
 			op: LogicalOperator.OR,
 			selectorFilters: [
 				{
 					op: SelectorFilterOperator.EQ,
 					fields: {
-						name: 'alice'
+						name: "alice"
 					}
 				},
 				{
 					op: SelectorFilterOperator.EQ,
 					fields: {
-						name: 'emma'
+						name: "emma"
 					}
 				}
 			]
 		};
-		expect(Utility.filterToString(logicalFilter)).toBe('{"$or":[{"name":"alice"},{"name":"emma"}]}');
+		expect(Utility.filterToString(logicalFilter)).toBe("{\"$or\":[{\"name\":\"alice\"},{\"name\":\"emma\"}]}");
 	});
 
-	it('logicalFilterTest2', () => {
+	it("logicalFilterTest2", () => {
 		const logicalFilter: LogicalFilter<IUser2> = {
 			op: LogicalOperator.AND,
 			selectorFilters: [
 				{
 					op: SelectorFilterOperator.EQ,
 					fields: {
-						name: 'alice'
+						name: "alice"
 					}
 				},
 				{
@@ -158,17 +158,17 @@ describe('filters tests', () => {
 				}
 			]
 		};
-		expect(Utility.filterToString(logicalFilter)).toBe('{"$and":[{"name":"alice"},{"rank":1}]}');
+		expect(Utility.filterToString(logicalFilter)).toBe("{\"$and\":[{\"name\":\"alice\"},{\"rank\":1}]}");
 	});
 
-	it('nestedLogicalFilter1', () => {
+	it("nestedLogicalFilter1", () => {
 		const logicalFilter1: LogicalFilter<IUser2> = {
 			op: LogicalOperator.AND,
 			selectorFilters: [
 				{
 					op: SelectorFilterOperator.EQ,
 					fields: {
-						name: 'alice',
+						name: "alice",
 					}
 				},
 				{
@@ -185,7 +185,7 @@ describe('filters tests', () => {
 				{
 					op: SelectorFilterOperator.EQ,
 					fields: {
-						name: 'emma',
+						name: "emma",
 					}
 				},
 				{
@@ -200,17 +200,17 @@ describe('filters tests', () => {
 			op: LogicalOperator.OR,
 			logicalFilters: [logicalFilter1, logicalFilter2]
 		};
-		expect(Utility.filterToString(nestedLogicalFilter)).toBe('{"$or":[{"$and":[{"name":"alice"},{"rank":1}]},{"$and":[{"name":"emma"},{"rank":1}]}]}');
+		expect(Utility.filterToString(nestedLogicalFilter)).toBe("{\"$or\":[{\"$and\":[{\"name\":\"alice\"},{\"rank\":1}]},{\"$and\":[{\"name\":\"emma\"},{\"rank\":1}]}]}");
 	});
 
-	it('nestedLogicalFilter2', () => {
+	it("nestedLogicalFilter2", () => {
 		const logicalFilter1: LogicalFilter<IUser2> = {
 			op: LogicalOperator.OR,
 			selectorFilters: [
 				{
 					op: SelectorFilterOperator.EQ,
 					fields: {
-						name: 'alice',
+						name: "alice",
 					}
 				},
 				{
@@ -227,7 +227,7 @@ describe('filters tests', () => {
 				{
 					op: SelectorFilterOperator.EQ,
 					fields: {
-						name: 'emma',
+						name: "emma",
 					}
 				},
 				{
@@ -242,7 +242,7 @@ describe('filters tests', () => {
 			op: LogicalOperator.AND,
 			logicalFilters: [logicalFilter1, logicalFilter2]
 		};
-		expect(Utility.filterToString(nestedLogicalFilter)).toBe('{"$and":[{"$or":[{"name":"alice"},{"rank":1}]},{"$or":[{"name":"emma"},{"rank":1}]}]}');
+		expect(Utility.filterToString(nestedLogicalFilter)).toBe("{\"$and\":[{\"$or\":[{\"name\":\"alice\"},{\"rank\":1}]},{\"$or\":[{\"name\":\"emma\"},{\"rank\":1}]}]}");
 	});
 });
 

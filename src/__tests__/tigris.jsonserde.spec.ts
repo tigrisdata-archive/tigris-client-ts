@@ -1,23 +1,23 @@
 import {
 	TigrisCollectionType,
 } from "../types";
-import {Utility} from '../utility';
+import {Utility} from "../utility";
 
-describe('JSON serde tests', () => {
+describe("JSON serde tests", () => {
 
-	it('jsonSerDe', () => {
+	it("jsonSerDe", () => {
 		const user: IUser =
 			{
-				id: BigInt('9223372036854775807'),
-				name: 'Alice',
+				id: BigInt("9223372036854775807"),
+				name: "Alice",
 				balance: 123
 			};
 		const userString = Utility.objToJsonString(user);
-		expect(userString).toBe('{"id":9223372036854775807,"name":"Alice","balance":123}');
+		expect(userString).toBe("{\"id\":9223372036854775807,\"name\":\"Alice\",\"balance\":123}");
 
-		const deserializedUser = Utility.jsonStringToObj<IUser>('{"id":9223372036854775807,"name":"Alice","balance":123}');
-		expect(deserializedUser.id).toBe(BigInt('9223372036854775807'));
-		expect(deserializedUser.name).toBe('Alice');
+		const deserializedUser = Utility.jsonStringToObj<IUser>("{\"id\":9223372036854775807,\"name\":\"Alice\",\"balance\":123}");
+		expect(deserializedUser.id).toBe(BigInt("9223372036854775807"));
+		expect(deserializedUser.name).toBe("Alice");
 		expect(deserializedUser.balance).toBe(123);
 	});
 });

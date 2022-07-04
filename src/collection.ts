@@ -298,12 +298,13 @@ export class Collection<T extends TigrisCollectionType> {
 	delete(
 		filter: SelectorFilter<T> | LogicalFilter<T> | Selector<T>,
 		tx ?: Session,
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		_options ?: DeleteRequestOptions
 	):
 		Promise<DeleteResponse> {
 		return new Promise<DeleteResponse>((resolve, reject) => {
 			if (!filter) {
-				reject(new Error('No filter specified'));
+				reject(new Error("No filter specified"));
 			}
 			const deleteRequest = new ProtoDeleteRequest()
 				.setDb(this._db)
@@ -328,6 +329,7 @@ export class Collection<T extends TigrisCollectionType> {
 		filter: SelectorFilter<T> | LogicalFilter<T> | Selector<T>,
 		fields: (UpdateFields | SimpleUpdateField),
 		tx ?: Session,
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		_options ?: UpdateRequestOptions
 	): Promise<UpdateResponse> {
 		return new Promise<UpdateResponse>((resolve, reject) => {
@@ -354,6 +356,7 @@ export class Collection<T extends TigrisCollectionType> {
 	events(
 		events: EventsCallback<T>,
 		tx ?: Session,
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		_options ?: EventsRequestOptions
 	) {
 		const eventsRequest = new ProtoEventsRequest()

@@ -90,11 +90,11 @@ export class TestTigrisService {
 	}
 
 	public impl: ITigrisServer = {
-		// eslint-disable-next-line @typescript-eslint/no-empty-function
+		// eslint-disable-next-line @typescript-eslint/no-empty-function,@typescript-eslint/no-unused-vars
 		events(_call: ServerWritableStream<EventsRequest, EventsResponse>): void {},
-		// eslint-disable-next-line @typescript-eslint/no-empty-function
+		// eslint-disable-next-line @typescript-eslint/no-empty-function,@typescript-eslint/no-unused-vars
 		publish(_call: ServerUnaryCall<server_v1_api_pb.PublishRequest, server_v1_api_pb.PublishResponse>, _callback: sendUnaryData<server_v1_api_pb.PublishResponse>): void {},
-		// eslint-disable-next-line @typescript-eslint/no-empty-function
+		// eslint-disable-next-line @typescript-eslint/no-empty-function,@typescript-eslint/no-unused-vars
 		subscribe(_call: ServerWritableStream<server_v1_api_pb.SubscribeRequest, server_v1_api_pb.SubscribeResponse>): void {},
 		beginTransaction(
 			call: ServerUnaryCall<BeginTransactionRequest, BeginTransactionResponse>,
@@ -140,7 +140,7 @@ export class TestTigrisService {
 			callback: sendUnaryData<CreateOrUpdateCollectionResponse>
 		): void {
 			const reply: CreateOrUpdateCollectionResponse = new CreateOrUpdateCollectionResponse();
-			reply.setStatus('Collections created successfully');
+			reply.setStatus("Collections created successfully");
 			reply.setStatus(call.request.getCollection());
 			callback(undefined, reply);
 		},
@@ -241,11 +241,11 @@ export class TestTigrisService {
 			const reply: InsertResponse = new InsertResponse();
 			const keyList: Array<string> = [];
 			for (let i = 1; i <= call.request.getDocumentsList().length; i++) {
-				if (call.request.getCollection() === 'books-with-optional-field') {
-					const extractedKeyFromAuthor: number = JSON.parse(Utility._base64Decode(call.request.getDocumentsList_asB64()[i - 1]))['author'];
-					keyList.push(Utility._base64Encode('{"id":' + extractedKeyFromAuthor + '}'));
+				if (call.request.getCollection() === "books-with-optional-field") {
+					const extractedKeyFromAuthor: number = JSON.parse(Utility._base64Decode(call.request.getDocumentsList_asB64()[i - 1]))["author"];
+					keyList.push(Utility._base64Encode("{\"id\":" + extractedKeyFromAuthor + "}"));
 				} else {
-					keyList.push(Utility._base64Encode('{"id":' + i + '}'));
+					keyList.push(Utility._base64Encode("{\"id\":" + i + "}"));
 				}
 			}
 			reply.setKeysList(keyList);
@@ -377,8 +377,8 @@ export class TestTigrisService {
 
 			// write all search hits to stream 1 by 1
 			// eslint-disable-next-line @typescript-eslint/no-unused-vars
-			for (const [_, value] of TestTigrisService.BOOKS_B64_BY_ID) {
-				searchHit.setData(value);
+			for (const booksb64BYIDElement of TestTigrisService.BOOKS_B64_BY_ID) {
+				searchHit.setData(booksb64BYIDElement[1]);
 				call.write(resp.setHitsList([searchHit]));
 			}
 			call.end();
@@ -401,11 +401,11 @@ export class TestTigrisService {
 			const reply: ReplaceResponse = new ReplaceResponse();
 			const keyList: Array<string> = [];
 			for (let i = 1; i <= call.request.getDocumentsList().length; i++) {
-				if (call.request.getCollection() === 'books-with-optional-field') {
-					const extractedKeyFromAuthor: number = JSON.parse(Utility._base64Decode(call.request.getDocumentsList_asB64()[i - 1]))['author'];
-					keyList.push(Utility._base64Encode('{"id":' + extractedKeyFromAuthor + '}'));
+				if (call.request.getCollection() === "books-with-optional-field") {
+					const extractedKeyFromAuthor: number = JSON.parse(Utility._base64Decode(call.request.getDocumentsList_asB64()[i - 1]))["author"];
+					keyList.push(Utility._base64Encode("{\"id\":" + extractedKeyFromAuthor + "}"));
 				} else {
-					keyList.push(Utility._base64Encode('{"id":' + i + '}'));
+					keyList.push(Utility._base64Encode("{\"id\":" + i + "}"));
 				}
 			}
 			reply.setKeysList(keyList);
@@ -463,7 +463,7 @@ export class TestTigrisService {
 			callback: sendUnaryData<GetInfoResponse>
 		): void {
 			const reply: GetInfoResponse = new GetInfoResponse();
-			reply.setServerVersion('1.0.0-test-service');
+			reply.setServerVersion("1.0.0-test-service");
 			callback(undefined, reply);
 		},
 	};

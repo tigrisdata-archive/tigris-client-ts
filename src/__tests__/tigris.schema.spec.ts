@@ -1,9 +1,9 @@
 import {TigrisCollectionType, TigrisDataTypes, TigrisSchema,} from "../types";
 import {Utility} from "../utility";
 
-describe('schema tests', () => {
+describe("schema tests", () => {
 
-	it('basicCollection', () => {
+	it("basicCollection", () => {
 		const schema: TigrisSchema<BasicCollection> = {
 			id: {
 				type: TigrisDataTypes.INT32,
@@ -31,11 +31,11 @@ describe('schema tests', () => {
 				type: TigrisDataTypes.BYTE_STRING
 			}
 		};
-		expect(Utility._toJSONSchema('basicCollection', schema))
-			.toBe(Utility._readTestDataFile('basicCollection.json'));
+		expect(Utility._toJSONSchema("basicCollection", schema))
+			.toBe(Utility._readTestDataFile("basicCollection.json"));
 	});
 
-	it('multiplePKeys', () => {
+	it("multiplePKeys", () => {
 		const schema: TigrisSchema<BasicCollection> = {
 			id: {
 				type: TigrisDataTypes.INT64,
@@ -66,11 +66,11 @@ describe('schema tests', () => {
 				type: TigrisDataTypes.BYTE_STRING
 			}
 		};
-		expect(Utility._toJSONSchema('multiplePKeys', schema))
-			.toBe(Utility._readTestDataFile('multiplePKeys.json'));
+		expect(Utility._toJSONSchema("multiplePKeys", schema))
+			.toBe(Utility._readTestDataFile("multiplePKeys.json"));
 	});
 
-	it('nestedCollection', () => {
+	it("nestedCollection", () => {
 		const addressSchema: TigrisSchema<Address> = {
 			city: {
 				type: TigrisDataTypes.STRING
@@ -93,11 +93,11 @@ describe('schema tests', () => {
 				type: addressSchema
 			}
 		};
-		expect(Utility._toJSONSchema('nestedCollection', schema))
-			.toBe(Utility._readTestDataFile('nestedCollection.json'));
+		expect(Utility._toJSONSchema("nestedCollection", schema))
+			.toBe(Utility._readTestDataFile("nestedCollection.json"));
 	});
 
-	it('collectionWithPrimitiveArrays', () => {
+	it("collectionWithPrimitiveArrays", () => {
 		const schema: TigrisSchema<CollectionWithPrimitiveArrays> = {
 			id: {
 				type: TigrisDataTypes.NUMBER
@@ -112,11 +112,11 @@ describe('schema tests', () => {
 				}
 			}
 		};
-		expect(Utility._toJSONSchema('collectionWithPrimitiveArrays', schema))
-			.toBe(Utility._readTestDataFile('collectionWithPrimitiveArrays.json'));
+		expect(Utility._toJSONSchema("collectionWithPrimitiveArrays", schema))
+			.toBe(Utility._readTestDataFile("collectionWithPrimitiveArrays.json"));
 	});
 
-	it('collectionWithObjectArrays', () => {
+	it("collectionWithObjectArrays", () => {
 		const addressSchema: TigrisSchema<Address> = {
 			city: {
 				type: TigrisDataTypes.STRING
@@ -142,11 +142,11 @@ describe('schema tests', () => {
 				}
 			}
 		};
-		expect(Utility._toJSONSchema('collectionWithObjectArrays', schema))
-			.toBe(Utility._readTestDataFile('collectionWithObjectArrays.json'));
+		expect(Utility._toJSONSchema("collectionWithObjectArrays", schema))
+			.toBe(Utility._readTestDataFile("collectionWithObjectArrays.json"));
 	});
 
-	it('multiLevelPrimitiveArray', () => {
+	it("multiLevelPrimitiveArray", () => {
 		const schema: TigrisSchema<MultiLevelPrimitiveArray> = {
 			oneDArray: {
 				type: TigrisDataTypes.ARRAY,
@@ -209,11 +209,11 @@ describe('schema tests', () => {
 				}
 			}
 		};
-		expect(Utility._toJSONSchema('multiLevelPrimitiveArray', schema))
-			.toBe(Utility._readTestDataFile('multiLevelPrimitiveArray.json'));
+		expect(Utility._toJSONSchema("multiLevelPrimitiveArray", schema))
+			.toBe(Utility._readTestDataFile("multiLevelPrimitiveArray.json"));
 	});
 
-	it('multiLevelObjectArray', () => {
+	it("multiLevelObjectArray", () => {
 		const addressSchema: TigrisSchema<Address> = {
 			city: {
 				type: TigrisDataTypes.STRING
@@ -287,8 +287,8 @@ describe('schema tests', () => {
 				}
 			}
 		};
-		expect(Utility._toJSONSchema('multiLevelObjectArray', schema))
-			.toBe(Utility._readTestDataFile('multiLevelObjectArray.json'));
+		expect(Utility._toJSONSchema("multiLevelObjectArray", schema))
+			.toBe(Utility._readTestDataFile("multiLevelObjectArray.json"));
 	});
 });
 
