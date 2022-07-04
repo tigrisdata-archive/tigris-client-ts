@@ -362,10 +362,8 @@ export class Collection<T extends TigrisCollectionType> {
 		.setDb(this._db)
 		.setCollection(this._collectionName);
 
-		const stream: grpc.ClientReadableStream<ProtoEventsResponse> = this._grpcClient.events(
-			eventsRequest,
-			undefined
-		);
+		const stream: grpc.ClientReadableStream<ProtoEventsResponse> =
+			this._grpcClient.events(eventsRequest);
 
 		stream.on("data", (eventsResponse: ProtoEventsResponse) => {
 			const event = eventsResponse.getEvent();
