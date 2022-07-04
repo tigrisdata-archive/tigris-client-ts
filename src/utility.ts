@@ -1,6 +1,5 @@
 import {Metadata} from "@grpc/grpc-js";
 import json_bigint from "json-bigint";
-import {TransactionCtx as ProtoTransactionCtx} from "./proto/server/v1/api_pb";
 import {Session} from "./session";
 import {
 	LogicalFilter,
@@ -8,7 +7,8 @@ import {
 	ReadFields,
 	Selector,
 	SelectorFilter,
-	SelectorFilterOperator, SimpleUpdateField,
+	SelectorFilterOperator,
+	SimpleUpdateField,
 	TigrisCollectionType,
 	TigrisDataTypes,
 	TigrisSchema,
@@ -29,11 +29,11 @@ export const Utility = {
 
 	filterToString<T>(filter: SelectorFilter<T> | LogicalFilter<T> | Selector<T>): string {
 		// eslint-disable-next-line no-prototype-builtins
-		if (filter.hasOwnProperty('op') && (filter['op'] === LogicalOperator.AND || filter['op'] === LogicalOperator.OR)) {
+		if (filter.hasOwnProperty("op") && (filter["op"] === LogicalOperator.AND || filter["op"] === LogicalOperator.OR)) {
 			// LogicalFilter
 			return Utility._logicalFilterToString(filter as LogicalFilter<T>);
 			// eslint-disable-next-line no-prototype-builtins
-		} else if (filter.hasOwnProperty('op')) {
+		} else if (filter.hasOwnProperty("op")) {
 			// SelectorFilter
 			return Utility._selectorFilterToString(filter as SelectorFilter<T>);
 		} else {
@@ -86,7 +86,7 @@ export const Utility = {
 	updateFieldsString(updateFields: UpdateFields | SimpleUpdateField) {
 		// UpdateFields
 		// eslint-disable-next-line no-prototype-builtins
-		if (updateFields.hasOwnProperty('op')) {
+		if (updateFields.hasOwnProperty("op")) {
 			const {op, fields} = (updateFields as UpdateFields);
 
 			return this.objToJsonString({
@@ -110,11 +110,6 @@ export const Utility = {
 		const JSONbigNative = json_bigint({useNativeBigInt: true});
 		return JSONbigNative.parse(json);
 	},
-
-	txApiToProto(tx: Session): ProtoTransactionCtx {
-		return new ProtoTransactionCtx().setId(tx.id).setOrigin(tx.origin);
-	},
-
 	txToMetadata(tx: Session): Metadata {
 		const metadata = new Metadata();
 		if (tx!== undefined) {
@@ -151,13 +146,13 @@ export const Utility = {
 			// eslint-disable-next-line no-prototype-builtins
 			if (!ob.hasOwnProperty(key)) continue;
 
-			if ((typeof ob[key]) == 'object' && ob[key] !== null) {
+			if ((typeof ob[key]) == "object" && ob[key] !== null) {
 				const flatObject = Utility._flattenObj(ob[key]);
 				for (const x in flatObject) {
 					// eslint-disable-next-line no-prototype-builtins
 					if (!flatObject.hasOwnProperty(x)) continue;
 
-					toReturn[key + '.' + x] = flatObject[x];
+					toReturn[key + "." + x] = flatObject[x];
 				}
 			} else {
 				toReturn[key] = ob[key];
@@ -169,10 +164,10 @@ export const Utility = {
 	_toJSONSchema<T>(collectionName: string, schema: TigrisSchema<T>): string {
 		const root = {};
 		const pkeyMap = {};
-		root['title'] = collectionName;
-		root['additionalProperties'] = false;
-		root['type'] = 'object';
-		root['properties'] = this._getSchemaProperties(schema, pkeyMap);
+		root["title"] = collectionName;
+		root["additionalProperties"] = false;
+		root["type"] = "object";
+		root["properties"] = this._getSchemaProperties(schema, pkeyMap);
 		Utility._postProcessSchema(root, pkeyMap);
 		return Utility.objToJsonString(root);
 	},
@@ -185,16 +180,16 @@ export const Utility = {
 	_postProcessSchema(result: object, pkeyMap: object): object {
 		if (Object.keys(pkeyMap).length === 0) {
 			// if no pkeys was used defined. add implicit pkey
-			result['properties']['id'] = {
-				'type': 'string',
-				'format': 'uuid'
+			result["properties"]["id"] = {
+				"type": "string",
+				"format": "uuid"
 			};
-			result['primary_key'] = ['id'];
+			result["primary_key"] = ["id"];
 		} else {
-			result['primary_key'] = [];
+			result["primary_key"] = [];
 			// add primary_key in order
 			for (let i = 1; i <= Object.keys(pkeyMap).length; i++) {
-				result['primary_key'].push(pkeyMap[i.toString()]);
+				result["primary_key"].push(pkeyMap[i.toString()]);
 			}
 		}
 		return result;
@@ -206,23 +201,23 @@ export const Utility = {
 		for (const property of Object.keys(schema)) {
 			let thisProperty = {};
 			// single flat property? OR the property referring to another type (nested collection)
-			if (typeof schema[property].type === 'object' || (!(schema[property]['items'] || schema[property]['type']))) {
-				thisProperty['type'] = 'object';
-				thisProperty['properties'] = this._getSchemaProperties(schema[property]['type'], pkeyMap);
+			if (typeof schema[property].type === "object" || (!(schema[property]["items"] || schema[property]["type"]))) {
+				thisProperty["type"] = "object";
+				thisProperty["properties"] = this._getSchemaProperties(schema[property]["type"], pkeyMap);
 			} else if (schema[property].type != TigrisDataTypes.ARRAY.valueOf()
-				&& typeof schema[property].type != 'object') {
-				thisProperty['type'] = this._getType(schema[property].type);
+				&& typeof schema[property].type != "object") {
+				thisProperty["type"] = this._getType(schema[property].type);
 				const format = this._getFormat(schema[property].type);
 				if (format) {
-					thisProperty['format'] = format;
+					thisProperty["format"] = format;
 				}
 
 				// flat property could be a pkey
 				if (schema[property].primary_key) {
-					pkeyMap[schema[property].primary_key['order']] = property;
+					pkeyMap[schema[property].primary_key["order"]] = property;
 					//  autogenerate?
-					if (schema[property].primary_key['autoGenerate']) {
-						thisProperty['autoGenerate'] = true;
+					if (schema[property].primary_key["autoGenerate"]) {
+						thisProperty["autoGenerate"] = true;
 					}
 				}
 				// array type?
@@ -234,23 +229,23 @@ export const Utility = {
 		return properties;
 	},
 
-	_getArrayBlock(arraySchema: TigrisSchema<any> | TigrisDataTypes, pkeyMap: object): object {
+	_getArrayBlock(arraySchema: TigrisSchema<unknown> | TigrisDataTypes, pkeyMap: object): object {
 		const arrayBlock = {};
-		arrayBlock['type'] = 'array';
-		arrayBlock['items'] = {};
+		arrayBlock["type"] = "array";
+		arrayBlock["items"] = {};
 		// array of array?
-		if (arraySchema['items']['type'] === TigrisDataTypes.ARRAY.valueOf()) {
-			arrayBlock['items'] = this._getArrayBlock(arraySchema['items'], pkeyMap);
+		if (arraySchema["items"]["type"] === TigrisDataTypes.ARRAY.valueOf()) {
+			arrayBlock["items"] = this._getArrayBlock(arraySchema["items"], pkeyMap);
 			// array of custom type?
-		} else if (typeof arraySchema['items']['type'] === 'object') {
-			arrayBlock['items']['type'] = 'object';
-			arrayBlock['items']['properties'] = this._getSchemaProperties(arraySchema['items']['type'], pkeyMap);
+		} else if (typeof arraySchema["items"]["type"] === "object") {
+			arrayBlock["items"]["type"] = "object";
+			arrayBlock["items"]["properties"] = this._getSchemaProperties(arraySchema["items"]["type"], pkeyMap);
 			// within array: single flat property?
 		} else {
-			arrayBlock['items']['type'] = this._getType(arraySchema['items']['type'] as TigrisDataTypes);
-			const format = this._getFormat(arraySchema['items']['type'] as TigrisDataTypes);
+			arrayBlock["items"]["type"] = this._getType(arraySchema["items"]["type"] as TigrisDataTypes);
+			const format = this._getFormat(arraySchema["items"]["type"] as TigrisDataTypes);
 			if (format) {
-				arrayBlock['items']['format'] = format;
+				arrayBlock["items"]["format"] = format;
 			}
 		}
 		return arrayBlock;
@@ -261,14 +256,14 @@ export const Utility = {
 			case TigrisDataTypes.INT32:
 			case TigrisDataTypes.INT64:
 			case TigrisDataTypes.NUMBER_BIGINT:
-				return 'integer';
+				return "integer";
 			case TigrisDataTypes.NUMBER:
-				return 'number';
+				return "number";
 			case TigrisDataTypes.STRING:
 			case TigrisDataTypes.UUID:
 			case TigrisDataTypes.DATE_TIME:
 			case TigrisDataTypes.BYTE_STRING:
-				return 'string';
+				return "string";
 		}
 		return undefined;
 	},
@@ -276,29 +271,29 @@ export const Utility = {
 	_getFormat(fieldType: TigrisDataTypes): string {
 		switch (fieldType.valueOf()) {
 			case TigrisDataTypes.INT32:
-				return 'int32';
+				return "int32";
 			case TigrisDataTypes.INT64:
-				return 'int64';
+				return "int64";
 			case TigrisDataTypes.UUID:
-				return 'uuid';
+				return "uuid";
 			case TigrisDataTypes.DATE_TIME:
-				return 'date-time';
+				return "date-time";
 			case TigrisDataTypes.BYTE_STRING:
-				return 'byte';
+				return "byte";
 		}
 		return undefined;
 	},
 
 	_readTestDataFile(path: string): string {
-		return Utility.objToJsonString(Utility.jsonStringToObj(fs.readFileSync('src/__tests__/data/' + path, 'utf8')));
+		return Utility.objToJsonString(Utility.jsonStringToObj(fs.readFileSync("src/__tests__/data/" + path, "utf8")));
 	},
 
 	_base64Encode(input: string): string {
-		return Buffer.from(input, 'binary').toString('base64');
+		return Buffer.from(input, "binary").toString("base64");
 	},
 
 	_base64Decode(b64String: string): string {
-		return Buffer.from(b64String, 'base64').toString('binary');
+		return Buffer.from(b64String, "base64").toString("binary");
 	},
 
 	createFacetQueryOptions(options?: Partial<FacetQueryOptions>): FacetQueryOptions {

@@ -50,7 +50,8 @@ export class DB {
 
 			this.grpcClient.createOrUpdateCollection(
 				createOrUpdateCollectionRequest,
-				(error, response) => {
+				// eslint-disable-next-line @typescript-eslint/no-unused-vars
+				(error, _response) => {
 					if (error) {
 						reject(error);
 						return;
@@ -134,18 +135,16 @@ export class DB {
 
 	public transact(fn: (tx: Session) => void): Promise<TransactionResponse> {
 		return new Promise<TransactionResponse>((resolve, reject) => {
-			let sessionVar: Session;
 			this.beginTransaction()
 				.then(async (session) => {
 					// tx started
-					sessionVar = session;
 					try {
 						// invoke user code
 						await fn(session);
 						// user code successful
 						const commitResponse: CommitTransactionResponse = await session.commit();
 						if (commitResponse) {
-							resolve(new TransactionResponse('transaction successful'));
+							resolve(new TransactionResponse("transaction successful"));
 						}
 					} catch (error) {
 						// failed to run user code
@@ -157,7 +156,8 @@ export class DB {
 		});
 	}
 
-	public beginTransaction(options?: TransactionOptions): Promise<Session> {
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	public beginTransaction(_options?: TransactionOptions): Promise<Session> {
 		return new Promise<Session>((resolve, reject) => {
 			const beginTxRequest = new ProtoBeginTransactionRequest().setDb(this._db);
 

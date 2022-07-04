@@ -302,16 +302,16 @@ export interface TigrisCollectionType {
 }
 
 export enum LogicalOperator {
-	AND = '$and',
-	OR = '$or',
+	AND = "$and",
+	OR = "$or",
 }
 
 export enum SelectorFilterOperator {
-	EQ = '$eq'
+	EQ = "$eq"
 }
 
 export enum UpdateFieldsOperator {
-	SET = '$set',
+	SET = "$set",
 }
 
 export type FieldTypes = string | number | boolean | bigint | BigInteger;
@@ -336,21 +336,21 @@ export type SimpleUpdateField = {
 };
 
 export enum TigrisDataTypes {
-	STRING = 'string',
-	INT32 = 'int32',
-	INT64 = 'int64',
-	NUMBER = 'number',
-	NUMBER_BIGINT = 'bigint',
-	DATE_TIME = 'date-time',
-	BYTE_STRING = 'byte-string',
-	UUID = 'uuid',
-	ARRAY = 'array'
+	STRING = "string",
+	INT32 = "int32",
+	INT64 = "int64",
+	NUMBER = "number",
+	NUMBER_BIGINT = "bigint",
+	DATE_TIME = "date-time",
+	BYTE_STRING = "byte-string",
+	UUID = "uuid",
+	ARRAY = "array"
 }
 
 export type TigrisSchema<T> = {
 	[K in keyof T]: (
 		{
-			type: (TigrisDataTypes | TigrisSchema<any>)
+			type: (TigrisDataTypes | TigrisSchema<unknown>)
 			primary_key?: TigrisPrimaryKey
 			items?: TigrisArrayItem
 		}
@@ -358,7 +358,7 @@ export type TigrisSchema<T> = {
 };
 
 export type TigrisArrayItem = {
-	type: TigrisDataTypes | TigrisSchema<any>
+	type: TigrisDataTypes | TigrisSchema<unknown>
 	items?: TigrisArrayItem | TigrisDataTypes
 };
 
@@ -390,7 +390,7 @@ Generates all possible paths for type parameter T. By recursively iterating over
  */
 type Paths<T, P extends string = ""> = {
 	[K in keyof T]: T[K] extends object
-		? T[K] extends any[]
+		? T[K] extends unknown[]
 			? `${P}${K & string}`
 			: Paths<T[K], `${P}${K & string}.`> extends infer O
 				? `${O & string}` | `${P}${K & string}`

@@ -31,6 +31,9 @@
 		"@typescript-eslint/semi": [
 			"error"
 		],
-		"unused-imports/no-unused-imports": "error"
+		"unused-imports/no-unused-imports": "error",
+		"quotes": "off",
+        "@typescript-eslint/quotes": ["error"]
+
 	}
 }

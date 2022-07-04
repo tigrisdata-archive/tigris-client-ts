@@ -59,12 +59,13 @@ export class Tigris {
 		});
 	}
 
-	public createDatabaseIfNotExists(db: string, options?: DatabaseOptions): Promise<DB> {
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	public createDatabaseIfNotExists(db: string, _options?: DatabaseOptions): Promise<DB> {
 		return new Promise<DB>((resolve, reject) => {
 			this.grpcClient.createDatabase(
 				new ProtoCreateDatabaseRequest().setDb(db).setOptions(new ProtoDatabaseOptions()),
 				// eslint-disable-next-line @typescript-eslint/no-unused-vars
-				(error, response) => {
+				(error, _response) => {
 					if (error && error.code != status.ALREADY_EXISTS) {
 						reject(error);
 					} else {
@@ -75,7 +76,8 @@ export class Tigris {
 		});
 	}
 
-	public dropDatabase(db: string, options?: DatabaseOptions): Promise<DropDatabaseResponse> {
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	public dropDatabase(db: string, _options?: DatabaseOptions): Promise<DropDatabaseResponse> {
 		return new Promise<DropDatabaseResponse>((resolve, reject) => {
 			this.grpcClient.dropDatabase(
 				new ProtoDropDatabaseRequest().setDb(db).setOptions(new ProtoDatabaseOptions()),
