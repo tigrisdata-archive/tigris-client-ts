@@ -355,6 +355,7 @@ export class Collection<T extends TigrisCollectionType> {
 
 	events(
 		events: EventsCallback<T>,
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		_options ?: EventsRequestOptions
 	) {
 		const eventsRequest = new ProtoEventsRequest()
