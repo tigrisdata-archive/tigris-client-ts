@@ -5,6 +5,7 @@ import {
 	DatabaseOptions,
 	LogicalOperator,
 	SelectorFilterOperator,
+	StreamEvent,
 	TigrisCollectionType,
 	TigrisDataTypes,
 	TigrisSchema,
@@ -498,6 +499,33 @@ describe("rpc tests", () => {
 			expect(value.serverVersion).toBe("1.0.0-test-service");
 		});
 		return serverMetadataPromise;
+	});
+
+	it("events", (done) => {
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
+		const db = tigris.getDatabase("test_db");
+		const collection = db.getCollection<IBook>("books");
+		let success = true;
+
+		collection.events({
+			onNext(event: StreamEvent<IBook>) {
+				expect(event.collection).toBe("books");
+				expect(event.op).toBe("insert");
+				expect(event.data.id).toBe(5);
+				expect(event.data.author).toBe("Marcel Proust");
+				expect(event.data.title).toBe("Time Regained");
+				expect(event.last).toBe(true);
+				expect(success).toBe(true);
+				done();
+			},
+			onEnd() {
+				// not expected to be called
+			},
+			// eslint-disable-next-line @typescript-eslint/no-unused-vars
+			onError(error: Error) {
+				success = false;
+			}
+		});
 	});
 });
 

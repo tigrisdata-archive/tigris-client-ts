@@ -27,7 +27,8 @@ import {
 	DropDatabaseRequest,
 	DropDatabaseResponse,
 	EventsRequest,
-	EventsResponse, FacetCount,
+	EventsResponse,
+	FacetCount,
 	GetInfoRequest,
 	GetInfoResponse,
 	InsertRequest,
@@ -43,18 +44,20 @@ import {
 	ReplaceResponse,
 	ResponseMetadata,
 	RollbackTransactionRequest,
-	RollbackTransactionResponse, SearchFacet,
+	RollbackTransactionResponse,
+	SearchFacet,
 	SearchHit,
 	SearchHitMeta,
 	SearchMetadata,
 	SearchRequest,
 	SearchResponse,
+	StreamEvent,
 	TransactionCtx,
 	UpdateRequest,
 	UpdateResponse
 } from "../proto/server/v1/api_pb";
 import * as google_protobuf_timestamp_pb from "google-protobuf/google/protobuf/timestamp_pb";
-import {Utility} from "../utility";
+import { Utility } from "../utility";
 
 export class TestTigrisService {
 	private static DBS: string[] = [];
@@ -90,8 +93,17 @@ export class TestTigrisService {
 	}
 
 	public impl: ITigrisServer = {
-		// eslint-disable-next-line @typescript-eslint/no-empty-function,@typescript-eslint/no-unused-vars
-		events(_call: ServerWritableStream<EventsRequest, EventsResponse>): void {},
+		// eslint-disable-next-line @typescript-eslint/no-empty-function
+		events(call: ServerWritableStream<EventsRequest, EventsResponse>): void {
+			const event = new StreamEvent();
+			event.setTxId(Utility._base64Encode(uuidv4()));
+			event.setCollection("books");
+			event.setOp("insert");
+			event.setData(TestTigrisService.BOOKS_B64_BY_ID.get("5"));
+			event.setLast(true);
+			call.write(new EventsResponse().setEvent(event));
+			call.end();
+		},
 		// eslint-disable-next-line @typescript-eslint/no-empty-function,@typescript-eslint/no-unused-vars
 		publish(_call: ServerUnaryCall<server_v1_api_pb.PublishRequest, server_v1_api_pb.PublishResponse>, _callback: sendUnaryData<server_v1_api_pb.PublishResponse>): void {},
 		// eslint-disable-next-line @typescript-eslint/no-empty-function,@typescript-eslint/no-unused-vars
