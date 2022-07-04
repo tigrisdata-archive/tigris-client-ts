@@ -355,8 +355,6 @@ export class Collection<T extends TigrisCollectionType> {
 
 	events(
 		events: EventsCallback<T>,
-		tx ?: Session,
-		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		_options ?: EventsRequestOptions
 	) {
 		const eventsRequest = new ProtoEventsRequest()
@@ -365,7 +363,7 @@ export class Collection<T extends TigrisCollectionType> {
 
 		const stream: grpc.ClientReadableStream<ProtoEventsResponse> = this._grpcClient.events(
 			eventsRequest,
-			Utility.txToMetadata(tx)
+			undefined
 		);
 
 		stream.on("data", (eventsResponse: ProtoEventsResponse) => {
