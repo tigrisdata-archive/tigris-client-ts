@@ -161,7 +161,7 @@ export class Collection<T extends TigrisCollectionType> {
 		});
 	}
 
-	readOne(
+	findOne(
 		filter: SelectorFilter<T> | LogicalFilter<T> | Selector<T>,
 		tx ?: Session,
 		readFields ?: ReadFields,
@@ -196,7 +196,33 @@ export class Collection<T extends TigrisCollectionType> {
 		});
 	}
 
-	read(
+	findMany(
+		filter: SelectorFilter<T> | LogicalFilter<T> | Selector<T>,
+		readFields ?: ReadFields,
+		tx ?: Session,
+		options ?: ReadRequestOptions
+	): Promise<Array<T>> {
+		return new Promise<Array<T>>((resolve, reject) => {
+			if (options === undefined) {
+				options = new ReadRequestOptions();
+			}
+			const result: Array<T> = new Array<T>();
+			this.findManyStream(filter, {
+				onEnd() {
+					resolve(result);
+				},
+				onNext(item: T) {
+					result.push(item);
+				},
+				// eslint-disable-next-line @typescript-eslint/no-unused-vars
+				onError(_error: Error) {
+					reject(_error);
+				}
+			}, readFields, tx, options);
+		});
+	}
+
+	findManyStream(
 		filter: SelectorFilter<T> | LogicalFilter<T> | Selector<T>,
 		reader: ReaderCallback<T>,
 		readFields ?: ReadFields,
@@ -212,22 +238,8 @@ export class Collection<T extends TigrisCollectionType> {
 			readRequest.setFields(Utility.stringToUint8Array(Utility.readFieldString(readFields)));
 		}
 
-		if (options) {
-			if (!readRequest.getOptions()) {
-				readRequest.setOptions(new ProtoReadRequestOptions());
-			}
-
-			if (options.skip) {
-				readRequest.getOptions().setSkip(options.skip);
-			}
-
-			if (options.limit) {
-				readRequest.getOptions().setLimit(options.limit);
-			}
-
-			if (options.offset) {
-				readRequest.getOptions().setOffset(Utility.stringToUint8Array(options.offset));
-			}
+		if (options !== undefined) {
+			readRequest.setOptions(Utility._readRequestOptionsToProtoReadRequestOptions(options));
 		}
 
 		const stream: grpc.ClientReadableStream<ProtoReadResponse> = this._grpcClient.read(
@@ -359,8 +371,8 @@ export class Collection<T extends TigrisCollectionType> {
 		_options ?: EventsRequestOptions
 	) {
 		const eventsRequest = new ProtoEventsRequest()
-		.setDb(this._db)
-		.setCollection(this._collectionName);
+			.setDb(this._db)
+			.setCollection(this._collectionName);
 
 		const stream: grpc.ClientReadableStream<ProtoEventsResponse> =
 			this._grpcClient.events(eventsRequest);

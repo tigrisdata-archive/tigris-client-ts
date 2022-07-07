@@ -190,9 +190,20 @@ export class WriteOptions {}
 export class DeleteRequestOptions {}
 
 export class ReadRequestOptions {
+	static DEFAULT_LIMIT = 100;
+	static DEFAULT_SKIP = 0;
+
 	private _limit: number;
 	private _skip: number;
 	private _offset: string;
+
+	constructor(limit?: number);
+	constructor(limit: number, skip: number);
+	constructor(limit?: number, skip?: number, offset?: string) {
+		this._limit = limit ?? ReadRequestOptions.DEFAULT_LIMIT;
+		this._skip = skip ?? ReadRequestOptions.DEFAULT_SKIP;
+		this._offset = offset;
+	}
 
 	get limit(): number {
 		return this._limit;
@@ -279,6 +290,7 @@ export class TransactionResponse extends TigrisResponse {
 		super(status);
 	}
 }
+
 export class InsertOptions {}
 
 export class InsertOrReplaceOptions {}

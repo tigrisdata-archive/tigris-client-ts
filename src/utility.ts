@@ -5,6 +5,7 @@ import {
 	LogicalFilter,
 	LogicalOperator,
 	ReadFields,
+	ReadRequestOptions,
 	Selector,
 	SelectorFilter,
 	SelectorFilterOperator,
@@ -17,6 +18,7 @@ import {
 } from "./types";
 import * as fs from "node:fs";
 import {FacetQueryFieldType, FacetQueryOptions, SearchRequestOptions} from "./search/types";
+import {ReadRequestOptions as ProtoReadRequestOptions} from "./proto/server/v1/api_pb";
 
 export const Utility = {
 	stringToUint8Array(input: string): Uint8Array {
@@ -112,7 +114,7 @@ export const Utility = {
 	},
 	txToMetadata(tx: Session): Metadata {
 		const metadata = new Metadata();
-		if (tx!== undefined) {
+		if (tx !== undefined) {
 			metadata.set("Tigris-Tx-Id", tx.id);
 			metadata.set("Tigris-Tx-Origin", tx.origin);
 		}
@@ -228,7 +230,23 @@ export const Utility = {
 		}
 		return properties;
 	},
+	_readRequestOptionsToProtoReadRequestOptions(input: ReadRequestOptions): ProtoReadRequestOptions {
+		const result: ProtoReadRequestOptions = new ProtoReadRequestOptions();
+		if (input !== undefined) {
+			if (input.skip !== undefined) {
+				result.setSkip(input.skip);
+			}
 
+			if (input.limit !== undefined) {
+				result.setSkip(input.limit);
+			}
+
+			if (input.offset !== undefined) {
+				result.setOffset(Utility.stringToUint8Array(input.offset));
+			}
+		}
+		return result;
+	},
 	_getArrayBlock(arraySchema: TigrisSchema<unknown> | TigrisDataTypes, pkeyMap: object): object {
 		const arrayBlock = {};
 		arrayBlock["type"] = "array";
