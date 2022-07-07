@@ -261,7 +261,7 @@ describe("rpc tests", () => {
 	it("readOne", () => {
 		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const db1 = tigris.getDatabase("db3");
-		const readOnePromise = db1.getCollection<IBook>("books").readOne({
+		const readOnePromise = db1.getCollection<IBook>("books").findOne({
 			op: SelectorFilterOperator.EQ,
 			fields: {
 				id: 1
@@ -280,7 +280,7 @@ describe("rpc tests", () => {
 	it("readOneRecordNotFound", () => {
 		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const db1 = tigris.getDatabase("db3");
-		const readOnePromise = db1.getCollection<IBook>("books").readOne({
+		const readOnePromise = db1.getCollection<IBook>("books").findOne({
 			op: SelectorFilterOperator.EQ,
 			fields: {
 				id: 2
@@ -295,7 +295,7 @@ describe("rpc tests", () => {
 	it("readOneWithLogicalFilter", () => {
 		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const db1 = tigris.getDatabase("db3");
-		const readOnePromise: Promise<IBook | void> = db1.getCollection<IBook>("books").readOne({
+		const readOnePromise: Promise<IBook | void> = db1.getCollection<IBook>("books").findOne({
 			op: LogicalOperator.AND,
 			selectorFilters: [
 				{
@@ -322,13 +322,13 @@ describe("rpc tests", () => {
 		return readOnePromise;
 	});
 
-	it("readMany", (done) => {
+	it("findManyStream", (done) => {
 		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const db1 = tigris.getDatabase("db3");
 		let bookCounter = 0;
 		let success = true;
 		success = true;
-		db1.getCollection<IBook>("books").read({
+		db1.getCollection<IBook>("books").findManyStream({
 			op: SelectorFilterOperator.EQ,
 			fields: {
 				author: "Marcel Proust"
@@ -349,6 +349,21 @@ describe("rpc tests", () => {
 				success = false;
 			}
 		});
+	});
+
+	it("findMany", () => {
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
+		const db1 = tigris.getDatabase("db3");
+		const findManyBatchPromise: Promise<IBook[]> = db1.getCollection<IBook>("books").findMany({
+			op: SelectorFilterOperator.EQ,
+			fields: {
+				author: "Marcel Proust"
+			}
+		});
+		findManyBatchPromise.then(books => {
+			expect(books.length).toBe(4);
+		});
+		return findManyBatchPromise;
 	});
 
 	it("search", (done) => {
@@ -431,7 +446,7 @@ describe("rpc tests", () => {
 				tx
 				// eslint-disable-next-line @typescript-eslint/no-unused-vars
 			).then(_value => {
-				books.readOne({
+				books.findOne({
 					op: SelectorFilterOperator.EQ,
 					fields: {
 						id: 1
