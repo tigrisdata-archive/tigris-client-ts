@@ -1,6 +1,6 @@
 {
 	"name": "@tigrisdata/core",
-	"version": "1.0.0-alpha.10",
+	"version": "1.0.0-alpha.11",
 	"description": "Tigris client for Typescript",
 	"author": "Tigris Data (https://www.tigrisdata.com/)",
 	"contributors": [
@@ -16,6 +16,9 @@
 	  	{
 			"name": "Adil Ansari",
 		  	"url": "https://www.tigrisdata.com/"
+	  	},
+	  	{
+	  		"name": "Matt Ayres"
 	  	}
 	],
 	"main": "dist/index.js",
