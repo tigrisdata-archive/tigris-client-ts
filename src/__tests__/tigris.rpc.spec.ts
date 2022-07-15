@@ -351,6 +351,31 @@ describe("rpc tests", () => {
 		});
 	});
 
+	it("findAllStream", (done) => {
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
+		const db1 = tigris.getDatabase("db3");
+		let bookCounter = 0;
+		let success = true;
+		success = true;
+		db1.getCollection<IBook>("books").findAllStream(
+			{
+				onEnd() {
+					// test service is coded to return 4 books back
+					expect(bookCounter).toBe(4);
+					expect(success).toBe(true);
+					done();
+				},
+				onNext(book: IBook) {
+					bookCounter++;
+					expect(book.author).toBe("Marcel Proust");
+				},
+				// eslint-disable-next-line @typescript-eslint/no-unused-vars
+				onError(_error: Error) {
+					success = false;
+				}
+			});
+	});
+
 	it("findMany", () => {
 		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const db1 = tigris.getDatabase("db3");

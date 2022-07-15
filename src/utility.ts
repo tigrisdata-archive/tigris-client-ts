@@ -45,6 +45,10 @@ export const Utility = {
 	},
 
 	_selectorFilterToString<T extends TigrisCollectionType>(filter: SelectorFilter<T>): string {
+		// special filter nothing
+		if (filter.op == SelectorFilterOperator.NONE) {
+			return "{}";
+		}
 		if (filter.op == SelectorFilterOperator.EQ) {
 			return Utility.objToJsonString(Utility._flattenObj(Utility._selectorFilterToJSONObj(filter)));
 		}

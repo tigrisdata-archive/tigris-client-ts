@@ -319,7 +319,8 @@ export enum LogicalOperator {
 }
 
 export enum SelectorFilterOperator {
-	EQ = "$eq"
+	EQ = "$eq",
+	NONE = "$none"
 }
 
 export enum UpdateFieldsOperator {
