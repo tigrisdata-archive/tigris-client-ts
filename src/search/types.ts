@@ -13,36 +13,71 @@ import {Utility} from "../utility";
 
 export const MATCH_ALL_QUERY_STRING = "";
 
+/**
+ * Search request params
+ */
 export type SearchRequest<T extends TigrisCollectionType> = {
+	/**
+	 * Text to query
+	 */
 	q: string;
+	/**
+	 * Fields to project search query on
+	 */
 	searchFields?: Array<string>,
+	/**
+	 * Filter to further refine the search results
+	 */
 	filter?: SelectorFilter<T> | LogicalFilter<T> | Selector<T>,
+	/**
+	 * Facet fields to categorically arrange indexed terms
+	 */
 	facetQuery?: FacetFieldsQuery,
+	/**
+	 * Sort the search results in indicated order
+	 */
 	sort?: SortOrder,
+	/**
+	 * Document fields to include/exclude when returning search results
+	 */
 	readFields?: ReadFields;
 };
 
 /**
- * Use `Utility.createSearchRequestOptions()` to generate using defaults
- *
- * @see {@link Utility.createSearchRequestOptions}
+ * Pagination params for search request
  */
 export type SearchRequestOptions = {
+	/**
+	 * Page number to fetch search results for
+	 */
 	page: number;
+	/**
+	 * Number of search results to fetch per page
+	 */
 	perPage: number;
 };
 
+/**
+ * Map of collection field names and faceting options to include facet results in search response
+ */
 export type FacetFieldsQuery = {
 	[key: string]: FacetQueryOptions;
 };
 
 /**
+ * Information to build facets in search results
  * Use `Utility.createFacetQueryOptions()` to generate using defaults
  *
  * @see {@link Utility.createFacetQueryOptions}
  */
 export type FacetQueryOptions = {
+	/**
+	 * Maximum number of facets to include in results
+	 */
 	size: number;
+	/**
+	 * Type of facets to build
+	 */
 	type: FacetQueryFieldType;
 };
 
@@ -53,9 +88,13 @@ export enum FacetQueryFieldType {
 //TODO: implementation pending
 export type SortOrder = "undefined";
 
+/**
+ * Outcome of executing search query
+ * @typeParam T - type of Tigris collection
+ */
 export class SearchResult<T> {
-	private readonly _hits: Array<Hit<T>>;
-	private readonly _facets: Map<string, FacetCountDistribution>;
+	private readonly _hits: ReadonlyArray<Hit<T>>;
+	private readonly _facets: ReadonlyMap<string, FacetCountDistribution>;
 	private readonly _meta: SearchMeta | undefined;
 
 	constructor(hits: Array<Hit<T>>, facets: Map<string, FacetCountDistribution>, meta: SearchMeta | undefined) {
@@ -64,14 +103,27 @@ export class SearchResult<T> {
 		this._meta = meta;
 	}
 
-	get hits(): Array<Hit<T>> {
+	/**
+	 * @returns matched documents as immutable list
+	 * @readonly
+	 */
+	get hits(): ReadonlyArray<Hit<T>> {
 		return this._hits;
 	}
 
-	get facets(): Map<string, FacetCountDistribution> {
+	/**
+	 * @returns distribution of facets for fields included in facet query
+	 * @readonly
+	 */
+	get facets(): ReadonlyMap<string, FacetCountDistribution> {
 		return this._facets;
 	}
 
+	/**
+	 * @returns metadata associated with {@link SearchResult}
+	 * @readonly
+	 * @defaultValue undefined
+	 */
 	get meta(): SearchMeta | undefined {
 		return this._meta;
 	}
@@ -88,6 +140,10 @@ export class SearchResult<T> {
 	}
 }
 
+/**
+ * Matched document and relevance metadata for a search query
+ * @typeParam T - type of Tigris collection
+ */
 export class Hit<T extends TigrisCollectionType> {
 	private readonly _document: T;
 	private readonly _meta: HitMeta | undefined;
@@ -97,10 +153,18 @@ export class Hit<T extends TigrisCollectionType> {
 		this._meta = meta;
 	}
 
+	/**
+	 * @returns json deserialized collection document
+	 * @readonly
+	 */
 	get document(): T {
 		return this._document;
 	}
 
+	/**
+	 * @returns relevance metadata for the matched document
+	 * @readonly
+	 */
 	get meta(): HitMeta | undefined {
 		return this._meta;
 	}
@@ -112,6 +176,9 @@ export class Hit<T extends TigrisCollectionType> {
 	}
 }
 
+/**
+ * Relevance metadata for a matched document
+ */
 export class HitMeta {
 	private readonly _createdAt: Date | undefined;
 	private readonly _updatedAt: Date | undefined;
@@ -121,10 +188,18 @@ export class HitMeta {
 		this._updatedAt = updatedAt;
 	}
 
+	/**
+	 * @returns time at which document was inserted/replaced to a precision of milliseconds
+	 * @readonly
+	 */
 	get createdAt(): Date | undefined {
 		return this._createdAt;
 	}
 
+	/**
+	 * @returns time at which document was updated to a precision of milliseconds
+	 * @readonly
+	 */
 	get updatedAt(): Date | undefined {
 		return this._updatedAt;
 	}
@@ -137,6 +212,9 @@ export class HitMeta {
 	}
 }
 
+/**
+ * Distribution of values in a faceted field
+ */
 export class FacetCountDistribution {
 	private readonly _counts: ReadonlyArray<FacetCount>;
 	private readonly _stats: FacetStats | undefined;
@@ -146,10 +224,18 @@ export class FacetCountDistribution {
 		this._stats = stats;
 	}
 
+	/**
+	 * @returns list of field values and their aggregated counts
+	 * @readonly
+	 */
 	get counts(): ReadonlyArray<FacetCount> {
 		return this._counts;
 	}
 
+	/**
+	 * @returns summary of faceted field
+	 * @readonly
+	 */
 	get stats(): FacetStats | undefined {
 		return this._stats;
 	}
@@ -161,6 +247,9 @@ export class FacetCountDistribution {
 	}
 }
 
+/**
+ * Aggregate count of values in a faceted field
+ */
 export class FacetCount {
 	private readonly _value: string;
 	private readonly _count: number;
@@ -170,10 +259,18 @@ export class FacetCount {
 		this._count = count;
 	}
 
+	/**
+	 * @returns field's attribute value
+	 * @readonly
+	 */
 	get value(): string {
 		return this._value;
 	}
 
+	/**
+	 * @returns count of field values in the search results
+	 * @readonly
+	 */
 	get count(): number {
 		return this._count;
 	}
@@ -183,6 +280,9 @@ export class FacetCount {
 	}
 }
 
+/**
+ * Summary of field values in a faceted field
+ */
 export class FacetStats {
 	private readonly _avg: number;
 	private readonly _count: number;
@@ -198,22 +298,54 @@ export class FacetStats {
 		this._sum = sum;
 	}
 
+	/**
+	 * Only for numeric fields. Average of values in a numeric field
+	 *
+	 * @returns average of values in a numeric field
+	 * @defaultValue `0`
+	 * @readonly
+	 */
 	get avg(): number {
 		return this._avg;
 	}
 
+	/**
+	 * @returns Count of values in a faceted field
+	 * @readonly
+	 */
 	get count(): number {
 		return this._count;
 	}
 
+	/**
+	 * Only for numeric fields. Maximum value in a numeric field
+	 *
+	 * @returns maximum value in a numeric field
+	 * @defaultValue `0`
+	 * @readonly
+	 */
 	get max(): number {
 		return this._max;
 	}
 
+	/**
+	 * Only for numeric fields. Minimum value in a numeric field
+	 *
+	 * @returns minimum value in a numeric field
+	 * @defaultValue `0`
+	 * @readonly
+	 */
 	get min(): number {
 		return this._min;
 	}
 
+	/**
+	 * Only for numeric fields. Sum of numeric values in the field
+	 *
+	 * @returns sum of numeric values in the field
+	 * @defaultValue `0`
+	 * @readonly
+	 */
 	get sum(): number {
 		return this._sum;
 	}
