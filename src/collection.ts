@@ -270,13 +270,10 @@ export class Collection<T extends TigrisCollectionType> {
 	}
 
 	search(request: SearchRequest<T>, reader: SearchResultCallback<T>, options?: SearchRequestOptions) {
-		const requestOptions = Utility.createSearchRequestOptions(options);
 		const searchRequest = new ProtoSearchRequest()
 			.setDb(this._db)
 			.setCollection(this._collectionName)
-			.setQ(request.q ?? MATCH_ALL_QUERY_STRING)
-			.setPage(requestOptions.page)
-			.setPageSize(requestOptions.perPage);
+			.setQ(request.q ?? MATCH_ALL_QUERY_STRING);
 
 		if (request.searchFields !== undefined) {
 			searchRequest.setSearchFieldsList(request.searchFields);
@@ -308,6 +305,9 @@ export class Collection<T extends TigrisCollectionType> {
 				Utility.stringToUint8Array(
 					Utility.readFieldString(request.readFields)
 				));
+		}
+		if (options !== undefined) {
+			searchRequest.setPage(options.page).setPageSize(options.perPage);
 		}
 
 		const stream: grpc.ClientReadableStream<ProtoSearchResponse> = this._grpcClient.search(searchRequest);
