@@ -10,6 +10,10 @@ import {Utility} from "../utility";
 
 describe("filters tests", () => {
 	it("simpleSelectorFilterTest", () => {
+		const filterNothing: SelectorFilter<IUser> = {
+			op: SelectorFilterOperator.NONE
+		};
+		expect(Utility.filterToString(filterNothing)).toBe("{}");
 		const filter1: Selector<IUser> = {
 			name: "Alice"
 		};

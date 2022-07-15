@@ -27,6 +27,7 @@ import {
 	ReadRequestOptions,
 	Selector,
 	SelectorFilter,
+	SelectorFilterOperator,
 	SimpleUpdateField,
 	StreamEvent,
 	TigrisCollectionType,
@@ -254,6 +255,18 @@ export class Collection<T extends TigrisCollectionType> {
 
 		stream.on("error", (error) => reader.onError(error));
 		stream.on("end", () => reader.onEnd());
+	}
+
+	findAllStream(
+		reader: ReaderCallback<T>,
+		readFields ?: ReadFields,
+	) {
+		this.findManyStream({
+				op: SelectorFilterOperator.NONE
+			},
+			reader,
+			readFields
+		);
 	}
 
 	search(request: SearchRequest<T>, reader: SearchResultCallback<T>, options?: SearchRequestOptions) {
