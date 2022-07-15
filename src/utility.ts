@@ -17,7 +17,7 @@ import {
 	UpdateFieldsOperator
 } from "./types";
 import * as fs from "node:fs";
-import {FacetQueryFieldType, FacetQueryOptions, SearchRequestOptions} from "./search/types";
+import {FacetQueryFieldType, FacetQueryOptions} from "./search/types";
 import {ReadRequestOptions as ProtoReadRequestOptions} from "./proto/server/v1/api_pb";
 
 export const Utility = {
@@ -318,12 +318,4 @@ export const Utility = {
 		const defaults = {size: 10, type: FacetQueryFieldType.VALUE};
 		return {...defaults, ...options};
 	},
-
-	createSearchRequestOptions(options?: Partial<SearchRequestOptions>): SearchRequestOptions {
-		const defaults = {page: 1, perPage: 10};
-		return {
-			...defaults,
-			...options
-		};
-	}
 };

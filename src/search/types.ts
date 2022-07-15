@@ -7,6 +7,7 @@ import {
 	SearchHitMeta as ProtoSearchHitMeta,
 	SearchMetadata as ProtoSearchMetadata,
 	SearchResponse as ProtoSearchResponse,
+	Page as ProtoSearchPage
 } from "../proto/server/v1/api_pb";
 import {Utility} from "../utility";
 
@@ -228,40 +229,83 @@ export class FacetStats {
 	}
 }
 
+/**
+ * Metadata associated with search results
+ */
 export class SearchMeta {
 	private readonly _found: number;
-	private readonly _currentPage: number;
-	private readonly _size: number;
 	private readonly _totalPages: number;
+	private readonly _page: Page;
 
-	constructor(found: number, currentPage: number, _size: number, totalPages: number) {
+	constructor(found: number, totalPages: number, page: Page) {
 		this._found = found;
-		this._currentPage = currentPage;
 		this._totalPages = totalPages;
-		this._size = _size;
+		this._page = page;
 	}
 
+	/**
+	 * @returns total number of matched hits for search query
+	 * @readonly
+	 */
 	get found(): number {
 		return this._found;
 	}
 
-	get currentPage(): number {
-		return this._currentPage;
-	}
-
-	get size(): number {
-		return this._size;
-	}
-
+	/**
+	 * @returns total number of pages of search results
+	 * @readonly
+	 */
 	get totalPages(): number {
 		return this._totalPages;
+	}
+
+	/**
+	 * @returns current page information
+	 * @readonly
+	 */
+	get page(): Page {
+		return this._page;
 	}
 
 	static from(resp: ProtoSearchMetadata): SearchMeta {
 		const found = resp?.getFound() ?? 0;
 		const totalPages = resp?.getTotalPages() ?? 0;
-		const currentPage = resp?.getPage()?.getCurrent() ?? 0;
-		const size = resp?.getPage()?.getSize() ?? 0;
-		return new SearchMeta(found, currentPage, size, totalPages);
+		const page = typeof resp?.getPage() !== "undefined" ? Page.from(resp.getPage()) : undefined;
+		return new SearchMeta(found, totalPages, page);
+	}
+}
+
+/**
+ * Pagination metadata associated with search results
+ */
+export class Page {
+	private readonly _current;
+	private readonly _size;
+
+	constructor(current, size) {
+		this._current = current;
+		this._size = size;
+	}
+
+	/**
+	 * @returns current page number for the paginated search results
+	 * @readonly
+	 */
+	get current() {
+		return this._current;
+	}
+
+	/**
+	 * @returns maximum number of search results included per page
+	 * @readonly
+	 */
+	get size() {
+		return this._size;
+	}
+
+	static from(resp: ProtoSearchPage): Page {
+		const current = resp?.getCurrent() ?? 0;
+		const size = resp?.getSize() ?? 0;
+		return new Page(current, size);
 	}
 }

@@ -93,20 +93,18 @@ describe("SearchResponse parsing", () => {
 
 		expect(parsed.meta).toBeDefined();
 		expect(parsed.meta.found).toBe(0);
-		expect(parsed.meta.currentPage).toBe(0);
-		expect(parsed.meta.size).toBe(0);
 		expect(parsed.meta.totalPages).toBe(0);
+		expect(parsed.meta.page).toBeUndefined();
 	});
 
-	it("generates default page values with empty page", () => {
+	it("generates no page values with empty page", () => {
 		const input: ProtoSearchResponse = new ProtoSearchResponse();
 		input.setMeta(new ProtoSearchMetadata().setFound(5));
 		const parsed: SearchResult<unknown> = SearchResult.from(input);
 
 		expect(parsed.meta.found).toBe(5);
-		expect(parsed.meta.currentPage).toBe(0);
-		expect(parsed.meta.size).toBe(0);
 		expect(parsed.meta.totalPages).toBe(0);
+		expect(parsed.meta.page).toBeUndefined();
 	});
 
 	it ("generates meta appropriately with complete response", () => {
@@ -115,8 +113,8 @@ describe("SearchResponse parsing", () => {
 		input.setMeta(new ProtoSearchMetadata().setPage(page).setTotalPages(100));
 		const parsed: SearchResult<unknown> = SearchResult.from(input);
 
-		expect(parsed.meta.size).toBe(3);
-		expect(parsed.meta.currentPage).toBe(2);
+		expect(parsed.meta.page.size).toBe(3);
+		expect(parsed.meta.page.current).toBe(2);
 		expect(parsed.meta.totalPages).toBe(100);
 	});
 
