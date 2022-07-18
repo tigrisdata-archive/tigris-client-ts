@@ -289,7 +289,7 @@ export class Collection<T extends TigrisCollectionType> {
 		if (request.facetQuery !== undefined) {
 			searchRequest.setFacet(
 				Utility.stringToUint8Array(
-					Utility.objToJsonString(request.facetQuery)
+					Utility.facetQueryToString(request.facetQuery)
 				));
 		}
 

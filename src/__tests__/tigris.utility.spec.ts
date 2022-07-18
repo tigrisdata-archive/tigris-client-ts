@@ -1,5 +1,10 @@
 import {Utility} from "../utility";
-import {FacetQueryFieldType} from "../search/types";
+import {
+	FacetFieldOptions,
+	FacetFields,
+	FacetFieldsQuery,
+	FacetQueryFieldType
+} from "../search/types";
 
 describe("utility tests", () => {
 	it("base64encode", () => {
@@ -24,5 +29,30 @@ describe("utility tests", () => {
 		});
 		expect(generatedOptions.size).toBe(55);
 		expect(generatedOptions.type).toBe(FacetQueryFieldType.VALUE);
+	});
+
+	it("serializes FacetFields to string", () => {
+		const fields: FacetFields = ["field_1", "field_2"];
+		const serialized: string = Utility.facetQueryToString(fields);
+		expect(serialized).toBe("{\"field_1\":{\"size\":10,\"type\":\"value\"},\"field_2\":{\"size\":10,\"type\":\"value\"}}");
+	});
+
+	it("serializes FacetFieldOptions to string", () => {
+		const fields: FacetFieldOptions = {
+			field_1: Utility.createFacetQueryOptions(),
+			field_2: {size: 10, type: FacetQueryFieldType.VALUE}
+		};
+		const serialized: string = Utility.facetQueryToString(fields);
+		expect(serialized).toBe("{\"field_1\":{\"size\":10,\"type\":\"value\"},\"field_2\":{\"size\":10,\"type\":\"value\"}}");
+	});
+
+	it("equivalent serialization of FacetFieldsQuery",() => {
+		const facetFields: FacetFieldsQuery = ["field_1", "field_2"];
+		const fieldOptions: FacetFieldsQuery = {
+			field_1: Utility.createFacetQueryOptions(),
+			field_2: {size: 10, type: FacetQueryFieldType.VALUE}
+		};
+		const serializedFields = Utility.facetQueryToString(facetFields);
+		expect(serializedFields).toBe(Utility.facetQueryToString(fieldOptions));
 	});
 });
