@@ -17,7 +17,7 @@ import {
 	UpdateFieldsOperator
 } from "./types";
 import * as fs from "node:fs";
-import {FacetQueryFieldType, FacetQueryOptions} from "./search/types";
+import {FacetFieldsQuery, FacetQueryFieldType, FacetQueryOptions} from "./search/types";
 import {ReadRequestOptions as ProtoReadRequestOptions} from "./proto/server/v1/api_pb";
 
 export const Utility = {
@@ -321,5 +321,17 @@ export const Utility = {
 	createFacetQueryOptions(options?: Partial<FacetQueryOptions>): FacetQueryOptions {
 		const defaults = {size: 10, type: FacetQueryFieldType.VALUE};
 		return {...defaults, ...options};
+	},
+
+	facetQueryToString(facets: FacetFieldsQuery): string {
+		if (Array.isArray(facets)) {
+			const optionsMap = {};
+			for (const f of facets) {
+				optionsMap[f] = this.createFacetQueryOptions();
+			}
+			return this.objToJsonString(optionsMap);
+		} else {
+			return this.objToJsonString(facets);
+		}
 	},
 };

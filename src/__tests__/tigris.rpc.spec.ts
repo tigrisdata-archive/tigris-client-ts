@@ -12,7 +12,7 @@ import {
 	UpdateFieldsOperator
 } from "../types";
 import {Tigris} from "../tigris";
-import {SearchResult} from "../search/types";
+import {SearchRequest, SearchResult} from "../search/types";
 import {Utility} from "../utility";
 
 describe("rpc tests", () => {
@@ -396,13 +396,14 @@ describe("rpc tests", () => {
 		const db3 = tigris.getDatabase("db3");
 		let bookCounter = 0;
 		let success = true;
+		const request: SearchRequest<IBook> = {
+			q: "philosophy",
+			facets: {
+				tags: Utility.createFacetQueryOptions()
+			}
+		};
 		db3.getCollection<IBook>("books")
-			.search({
-				q: "philosophy",
-				facetQuery: {
-					tags: Utility.createFacetQueryOptions()
-				}
-			}, {
+			.search(request, {
 				onEnd() {
 					expect(bookCounter).toBe(TestTigrisService.BOOKS_B64_BY_ID.size);
 					expect(success).toBe(true);
