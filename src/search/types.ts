@@ -32,7 +32,7 @@ export type SearchRequest<T extends TigrisCollectionType> = {
 	/**
 	 * Facet fields to categorically arrange indexed terms
 	 */
-	facetQuery?: FacetFieldsQuery,
+	facets?: FacetFieldsQuery,
 	/**
 	 * Sort the search results in indicated order
 	 */

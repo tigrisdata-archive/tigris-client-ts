@@ -286,10 +286,10 @@ export class Collection<T extends TigrisCollectionType> {
 				));
 		}
 
-		if (request.facetQuery !== undefined) {
+		if (request.facets !== undefined) {
 			searchRequest.setFacet(
 				Utility.stringToUint8Array(
-					Utility.facetQueryToString(request.facetQuery)
+					Utility.facetQueryToString(request.facets)
 				));
 		}
 

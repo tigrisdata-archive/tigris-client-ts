@@ -398,7 +398,7 @@ describe("rpc tests", () => {
 		let success = true;
 		const request: SearchRequest<IBook> = {
 			q: "philosophy",
-			facetQuery: {
+			facets: {
 				tags: Utility.createFacetQueryOptions()
 			}
 		};
