@@ -300,12 +300,14 @@ export class Collection<T extends TigrisCollectionType> {
 				));
 		}
 
-		if (request.readFields !== undefined) {
-			searchRequest.setFields(
-				Utility.stringToUint8Array(
-					Utility.readFieldString(request.readFields)
-				));
+		if (request.includeFields !== undefined) {
+			searchRequest.setIncludeFieldsList(request.includeFields);
 		}
+
+		if (request.excludeFields !== undefined) {
+			searchRequest.setIncludeFieldsList(request.excludeFields);
+		}
+
 		if (options !== undefined) {
 			searchRequest.setPage(options.page).setPageSize(options.perPage);
 		}
