@@ -1,13 +1,13 @@
-import {LogicalFilter, ReadFields, Selector, SelectorFilter, TigrisCollectionType} from "../types";
+import {LogicalFilter, Selector, SelectorFilter, TigrisCollectionType} from "../types";
 import {
 	FacetCount as ProtoFacetCount,
 	FacetStats as ProtoFacetStats,
+	Page as ProtoSearchPage,
 	SearchFacet as ProtoSearchFacet,
 	SearchHit as ProtoSearchHit,
 	SearchHitMeta as ProtoSearchHitMeta,
 	SearchMetadata as ProtoSearchMetadata,
-	SearchResponse as ProtoSearchResponse,
-	Page as ProtoSearchPage
+	SearchResponse as ProtoSearchResponse
 } from "../proto/server/v1/api_pb";
 import {Utility} from "../utility";
 
@@ -38,9 +38,13 @@ export type SearchRequest<T extends TigrisCollectionType> = {
 	 */
 	sort?: SortOrder,
 	/**
-	 * Document fields to include/exclude when returning search results
+	 * Document fields to include when returning search results
 	 */
-	readFields?: ReadFields;
+	includeFields?: Array<string>;
+	/**
+	 * Document fields to exclude when returning search results
+	 */
+	excludeFields?: Array<string>;
 };
 
 /**
