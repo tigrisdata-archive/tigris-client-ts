@@ -45,22 +45,41 @@ export const Utility = {
 	},
 
 	_selectorFilterToString<T extends TigrisCollectionType>(filter: SelectorFilter<T>): string {
-		// special filter nothing
-		if (filter.op == SelectorFilterOperator.NONE) {
-			return "{}";
+		switch (filter.op) {
+			case SelectorFilterOperator.NONE:
+				// filter nothing
+				return "{}";
+			case SelectorFilterOperator.EQ:
+			case SelectorFilterOperator.LT:
+			case SelectorFilterOperator.LTE:
+			case SelectorFilterOperator.GT:
+			case SelectorFilterOperator.GTE:
+				return Utility.objToJsonString(Utility._selectorFilterToFlatJSONObj(filter.op, filter.fields));
+			default:
+				return "";
 		}
-		if (filter.op == SelectorFilterOperator.EQ) {
-			return Utility.objToJsonString(Utility._flattenObj(Utility._selectorFilterToJSONObj(filter)));
-		}
-		return "";
 	},
 
-	_selectorFilterToJSONObj<T>(filter: SelectorFilter<T>): object {
-		if (filter.op == SelectorFilterOperator.EQ) {
-			return filter.fields;
+	_selectorFilterToFlatJSONObj(op: SelectorFilterOperator, fields: object): object {
+		switch (op) {
+			case SelectorFilterOperator.NONE:
+				return {};
+			case SelectorFilterOperator.EQ:
+				return Utility._flattenObj(fields);
+			case SelectorFilterOperator.LT:
+			case SelectorFilterOperator.LTE:
+			case SelectorFilterOperator.GT:
+			case SelectorFilterOperator.GTE: {
+				const flattenedFields = Utility._flattenObj(fields);
+				for (const key in flattenedFields) {
+					flattenedFields[key] = {[op]: flattenedFields[key]};
+				}
+				return flattenedFields;
+			}
+			default:
+				return Utility._flattenObj(fields);
+
 		}
-		// add support later
-		return filter;
 	},
 
 	_logicalFilterToString<T>(filter: LogicalFilter<T>): string {
@@ -73,7 +92,14 @@ export const Utility = {
 		result[filter.op] = innerFilters;
 		if (filter.selectorFilters) {
 			for (const value of filter.selectorFilters) {
-				innerFilters.push(Utility._flattenObj(Utility._selectorFilterToJSONObj(value)));
+				// eslint-disable-next-line no-prototype-builtins
+				if (value.hasOwnProperty("op")) {
+					const v = value as SelectorFilter<T>;
+					innerFilters.push(Utility._selectorFilterToFlatJSONObj(v.op, v.fields));
+				} else {
+					const v = value as Selector<T>;
+					innerFilters.push(Utility._selectorFilterToFlatJSONObj(SelectorFilterOperator.EQ, v));
+				}
 			}
 		}
 		if (filter.logicalFilters) {

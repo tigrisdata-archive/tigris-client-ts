@@ -320,6 +320,10 @@ export enum LogicalOperator {
 
 export enum SelectorFilterOperator {
 	EQ = "$eq",
+	LT = "$lt",
+	LTE = "$lte",
+	GT = "$gt",
+	GTE = "$gte",
 	NONE = "$none"
 }
 

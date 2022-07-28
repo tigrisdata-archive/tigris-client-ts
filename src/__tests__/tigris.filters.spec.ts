@@ -123,6 +123,48 @@ describe("filters tests", () => {
 		expect(Utility.filterToString(tigrisFilter)).toBe("{\"id\":1,\"name\":\"alice\",\"balance\":12.34,\"address.city\":\"San Francisco\"}");
 	});
 
+	it("less than Filter", () => {
+		const tigrisFilter: SelectorFilter<Student> = {
+			op: SelectorFilterOperator.LT,
+			fields: {
+				balance: 10
+			}
+		};
+		expect(Utility.filterToString(tigrisFilter)).toBe("{\"balance\":{\"$lt\":10}}");
+	});
+
+	it("less than equals Filter", () => {
+		const tigrisFilter: SelectorFilter<Student> = {
+			op: SelectorFilterOperator.LTE,
+			fields: {
+				address: {
+					zipcode: 10
+				}
+			}
+		};
+		expect(Utility.filterToString(tigrisFilter)).toBe("{\"address.zipcode\":{\"$lte\":10}}");
+	});
+
+	it("greater than Filter", () => {
+		const tigrisFilter: SelectorFilter<Student> = {
+			op: SelectorFilterOperator.GT,
+			fields: {
+				balance: 10
+			}
+		};
+		expect(Utility.filterToString(tigrisFilter)).toBe("{\"balance\":{\"$gt\":10}}");
+	});
+
+	it("greater than equals Filter", () => {
+		const tigrisFilter: SelectorFilter<Student> = {
+			op: SelectorFilterOperator.GTE,
+			fields: {
+				balance: 10
+			}
+		};
+		expect(Utility.filterToString(tigrisFilter)).toBe("{\"balance\":{\"$gte\":10}}");
+	});
+
 	it("logicalFilterTest1", () => {
 		const logicalFilter: LogicalFilter<IUser> = {
 			op: LogicalOperator.OR,
@@ -138,10 +180,16 @@ describe("filters tests", () => {
 					fields: {
 						name: "emma"
 					}
+				},
+				{
+					op: SelectorFilterOperator.GT,
+					fields: {
+						balance: 300
+					}
 				}
 			]
 		};
-		expect(Utility.filterToString(logicalFilter)).toBe("{\"$or\":[{\"name\":\"alice\"},{\"name\":\"emma\"}]}");
+		expect(Utility.filterToString(logicalFilter)).toBe("{\"$or\":[{\"name\":\"alice\"},{\"name\":\"emma\"},{\"balance\":{\"$gt\":300}}]}");
 	});
 
 	it("logicalFilterTest2", () => {
@@ -166,7 +214,7 @@ describe("filters tests", () => {
 	});
 
 	it("nestedLogicalFilter1", () => {
-		const logicalFilter1: LogicalFilter<IUser2> = {
+		const logicalFilter1: LogicalFilter<Student> = {
 			op: LogicalOperator.AND,
 			selectorFilters: [
 				{
@@ -176,35 +224,36 @@ describe("filters tests", () => {
 					}
 				},
 				{
-					op: SelectorFilterOperator.EQ,
-					fields: {
-						rank: 1
+					address: {
+						city: "Paris",
 					}
 				}
 			]
 		};
-		const logicalFilter2: LogicalFilter<IUser2> = {
+		const logicalFilter2: LogicalFilter<Student> = {
 			op: LogicalOperator.AND,
 			selectorFilters: [
 				{
-					op: SelectorFilterOperator.EQ,
+					op: SelectorFilterOperator.GTE,
 					fields: {
-						name: "emma",
+						address: {
+							zipcode: 1200
+						},
 					}
 				},
 				{
-					op: SelectorFilterOperator.EQ,
+					op: SelectorFilterOperator.LTE,
 					fields: {
-						rank: 1
+						balance: 1000
 					}
 				}
 			]
 		};
-		const nestedLogicalFilter: LogicalFilter<IUser2> = {
+		const nestedLogicalFilter: LogicalFilter<Student> = {
 			op: LogicalOperator.OR,
 			logicalFilters: [logicalFilter1, logicalFilter2]
 		};
-		expect(Utility.filterToString(nestedLogicalFilter)).toBe("{\"$or\":[{\"$and\":[{\"name\":\"alice\"},{\"rank\":1}]},{\"$and\":[{\"name\":\"emma\"},{\"rank\":1}]}]}");
+		expect(Utility.filterToString(nestedLogicalFilter)).toBe("{\"$or\":[{\"$and\":[{\"name\":\"alice\"},{\"address.city\":\"Paris\"}]},{\"$and\":[{\"address.zipcode\":{\"$gte\":1200}},{\"balance\":{\"$lte\":1000}}]}]}");
 	});
 
 	it("nestedLogicalFilter2", () => {
