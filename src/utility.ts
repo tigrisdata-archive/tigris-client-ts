@@ -43,7 +43,9 @@ export const Utility = {
 			return Utility.objToJsonString(filter);
 		}
 	},
-
+	_getRandomInt(upperBound: number): number {
+		return Math.floor(Math.random() * upperBound);
+	},
 	_selectorFilterToString<T extends TigrisCollectionType>(filter: SelectorFilter<T>): string {
 		switch (filter.op) {
 			case SelectorFilterOperator.NONE:

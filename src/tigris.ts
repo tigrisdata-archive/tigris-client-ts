@@ -16,10 +16,61 @@ import {
 	ServerMetadata
 } from "./types";
 
+import {GetAccessTokenRequest as ProtoGetAccessTokenRequest} from "./proto/server/v1/auth_pb";
+
 import {DB} from "./db";
+import {AuthClient} from "./proto/server/v1/auth_grpc_pb";
+import {Utility} from "./utility";
+
+const AuthorizationHeaderName = "authorization";
+const AuthorizationBearer = "Bearer ";
 
 export interface TigrisClientConfig {
 	serverUrl: string;
+	insecureChannel?: boolean
+	refreshToken?: string
+}
+
+class TokenSupplier {
+	private refreshToken: string;
+	private accessToken: string;
+	private nextRefreshTime: number;
+	private authClient: AuthClient;
+
+	constructor(config: TigrisClientConfig) {
+		this.authClient = new AuthClient(config.serverUrl, grpc.credentials.createSsl());
+	}
+
+	getAccessToken(): string {
+		if (this.shouldRefresh()) {
+			// refresh
+			this.authClient.getAccessToken(
+				new ProtoGetAccessTokenRequest().setRefreshToken(this.refreshToken),
+				(error, response) => {
+					if (error) {
+						// log failure
+						console.error(error);
+					} else {
+						this.accessToken = response.getAccessToken();
+						this.refreshToken = response.getAccessToken();
+						// retrieve exp
+						const parts: string[] = this.accessToken.split("\\.");
+						const exp = Number(Utility.jsonStringToObj(Utility._base64Decode(parts[1]))["exp"]);
+						// 5 min before expiry (note: exp is in seconds)
+						// add random jitter of 1-5 min (i.e. 60000 - 300000 ms)
+						this.nextRefreshTime = (exp * 1000) - 300_000 - (Utility._getRandomInt(300_000) + 60_000);
+					}
+				});
+		}
+		return this.accessToken;
+	}
+
+	shouldRefresh(): boolean {
+		if (typeof this.accessToken === "undefined") {
+			return true;
+		}
+		return Date.now() >= this.nextRefreshTime;
+	}
 }
 
 /**
@@ -33,8 +84,24 @@ export class Tigris {
 	 * @param  {TigrisClientConfig} config configuration
 	 */
 	constructor(config: TigrisClientConfig) {
-		this.grpcClient = new TigrisClient(config.serverUrl, grpc.credentials.createInsecure());
+		if ((config.insecureChannel === undefined || config.insecureChannel === false) && config.refreshToken === undefined) {
+			this.grpcClient = new TigrisClient(config.serverUrl, grpc.credentials.createInsecure());
+		} else if ((config.insecureChannel === undefined || config.insecureChannel) && config.refreshToken !== undefined) {
+			console.log("Passing token on insecure channel is not allowed");
+			process.exitCode = 1;
+		} else {
+			const tokenSupplier = new TokenSupplier(config);
+			this.grpcClient = new TigrisClient(config.serverUrl, grpc.credentials.combineChannelCredentials(
+				grpc.credentials.createSsl(),
+				grpc.credentials.createFromMetadataGenerator((params, callback) => {
+					const accessToken = tokenSupplier.getAccessToken();
+					const md = new grpc.Metadata();
+					md.set(AuthorizationHeaderName, AuthorizationBearer + accessToken);
+					return callback(undefined, md);
+				})));
+		}
 	}
+
 
 	/**
 	 * Lists the databases
