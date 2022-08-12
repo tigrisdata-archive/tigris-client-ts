@@ -3,7 +3,9 @@ import {
 	FacetFieldOptions,
 	FacetFields,
 	FacetFieldsQuery,
-	FacetQueryFieldType
+	FacetQueryFieldType,
+	Ordering,
+	SortOrder
 } from "../search/types";
 
 describe("utility tests", () => {
@@ -54,5 +56,18 @@ describe("utility tests", () => {
 		};
 		const serializedFields = Utility.facetQueryToString(facetFields);
 		expect(serializedFields).toBe(Utility.facetQueryToString(fieldOptions));
+	});
+
+	it("serializes empty sort order", () => {
+		expect(Utility.sortOrderingToString([])).toBe("[]");
+	});
+
+	it("serializes sort orders to string", () => {
+		const ordering: Ordering = [
+			{field: "field_1", order: SortOrder.ASC},
+			{field: "parent.field_2", order: SortOrder.DESC}
+		];
+		const expected = "[{\"field_1\":\"$asc\"},{\"parent.field_2\":\"$desc\"}]";
+		expect(Utility.sortOrderingToString(ordering)).toBe(expected);
 	});
 });
