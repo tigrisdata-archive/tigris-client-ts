@@ -296,7 +296,7 @@ export class Collection<T extends TigrisCollectionType> {
 		if (request.sort !== undefined) {
 			searchRequest.setSort(
 				Utility.stringToUint8Array(
-					Utility.objToJsonString(request.sort)
+					Utility.sortOrderingToString(request.sort)
 				));
 		}
 

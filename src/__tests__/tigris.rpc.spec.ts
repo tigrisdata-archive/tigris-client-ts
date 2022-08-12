@@ -12,7 +12,7 @@ import {
 	UpdateFieldsOperator
 } from "../types";
 import {Tigris} from "../tigris";
-import {SearchRequest, SearchResult} from "../search/types";
+import {SearchRequest, SearchResult, SortOrder} from "../search/types";
 import {Utility} from "../utility";
 
 describe("rpc tests", () => {
@@ -400,7 +400,10 @@ describe("rpc tests", () => {
 			q: "philosophy",
 			facets: {
 				tags: Utility.createFacetQueryOptions()
-			}
+			},
+			sort: [
+				{field: "id", order: SortOrder.DESC}
+			]
 		};
 		db3.getCollection<IBook>("books")
 			.search(request, {

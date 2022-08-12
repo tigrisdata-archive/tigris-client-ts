@@ -17,7 +17,7 @@ import {
 	UpdateFieldsOperator
 } from "./types";
 import * as fs from "node:fs";
-import {FacetFieldsQuery, FacetQueryFieldType, FacetQueryOptions} from "./search/types";
+import {FacetFieldsQuery, FacetQueryFieldType, FacetQueryOptions, Ordering} from "./search/types";
 import {ReadRequestOptions as ProtoReadRequestOptions} from "./proto/server/v1/api_pb";
 
 export const Utility = {
@@ -361,5 +361,17 @@ export const Utility = {
 		} else {
 			return this.objToJsonString(facets);
 		}
+	},
+
+	sortOrderingToString(ordering: Ordering): string {
+		if (ordering === undefined || ordering.length === 0) {
+			return "[]";
+		}
+
+		const sortOrders = [];
+		for (const o of ordering) {
+			sortOrders.push({[o.field]: o.order});
+		}
+		return this.objToJsonString(sortOrders);
 	},
 };
