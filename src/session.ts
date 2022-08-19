@@ -5,18 +5,21 @@ import {
 } from "./proto/server/v1/api_pb";
 import { CommitTransactionResponse, RollbackTransactionResponse } from "./types";
 import {Utility} from "./utility";
+import {Metadata} from "@grpc/grpc-js";
 
 export class Session {
 	private readonly _id: string;
 	private readonly _origin: string;
 	private readonly grpcClient: TigrisClient;
 	private readonly db: string;
+	private readonly _additionalMetadata: Metadata;
 
-	constructor(id: string, origin: string, grpcClient: TigrisClient, db: string) {
+	constructor(id: string, origin: string, grpcClient: TigrisClient, db: string, additionalMetadata: Metadata) {
 		this._id = id;
 		this._origin = origin;
 		this.grpcClient = grpcClient;
 		this.db = db;
+		this._additionalMetadata = additionalMetadata;
 	}
 
 	get id(): string {
@@ -25,6 +28,10 @@ export class Session {
 
 	get origin(): string {
 		return this._origin;
+	}
+
+	get additionalMetadata(): Metadata {
+		return this._additionalMetadata;
 	}
 
 	public commit(): Promise<CommitTransactionResponse> {

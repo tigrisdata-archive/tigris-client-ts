@@ -15,6 +15,7 @@ import {
 } from "./types";
 import {
 	BeginTransactionRequest as ProtoBeginTransactionRequest,
+	BeginTransactionResponse,
 	CollectionOptions as ProtoCollectionOptions,
 	CreateOrUpdateCollectionRequest as ProtoCreateOrUpdateCollectionRequest,
 	DescribeDatabaseRequest as ProtoDescribeDatabaseRequest,
@@ -24,10 +25,15 @@ import {
 import {Collection} from "./collection";
 import {Session} from "./session";
 import {Utility} from "./utility";
+import {Metadata, ServiceError} from "@grpc/grpc-js";
 
 /**
  * Tigris Database
  */
+const SetCookie = "Set-Cookie";
+const Cookie = "Cookie";
+const BeginTransactionMethodName = "/tigrisdata.v1.Tigris/BeginTransaction";
+
 export class DB {
 	private readonly _db: string;
 	private readonly grpcClient: TigrisClient;
@@ -160,19 +166,29 @@ export class DB {
 	public beginTransaction(_options?: TransactionOptions): Promise<Session> {
 		return new Promise<Session>((resolve, reject) => {
 			const beginTxRequest = new ProtoBeginTransactionRequest().setDb(this._db);
-
-			this.grpcClient.beginTransaction(beginTxRequest, (error, response) => {
-				if (error) {
-					reject(error);
-				} else {
-					resolve(
-						new Session(
+			const cookie: Metadata = new Metadata();
+			const call = this.grpcClient.makeUnaryRequest(BeginTransactionMethodName,
+				value => Buffer.from(value.serializeBinary()),
+				value => BeginTransactionResponse.deserializeBinary(value),
+				beginTxRequest,
+				(error: ServiceError, response: BeginTransactionResponse) => {
+					if(error) {
+						reject(error);
+					}else{
+						// on metadata is expected to have invoked at this point since response
+						// is served
+						resolve(new Session(
 							response.getTxCtx().getId(),
 							response.getTxCtx().getOrigin(),
 							this.grpcClient,
-							this.db
-						)
-					);
+							this.db,
+							cookie
+						));
+					}
+				});
+			call.on("metadata", metadata => {
+				if (metadata.get(SetCookie)) {
+					for (const inboundCookie of metadata.get(SetCookie)) cookie.add(Cookie, inboundCookie);
 				}
 			});
 		});

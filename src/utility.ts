@@ -149,6 +149,7 @@ export const Utility = {
 		if (tx !== undefined) {
 			metadata.set("Tigris-Tx-Id", tx.id);
 			metadata.set("Tigris-Tx-Origin", tx.origin);
+			metadata.merge(tx.additionalMetadata);
 		}
 		return metadata;
 	},
