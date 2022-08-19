@@ -89,12 +89,18 @@ export class Tigris {
 	 * @param  {TigrisClientConfig} config configuration
 	 */
 	constructor(config: TigrisClientConfig) {
-		if ((config.insecureChannel === undefined || config.insecureChannel === false) && config.refreshToken === undefined) {
+		if (config.insecureChannel === true && config.refreshToken === undefined) {
+			// no auth & insecure channel
 			this.grpcClient = new TigrisClient(config.serverUrl, grpc.credentials.createInsecure());
+		} else if ((config.insecureChannel === undefined || config.insecureChannel == false) && config.refreshToken === undefined) {
+			// no auth & secure channel
+			this.grpcClient = new TigrisClient(config.serverUrl, grpc.credentials.createSsl());
 		} else if ((config.insecureChannel === undefined || config.insecureChannel) && config.refreshToken !== undefined) {
-			console.log("Passing token on insecure channel is not allowed");
+			// auth & insecure channel
+			console.error("Passing token on insecure channel is not allowed");
 			process.exitCode = 1;
 		} else {
+			// auth & secure channel
 			const tokenSupplier = new TokenSupplier(config);
 			this.grpcClient = new TigrisClient(config.serverUrl, grpc.credentials.combineChannelCredentials(
 				grpc.credentials.createSsl(),
