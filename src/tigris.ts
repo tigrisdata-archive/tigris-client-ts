@@ -39,30 +39,35 @@ class TokenSupplier {
 
 	constructor(config: TigrisClientConfig) {
 		this.authClient = new AuthClient(config.serverUrl, grpc.credentials.createSsl());
+		this.refreshToken = config.refreshToken;
 	}
 
-	getAccessToken(): string {
-		if (this.shouldRefresh()) {
-			// refresh
-			this.authClient.getAccessToken(
-				new ProtoGetAccessTokenRequest().setRefreshToken(this.refreshToken),
-				(error, response) => {
-					if (error) {
-						// log failure
-						console.error(error);
-					} else {
-						this.accessToken = response.getAccessToken();
-						this.refreshToken = response.getAccessToken();
-						// retrieve exp
-						const parts: string[] = this.accessToken.split("\\.");
-						const exp = Number(Utility.jsonStringToObj(Utility._base64Decode(parts[1]))["exp"]);
-						// 5 min before expiry (note: exp is in seconds)
-						// add random jitter of 1-5 min (i.e. 60000 - 300000 ms)
-						this.nextRefreshTime = (exp * 1000) - 300_000 - (Utility._getRandomInt(300_000) + 60_000);
-					}
-				});
-		}
-		return this.accessToken;
+	getAccessToken(): Promise<string> {
+		return new Promise<string>((resolve, reject) => {
+			if (this.shouldRefresh()) {
+				// refresh
+				this.authClient.getAccessToken(
+					new ProtoGetAccessTokenRequest().setRefreshToken(this.refreshToken),
+					(error, response) => {
+						if (error) {
+							reject(error);
+						} else {
+							this.accessToken = response.getAccessToken();
+							this.refreshToken = response.getRefreshToken();
+
+							// retrieve exp
+							const parts: string[] = this.accessToken.split(".");
+							const exp = Number(Utility.jsonStringToObj(Utility._base64Decode(parts[1]))["exp"]);
+							// 5 min before expiry (note: exp is in seconds)
+							// add random jitter of 1-5 min (i.e. 60000 - 300000 ms)
+							this.nextRefreshTime = (exp * 1000) - 300_000 - (Utility._getRandomInt(300_000) + 60_000);
+							resolve(this.accessToken);
+						}
+					});
+			} else {
+				resolve(this.accessToken);
+			}
+		});
 	}
 
 	shouldRefresh(): boolean {
@@ -94,10 +99,15 @@ export class Tigris {
 			this.grpcClient = new TigrisClient(config.serverUrl, grpc.credentials.combineChannelCredentials(
 				grpc.credentials.createSsl(),
 				grpc.credentials.createFromMetadataGenerator((params, callback) => {
-					const accessToken = tokenSupplier.getAccessToken();
-					const md = new grpc.Metadata();
-					md.set(AuthorizationHeaderName, AuthorizationBearer + accessToken);
-					return callback(undefined, md);
+					tokenSupplier.getAccessToken()
+						.then(accessToken => {
+							const md = new grpc.Metadata();
+							md.set(AuthorizationHeaderName, AuthorizationBearer + accessToken);
+							return callback(undefined, md);
+						})
+						.catch(error => {
+							return callback(error);
+						});
 				})));
 		}
 	}
