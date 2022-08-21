@@ -16,7 +16,10 @@ import {
 	ServerMetadata
 } from "./types";
 
-import {GetAccessTokenRequest as ProtoGetAccessTokenRequest} from "./proto/server/v1/auth_pb";
+import {
+	GetAccessTokenRequest as ProtoGetAccessTokenRequest,
+	GrantType
+} from "./proto/server/v1/auth_pb";
 
 import {DB} from "./db";
 import {AuthClient} from "./proto/server/v1/auth_grpc_pb";
@@ -28,18 +31,21 @@ const AuthorizationBearer = "Bearer ";
 export interface TigrisClientConfig {
 	serverUrl: string;
 	insecureChannel?: boolean
-	refreshToken?: string
+	applicationId?: string
+	applicationSecret?:string
 }
 
 class TokenSupplier {
-	private refreshToken: string;
+	private applicationId: string;
+	private applicationSecret: string;
 	private accessToken: string;
 	private nextRefreshTime: number;
 	private authClient: AuthClient;
 
 	constructor(config: TigrisClientConfig) {
 		this.authClient = new AuthClient(config.serverUrl, grpc.credentials.createSsl());
-		this.refreshToken = config.refreshToken;
+		this.applicationId = config.applicationId;
+		this.applicationSecret = config.applicationSecret;
 	}
 
 	getAccessToken(): Promise<string> {
@@ -47,13 +53,15 @@ class TokenSupplier {
 			if (this.shouldRefresh()) {
 				// refresh
 				this.authClient.getAccessToken(
-					new ProtoGetAccessTokenRequest().setRefreshToken(this.refreshToken),
+					new ProtoGetAccessTokenRequest()
+						.setGrantType(GrantType.CLIENT_CREDENTIALS)
+						.setClientId(this.applicationId)
+						.setClientSecret(this.applicationSecret),
 					(error, response) => {
 						if (error) {
 							reject(error);
 						} else {
 							this.accessToken = response.getAccessToken();
-							this.refreshToken = response.getRefreshToken();
 
 							// retrieve exp
 							const parts: string[] = this.accessToken.split(".");
@@ -89,13 +97,13 @@ export class Tigris {
 	 * @param  {TigrisClientConfig} config configuration
 	 */
 	constructor(config: TigrisClientConfig) {
-		if (config.insecureChannel === true && config.refreshToken === undefined) {
+		if (config.insecureChannel === true && config.applicationSecret === undefined) {
 			// no auth & insecure channel
 			this.grpcClient = new TigrisClient(config.serverUrl, grpc.credentials.createInsecure());
-		} else if ((config.insecureChannel === undefined || config.insecureChannel == false) && config.refreshToken === undefined) {
+		} else if ((config.insecureChannel === undefined || config.insecureChannel == false) && config.applicationSecret === undefined) {
 			// no auth & secure channel
 			this.grpcClient = new TigrisClient(config.serverUrl, grpc.credentials.createSsl());
-		} else if ((config.insecureChannel === undefined || config.insecureChannel) && config.refreshToken !== undefined) {
+		} else if ((config.insecureChannel === undefined || config.insecureChannel) && config.applicationSecret !== undefined) {
 			// auth & insecure channel
 			console.error("Passing token on insecure channel is not allowed");
 			process.exitCode = 1;
