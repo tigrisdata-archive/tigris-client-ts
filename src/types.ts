@@ -293,6 +293,8 @@ export class TransactionResponse extends TigrisResponse {
 
 export class InsertOptions {}
 
+export class PublishOptions {}
+
 export class InsertOrReplaceOptions {}
 
 export class ServerMetadata {
@@ -311,6 +313,11 @@ export class ServerMetadata {
 // Marker interface
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface TigrisCollectionType {
+}
+
+// Marker interface
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
+export interface TigrisTopicType {
 }
 
 export enum LogicalOperator {

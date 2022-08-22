@@ -1,7 +1,6 @@
 import {ITigrisServer, TigrisService} from "../proto/server/v1/api_grpc_pb";
 import {sendUnaryData, ServerUnaryCall, ServerWritableStream} from "@grpc/grpc-js";
 import {v4 as uuidv4} from "uuid";
-import * as server_v1_api_pb from "../proto/server/v1/api_pb";
 import {
 	BeginTransactionRequest,
 	BeginTransactionResponse,
@@ -38,6 +37,8 @@ import {
 	ListDatabasesRequest,
 	ListDatabasesResponse,
 	Page,
+	PublishRequest,
+	PublishResponse,
 	ReadRequest,
 	ReadResponse,
 	ReplaceRequest,
@@ -52,12 +53,14 @@ import {
 	SearchRequest,
 	SearchResponse,
 	StreamEvent,
+	SubscribeRequest,
+	SubscribeResponse,
 	TransactionCtx,
 	UpdateRequest,
 	UpdateResponse
 } from "../proto/server/v1/api_pb";
 import * as google_protobuf_timestamp_pb from "google-protobuf/google/protobuf/timestamp_pb";
-import { Utility } from "../utility";
+import {Utility} from "../utility";
 
 export class TestTigrisService {
 	private static DBS: string[] = [];
@@ -75,6 +78,11 @@ export class TestTigrisService {
 		["5", "eyJpZCI6NSwidGl0bGUiOiJUaW1lIFJlZ2FpbmVkIiwiYXV0aG9yIjoiTWFyY2VsIFByb3VzdCJ9"],
 		// base64 of {"id":6,"title":"The Prisoner","author":"Marcel Proust"}
 		["6", "eyJpZCI6NiwidGl0bGUiOiJUaGUgUHJpc29uZXIiLCJhdXRob3IiOiJNYXJjZWwgUHJvdXN0In0="]
+	]);
+
+	public static readonly ALERTS_B64_BY_ID: ReadonlyMap<string, string> = new Map([
+		// base64 of {"id":34,"text":"test"}
+		["1", "eyJpZCI6MzQsInRleHQiOiJ0ZXN0In0="]
 	]);
 
 	static reset() {
@@ -105,9 +113,15 @@ export class TestTigrisService {
 			call.end();
 		},
 		// eslint-disable-next-line @typescript-eslint/no-empty-function,@typescript-eslint/no-unused-vars
-		publish(_call: ServerUnaryCall<server_v1_api_pb.PublishRequest, server_v1_api_pb.PublishResponse>, _callback: sendUnaryData<server_v1_api_pb.PublishResponse>): void {},
+		publish(call: ServerUnaryCall<PublishRequest, PublishResponse>, callback: sendUnaryData<PublishResponse>): void {
+			const reply: PublishResponse = new PublishResponse();
+			callback(undefined, reply);
+		},
 		// eslint-disable-next-line @typescript-eslint/no-empty-function,@typescript-eslint/no-unused-vars
-		subscribe(_call: ServerWritableStream<server_v1_api_pb.SubscribeRequest, server_v1_api_pb.SubscribeResponse>): void {},
+		subscribe(call: ServerWritableStream<SubscribeRequest, SubscribeResponse>): void {
+			call.write(new SubscribeResponse().setMessage(TestTigrisService.ALERTS_B64_BY_ID.get("1")));
+			call.end();
+		},
 		beginTransaction(
 			call: ServerUnaryCall<BeginTransactionRequest, BeginTransactionResponse>,
 			callback: sendUnaryData<BeginTransactionResponse>
@@ -388,7 +402,8 @@ export class TestTigrisService {
 			const searchHit = new SearchHit().setMetadata(searchHitMeta);
 
 			// write all search hits to stream 1 by 1
-			// eslint-disable-next-line @typescript-eslint/no-unused-vars
+			// eslint-disable-next-line @typescript-eslint/no-unused-vars,@typescript-eslint/ban-ts-comment
+			// @ts-ignore
 			for (const booksb64BYIDElement of TestTigrisService.BOOKS_B64_BY_ID) {
 				searchHit.setData(booksb64BYIDElement[1]);
 				call.write(resp.setHitsList([searchHit]));

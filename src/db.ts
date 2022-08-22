@@ -26,6 +26,7 @@ import {Collection} from "./collection";
 import {Session} from "./session";
 import {Utility} from "./utility";
 import {Metadata, ServiceError} from "@grpc/grpc-js";
+import {Topic} from "./topic";
 
 /**
  * Tigris Database
@@ -45,12 +46,24 @@ export class DB {
 
 	public createOrUpdateCollection<T extends TigrisCollectionType>(
 		collectionName: string, schema: TigrisSchema<T>): Promise<Collection<T>> {
-		return new Promise<Collection<T>>((resolve, reject) => {
-			const rawJSONSchema: string = Utility._toJSONSchema(collectionName, schema);
+		return this.createOrUpdate(collectionName, schema,
+			() => new Collection(collectionName, this._db, this.grpcClient));
+	}
+
+	public createOrUpdateTopic<T extends TigrisCollectionType>(
+		topicName: string, schema: TigrisSchema<T>): Promise<Topic<T>> {
+		return this.createOrUpdate(topicName, schema,
+			() => new Topic(topicName, this._db, this.grpcClient));
+	}
+
+	private createOrUpdate<T extends TigrisCollectionType, R>(
+		name: string, schema: TigrisSchema<T>, resolver: () => R): Promise<R> {
+		return new Promise<R>((resolve, reject) => {
+			const rawJSONSchema: string = Utility._toJSONSchema(name, schema);
 			console.log(rawJSONSchema);
 			const createOrUpdateCollectionRequest = new ProtoCreateOrUpdateCollectionRequest()
 				.setDb(this._db)
-				.setCollection(collectionName)
+				.setCollection(name)
 				.setOnlyCreate(false)
 				.setSchema(Utility.stringToUint8Array(rawJSONSchema));
 
@@ -62,7 +75,7 @@ export class DB {
 						reject(error);
 						return;
 					}
-					resolve(new Collection(collectionName, this._db, this.grpcClient));
+					resolve(resolver());
 				});
 		});
 	}
@@ -137,6 +150,10 @@ export class DB {
 
 	public getCollection<T>(collectionName: string): Collection<T> {
 		return new Collection<T>(collectionName, this.db, this.grpcClient);
+	}
+
+	public getTopic<T>(topicName: string): Topic<T> {
+		return new Topic<T>(topicName, this.db, this.grpcClient);
 	}
 
 	public transact(fn: (tx: Session) => void): Promise<TransactionResponse> {

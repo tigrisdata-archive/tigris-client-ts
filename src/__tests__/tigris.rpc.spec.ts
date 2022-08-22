@@ -9,6 +9,7 @@ import {
 	TigrisCollectionType,
 	TigrisDataTypes,
 	TigrisSchema,
+	TigrisTopicType,
 	UpdateFieldsOperator
 } from "../types";
 import {Tigris} from "../tigris";
@@ -571,6 +572,48 @@ describe("rpc tests", () => {
 			}
 		});
 	});
+
+	it ("publish", () => {
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const db = tigris.getDatabase("test_db");
+		const topic = db.getTopic<Alert>("test_topic");
+		expect(topic.topicName).toBe("test_topic");
+
+		const promise = topic.publish({
+			id: 34,
+			text: "test"
+		});
+
+		promise.then(alert => {
+			expect(alert.id).toBe(34);
+			expect(alert.text).toBe("test");
+		});
+
+		return promise;
+	});
+
+	it ("subscribe", (done) => {
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const db = tigris.getDatabase("test_db");
+		const topic = db.getTopic<Alert>("test_topic");
+		let success = true;
+
+		topic.subscribe({
+			onNext(alert: Alert) {
+				expect(alert.id).toBe(34);
+				expect(alert.text).toBe("test");
+				expect(success).toBe(true);
+				done();
+			},
+			onEnd() {
+				// not expected to be called
+			},
+			// eslint-disable-next-line @typescript-eslint/no-unused-vars
+			onError(error: Error) {
+				success = false;
+			}
+		});
+	});
 });
 
 export interface IBook extends TigrisCollectionType {
@@ -585,4 +628,9 @@ export interface IBook1 extends TigrisCollectionType {
 	title: string;
 	author: string;
 	tags?: string[];
+}
+
+export interface Alert extends TigrisTopicType {
+	id: number;
+	text: string;
 }
