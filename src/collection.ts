@@ -82,7 +82,7 @@ export class Collection<T extends TigrisCollectionType> {
 		return this._collectionName;
 	}
 
-	insertMany(tx?: Session, _options?: InsertOptions, ...docs: Array<T>): Promise<Array<T>> {
+	insertMany(docs: Array<T>, tx?: Session, _options?: InsertOptions): Promise<Array<T>> {
 		return new Promise<Array<T>>((resolve, reject) => {
 			const docsArray = new Array<Uint8Array | string>();
 			for (const doc of docs) {
@@ -116,7 +116,9 @@ export class Collection<T extends TigrisCollectionType> {
 
 	insert(doc: T, tx?: Session, options?: InsertOptions): Promise<T> {
 		return new Promise<T>((resolve, reject) => {
-			this.insertMany(tx, options, doc).then(docs => {
+			const docArr: Array<T> = new Array<T>();
+			docArr.push(doc);
+			this.insertMany(docArr, tx, options).then(docs => {
 				resolve(docs[0]);
 			}).catch(error => {
 				reject(error);
@@ -124,7 +126,7 @@ export class Collection<T extends TigrisCollectionType> {
 		});
 	}
 
-	insertOrReplaceMany(tx?: Session, options?: InsertOrReplaceOptions, ...docs: Array<T>): Promise<Array<T>> {
+	insertOrReplaceMany(docs: Array<T>, tx?: Session, options?: InsertOrReplaceOptions,): Promise<Array<T>> {
 		return new Promise<Array<T>>((resolve, reject) => {
 			const docsArray = new Array<Uint8Array | string>();
 			for (const doc of docs) {
@@ -156,7 +158,9 @@ export class Collection<T extends TigrisCollectionType> {
 
 	insertOrReplace(doc: T, tx ?: Session, options ?: InsertOptions): Promise<T> {
 		return new Promise<T>((resolve, reject) => {
-			this.insertOrReplaceMany(tx, options, doc)
+			const docArr: Array<T> = new Array<T>();
+			docArr.push(doc);
+			this.insertOrReplaceMany(docArr, tx, options)
 				.then(docs => resolve(docs[0]))
 				.catch(error => reject(error));
 		});
