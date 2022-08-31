@@ -10,6 +10,7 @@ import {
 	ReadRequestOptions as ProtoReadRequestOptions,
 	ReadResponse as ProtoReadResponse,
 	ReplaceRequest as ProtoReplaceRequest,
+	Collation,
 	SearchRequest as ProtoSearchRequest,
 	SearchResponse as ProtoSearchResponse,
 	UpdateRequest as ProtoUpdateRequest,
@@ -336,6 +337,9 @@ export class Collection<T extends TigrisCollectionType> {
 
 		if (options !== undefined) {
 			searchRequest.setPage(options.page).setPageSize(options.perPage);
+			if (options.collation !== undefined) {
+				searchRequest.setCollation(new Collation().setCase(options.collation.case));
+			}
 		}
 
 		const stream: grpc.ClientReadableStream<ProtoSearchResponse> =

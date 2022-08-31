@@ -1,3 +1,5 @@
+import { Collation } from "./search/types";
+
 export class DatabaseInfo {
 	private readonly _name: string;
 	private readonly _metadata: DatabaseMetadata;
@@ -196,13 +198,16 @@ export class ReadRequestOptions {
 	private _limit: number;
 	private _skip: number;
 	private _offset: string;
+	private _collation: Collation;
 
 	constructor(limit?: number);
 	constructor(limit: number, skip: number);
-	constructor(limit?: number, skip?: number, offset?: string) {
+	constructor(limit?: number, skip?: number, offset?: string);
+	constructor(limit?: number, skip?: number, offset?: string, collation?: Collation) {
 		this._limit = limit ?? ReadRequestOptions.DEFAULT_LIMIT;
 		this._skip = skip ?? ReadRequestOptions.DEFAULT_SKIP;
 		this._offset = offset;
+		this._collation = collation;
 	}
 
 	get limit(): number {
@@ -227,6 +232,14 @@ export class ReadRequestOptions {
 
 	set offset(value: string) {
 		this._offset = value;
+	}
+
+	get collation(): Collation {
+		return this._collation;
+	}
+
+	set collation(value: Collation) {
+		this._collation = value;
 	}
 }
 
