@@ -293,7 +293,37 @@ export class TransactionResponse extends TigrisResponse {
 
 export class InsertOptions {}
 
-export class PublishOptions {}
+export class PublishOptions {
+	private _partition: number;
+
+	constructor(partition: number) {
+		this._partition = partition;
+	}
+
+	get partition(): number {
+		return this._partition;
+	}
+
+	set partition(value: number) {
+		this._partition = value;
+	}
+}
+
+export class SubscribeOptions {
+	private _partitions: Array<number>;
+
+	constructor(partitions: Array<number>) {
+		this._partitions = partitions;
+	}
+
+	get partitions(): Array<number> {
+		return this._partitions;
+	}
+
+	set partitions(value: Array<number>) {
+		this._partitions = value;
+	}
+}
 
 export class InsertOrReplaceOptions {}
 

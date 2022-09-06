@@ -614,6 +614,32 @@ describe("rpc tests", () => {
 			}
 		});
 	});
+
+	it ("subscribeToPartitions", (done) => {
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const db = tigris.getDatabase("test_db");
+		const topic = db.getTopic<Alert>("test_topic");
+		let success = true;
+
+		const partitions = new Array<number>();
+		partitions.push(55);
+
+		topic.subscribeToPartitions({
+			onNext(alert: Alert) {
+				expect(alert.id).toBe(34);
+				expect(alert.text).toBe("test");
+				expect(success).toBe(true);
+				done();
+			},
+			onEnd() {
+				// not expected to be called
+			},
+			// eslint-disable-next-line @typescript-eslint/no-unused-vars
+			onError(error: Error) {
+				success = false;
+			}
+		}, partitions);
+	});
 });
 
 export interface IBook extends TigrisCollectionType {

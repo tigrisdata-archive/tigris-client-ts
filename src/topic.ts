@@ -3,11 +3,14 @@ import {TigrisClient} from "./proto/server/v1/api_grpc_pb";
 import * as server_v1_api_pb from "./proto/server/v1/api_pb";
 import {
 	SubscribeRequest as ProtoSubscribeRequest,
+	SubscribeRequestOptions as ProtoSubscribeRequestOptions,
 	SubscribeResponse as ProtoSubscribeResponse,
-	PublishRequest as ProtoPublishRequest
+	PublishRequest as ProtoPublishRequest,
+	PublishRequestOptions as ProtoPublishRequestOptions
 } from "./proto/server/v1/api_pb";
 import {
 	PublishOptions,
+	SubscribeOptions,
 	TigrisTopicType
 } from "./types";
 import {Utility} from "./utility";
@@ -35,7 +38,7 @@ export class Topic<T extends TigrisTopicType> {
 		return this._topicName;
 	}
 
-	publishMany(_options?: PublishOptions, ...messages: Array<T>): Promise<Array<T>> {
+	publishMany(messages: Array<T>, options?: PublishOptions): Promise<Array<T>> {
 		return new Promise<Array<T>>((resolve, reject) => {
 			const messagesArray = new Array<Uint8Array>();
 			const textEncoder = new TextEncoder();
@@ -47,6 +50,10 @@ export class Topic<T extends TigrisTopicType> {
 				.setDb(this._db)
 				.setCollection(this._topicName)
 				.setMessagesList(messagesArray);
+
+			if (options) {
+				protoRequest.setOptions(new ProtoPublishRequestOptions().setPartition(options.partition));
+			}
 
 			this._grpcClient.publish(protoRequest,(error: grpc.ServiceError, response: server_v1_api_pb.PublishResponse): void => {
 				if (error !== undefined && error !== null) {
@@ -70,7 +77,9 @@ export class Topic<T extends TigrisTopicType> {
 
 	publish(message: T, options?: PublishOptions): Promise<T> {
 		return new Promise<T>((resolve, reject) => {
-			this.publishMany(options, message).then(messages => {
+			const messageArr: Array<T> = new Array<T>();
+			messageArr.push(message);
+			this.publishMany(messageArr, options).then(messages => {
 				resolve(messages[0]);
 			}).catch(error => {
 				reject(error);
@@ -78,10 +87,14 @@ export class Topic<T extends TigrisTopicType> {
 		});
 	}
 
-	subscribe(callback: SubscribeCallback<T>): void {
+	subscribe(callback: SubscribeCallback<T>, options?: SubscribeOptions): void {
 		const subscribeRequest = new ProtoSubscribeRequest()
 			.setDb(this._db)
 			.setCollection(this._topicName);
+
+		if (options) {
+			subscribeRequest.setOptions(new ProtoSubscribeRequestOptions().setPartitionsList(options.partitions));
+		}
 
 		const stream: grpc.ClientReadableStream<ProtoSubscribeResponse> =
 			this._grpcClient.subscribe(subscribeRequest);
@@ -93,5 +106,9 @@ export class Topic<T extends TigrisTopicType> {
 
 		stream.on("error", (error) => callback.onError(error));
 		stream.on("end", () => callback.onEnd());
+	}
+
+	subscribeToPartitions(callback: SubscribeCallback<T>, partitions: Array<number>): void {
+		return this.subscribe(callback, new SubscribeOptions(partitions));
 	}
 }
