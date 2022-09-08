@@ -2,6 +2,7 @@ import {Metadata} from "@grpc/grpc-js";
 import json_bigint from "json-bigint";
 import {Session} from "./session";
 import {
+	CollectionType,
 	LogicalFilter,
 	LogicalOperator,
 	ReadFields,
@@ -196,13 +197,14 @@ export const Utility = {
 		return toReturn;
 	},
 
-	_toJSONSchema<T>(collectionName: string, schema: TigrisSchema<T>): string {
+	_toJSONSchema<T>(collectionName: string, collectionType: CollectionType, schema: TigrisSchema<T>): string {
 		const root = {};
 		const pkeyMap = {};
 		root["title"] = collectionName;
 		root["additionalProperties"] = false;
 		root["type"] = "object";
 		root["properties"] = this._getSchemaProperties(schema, pkeyMap);
+		root["collection_type"] = collectionType;
 		Utility._postProcessSchema(root, pkeyMap);
 		return Utility.objToJsonString(root);
 	},

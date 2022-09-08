@@ -4,6 +4,7 @@ import {
 	CollectionInfo,
 	CollectionMetadata,
 	CollectionOptions,
+	CollectionType,
 	CommitTransactionResponse,
 	DatabaseDescription,
 	DatabaseMetadata,
@@ -46,20 +47,20 @@ export class DB {
 
 	public createOrUpdateCollection<T extends TigrisCollectionType>(
 		collectionName: string, schema: TigrisSchema<T>): Promise<Collection<T>> {
-		return this.createOrUpdate(collectionName, schema,
+		return this.createOrUpdate(collectionName, CollectionType.DOCUMENTS, schema,
 			() => new Collection(collectionName, this._db, this.grpcClient));
 	}
 
 	public createOrUpdateTopic<T extends TigrisCollectionType>(
 		topicName: string, schema: TigrisSchema<T>): Promise<Topic<T>> {
-		return this.createOrUpdate(topicName, schema,
+		return this.createOrUpdate(topicName, CollectionType.MESSAGES, schema,
 			() => new Topic(topicName, this._db, this.grpcClient));
 	}
 
 	private createOrUpdate<T extends TigrisCollectionType, R>(
-		name: string, schema: TigrisSchema<T>, resolver: () => R): Promise<R> {
+		name: string, type: CollectionType, schema: TigrisSchema<T>, resolver: () => R): Promise<R> {
 		return new Promise<R>((resolve, reject) => {
-			const rawJSONSchema: string = Utility._toJSONSchema(name, schema);
+			const rawJSONSchema: string = Utility._toJSONSchema(name, type, schema);
 			console.log(rawJSONSchema);
 			const createOrUpdateCollectionRequest = new ProtoCreateOrUpdateCollectionRequest()
 				.setDb(this._db)

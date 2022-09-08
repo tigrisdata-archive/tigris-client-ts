@@ -350,6 +350,11 @@ export interface TigrisCollectionType {
 export interface TigrisTopicType {
 }
 
+export enum CollectionType {
+	DOCUMENTS = "documents",
+	MESSAGES = "messages",
+}
+
 export enum LogicalOperator {
 	AND = "$and",
 	OR = "$or",
