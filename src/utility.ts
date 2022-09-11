@@ -205,7 +205,9 @@ export const Utility = {
 		root["type"] = "object";
 		root["properties"] = this._getSchemaProperties(schema, pkeyMap);
 		root["collection_type"] = collectionType;
-		Utility._postProcessSchema(root, pkeyMap);
+		if (collectionType !== "messages") {
+			Utility._postProcessSchema(root, pkeyMap);
+		}
 		return Utility.objToJsonString(root);
 	},
 	/*
