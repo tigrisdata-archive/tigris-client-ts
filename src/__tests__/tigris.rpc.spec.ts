@@ -173,6 +173,23 @@ describe("rpc tests", () => {
 		return insertionPromise;
 	});
 
+	it("insert2", () => {
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const db1 = tigris.getDatabase("db3");
+		const insertionPromise = db1.getCollection<IBook2>("books").insert({
+			id: 0,
+			title: "science book",
+			metadata: {
+				publish_date: new Date(),
+				num_pages: 100,
+			}
+		});
+		insertionPromise.then(insertedBook => {
+			expect(insertedBook.id).toBe(1);
+		});
+		return insertionPromise;
+	});
+
 	it("insertWithOptionalField", () => {
 		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
 		const db1 = tigris.getDatabase("db3");
@@ -654,6 +671,12 @@ export interface IBook1 extends TigrisCollectionType {
 	title: string;
 	author: string;
 	tags?: string[];
+}
+
+export interface IBook2 extends TigrisCollectionType {
+	id?: number;
+	title: string;
+	metadata: object;
 }
 
 export interface Alert extends TigrisTopicType {

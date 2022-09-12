@@ -1,4 +1,4 @@
-import { CollectionType, TigrisCollectionType, TigrisDataTypes, TigrisSchema, } from "../types";
+import {CollectionType, TigrisCollectionType, TigrisDataTypes, TigrisSchema,} from "../types";
 import {Utility} from "../utility";
 
 describe("schema tests", () => {
@@ -33,6 +33,26 @@ describe("schema tests", () => {
 		};
 		expect(Utility._toJSONSchema("basicCollection", CollectionType.DOCUMENTS, schema))
 			.toBe(Utility._readTestDataFile("basicCollection.json"));
+	});
+
+	it("basicCollectionWithObjectType", () => {
+		const schema: TigrisSchema<BasicCollectionWithObject> = {
+			id: {
+				type: TigrisDataTypes.INT64,
+				primary_key: {
+					order: 1,
+					autoGenerate: true
+				}
+			},
+			name: {
+				type: TigrisDataTypes.STRING
+			},
+			metadata: {
+				type: TigrisDataTypes.OBJECT
+			}
+		};
+		expect(Utility._toJSONSchema("basicCollectionWithObjectType", CollectionType.DOCUMENTS, schema))
+			.toBe(Utility._readTestDataFile("basicCollectionWithObjectType.json"));
 	});
 
 	it("multiplePKeys", () => {
@@ -300,6 +320,12 @@ interface BasicCollection extends TigrisCollectionType {
 	int64Number: number;
 	date: string;
 	bytes: string;
+}
+
+interface BasicCollectionWithObject extends TigrisCollectionType {
+	id: number;
+	name: string;
+	metadata: object;
 }
 
 interface NestedCollection extends TigrisCollectionType {

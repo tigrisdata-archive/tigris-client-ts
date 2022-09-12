@@ -403,7 +403,8 @@ export enum TigrisDataTypes {
 	DATE_TIME = "date-time",
 	BYTE_STRING = "byte-string",
 	UUID = "uuid",
-	ARRAY = "array"
+	ARRAY = "array",
+	OBJECT = "object",
 }
 
 export type TigrisSchema<T> = {

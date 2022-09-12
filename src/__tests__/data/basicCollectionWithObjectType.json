@@ -1,0 +1,22 @@
+{
+  "title": "basicCollectionWithObjectType",
+  "additionalProperties": false,
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "integer",
+      "format": "int64",
+      "autoGenerate": true
+    },
+    "name": {
+      "type": "string"
+    },
+    "metadata": {
+    	"type": "object"
+    }
+  },
+  "collection_type": "documents",
+  "primary_key": [
+    "id"
+  ]
+}

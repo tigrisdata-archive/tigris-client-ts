@@ -319,6 +319,8 @@ export const Utility = {
 			case TigrisDataTypes.DATE_TIME:
 			case TigrisDataTypes.BYTE_STRING:
 				return "string";
+			case TigrisDataTypes.OBJECT:
+				return "object";
 		}
 		return undefined;
 	},
