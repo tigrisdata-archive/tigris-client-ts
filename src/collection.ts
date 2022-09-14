@@ -1,5 +1,5 @@
 import * as grpc from "@grpc/grpc-js";
-import {TigrisClient} from "./proto/server/v1/api_grpc_pb";
+import { TigrisClient } from "./proto/server/v1/api_grpc_pb";
 import * as server_v1_api_pb from "./proto/server/v1/api_pb";
 import {
 	DeleteRequest as ProtoDeleteRequest,
@@ -12,9 +12,9 @@ import {
 	ReplaceRequest as ProtoReplaceRequest,
 	SearchRequest as ProtoSearchRequest,
 	SearchResponse as ProtoSearchResponse,
-	UpdateRequest as ProtoUpdateRequest
+	UpdateRequest as ProtoUpdateRequest,
 } from "./proto/server/v1/api_pb";
-import {Session} from "./session";
+import { Session } from "./session";
 import {
 	DeleteRequestOptions,
 	DeleteResponse,
@@ -35,7 +35,7 @@ import {
 	UpdateRequestOptions,
 	UpdateResponse,
 } from "./types";
-import {Utility} from "./utility";
+import { Utility } from "./utility";
 import {
 	MATCH_ALL_QUERY_STRING,
 	SearchRequest,
@@ -94,23 +94,29 @@ export class Collection<T extends TigrisCollectionType> {
 				.setCollection(this._collectionName)
 				.setDocumentsList(docsArray);
 
-			this._grpcClient.insert(protoRequest, Utility.txToMetadata(tx), (error: grpc.ServiceError, response: server_v1_api_pb.InsertResponse): void => {
-				if (error !== undefined && error !== null) {
-					reject(error);
-				} else {
-					let docIndex = 0;
-					const clonedDocs: T[] = Object.assign([], docs);
+			this._grpcClient.insert(
+				protoRequest,
+				Utility.txToMetadata(tx),
+				(error: grpc.ServiceError, response: server_v1_api_pb.InsertResponse): void => {
+					if (error !== undefined && error !== null) {
+						reject(error);
+					} else {
+						let docIndex = 0;
+						const clonedDocs: T[] = Object.assign([], docs);
 
-					for (const value of response.getKeysList_asU8()) {
-						const keyValueJsonObj: object = Utility.jsonStringToObj(Utility.uint8ArrayToString(value));
-						for (const fieldName of Object.keys(keyValueJsonObj)) {
-							Reflect.set(clonedDocs[docIndex], fieldName, keyValueJsonObj[fieldName]);
-							docIndex++;
+						for (const value of response.getKeysList_asU8()) {
+							const keyValueJsonObj: object = Utility.jsonStringToObj(
+								Utility.uint8ArrayToString(value)
+							);
+							for (const fieldName of Object.keys(keyValueJsonObj)) {
+								Reflect.set(clonedDocs[docIndex], fieldName, keyValueJsonObj[fieldName]);
+								docIndex++;
+							}
 						}
+						resolve(clonedDocs);
 					}
-					resolve(clonedDocs);
 				}
-			});
+			);
 		});
 	}
 
@@ -118,15 +124,21 @@ export class Collection<T extends TigrisCollectionType> {
 		return new Promise<T>((resolve, reject) => {
 			const docArr: Array<T> = new Array<T>();
 			docArr.push(doc);
-			this.insertMany(docArr, tx, options).then(docs => {
-				resolve(docs[0]);
-			}).catch(error => {
-				reject(error);
-			});
+			this.insertMany(docArr, tx, options)
+				.then((docs) => {
+					resolve(docs[0]);
+				})
+				.catch((error) => {
+					reject(error);
+				});
 		});
 	}
 
-	insertOrReplaceMany(docs: Array<T>, tx?: Session, options?: InsertOrReplaceOptions,): Promise<Array<T>> {
+	insertOrReplaceMany(
+		docs: Array<T>,
+		tx?: Session,
+		options?: InsertOrReplaceOptions
+	): Promise<Array<T>> {
 		return new Promise<Array<T>>((resolve, reject) => {
 			const docsArray = new Array<Uint8Array | string>();
 			for (const doc of docs) {
@@ -137,39 +149,45 @@ export class Collection<T extends TigrisCollectionType> {
 				.setCollection(this._collectionName)
 				.setDocumentsList(docsArray);
 
-			this._grpcClient.replace(protoRequest, Utility.txToMetadata(tx), (error: grpc.ServiceError, response: server_v1_api_pb.ReplaceResponse): void => {
-				if (error !== undefined && error !== null) {
-					reject(error);
-				} else {
-					let docIndex = 0;
-					const clonedDocs: T[] = Object.assign([], docs);
-					for (const value of response.getKeysList_asU8()) {
-						const keyValueJsonObj: object = Utility.jsonStringToObj(Utility.uint8ArrayToString(value));
-						for (const fieldName of Object.keys(keyValueJsonObj)) {
-							Reflect.set(clonedDocs[docIndex], fieldName, keyValueJsonObj[fieldName]);
-							docIndex++;
+			this._grpcClient.replace(
+				protoRequest,
+				Utility.txToMetadata(tx),
+				(error: grpc.ServiceError, response: server_v1_api_pb.ReplaceResponse): void => {
+					if (error !== undefined && error !== null) {
+						reject(error);
+					} else {
+						let docIndex = 0;
+						const clonedDocs: T[] = Object.assign([], docs);
+						for (const value of response.getKeysList_asU8()) {
+							const keyValueJsonObj: object = Utility.jsonStringToObj(
+								Utility.uint8ArrayToString(value)
+							);
+							for (const fieldName of Object.keys(keyValueJsonObj)) {
+								Reflect.set(clonedDocs[docIndex], fieldName, keyValueJsonObj[fieldName]);
+								docIndex++;
+							}
 						}
+						resolve(clonedDocs);
 					}
-					resolve(clonedDocs);
 				}
-			});
+			);
 		});
 	}
 
-	insertOrReplace(doc: T, tx ?: Session, options ?: InsertOptions): Promise<T> {
+	insertOrReplace(doc: T, tx?: Session, options?: InsertOptions): Promise<T> {
 		return new Promise<T>((resolve, reject) => {
 			const docArr: Array<T> = new Array<T>();
 			docArr.push(doc);
 			this.insertOrReplaceMany(docArr, tx, options)
-				.then(docs => resolve(docs[0]))
-				.catch(error => reject(error));
+				.then((docs) => resolve(docs[0]))
+				.catch((error) => reject(error));
 		});
 	}
 
 	findOne(
 		filter: SelectorFilter<T> | LogicalFilter<T> | Selector<T>,
-		tx ?: Session,
-		readFields ?: ReadFields,
+		tx?: Session,
+		readFields?: ReadFields
 	): Promise<T | undefined> {
 		return new Promise<T>((resolve, reject) => {
 			const readRequest = new ProtoReadRequest()
@@ -203,36 +221,42 @@ export class Collection<T extends TigrisCollectionType> {
 
 	findMany(
 		filter: SelectorFilter<T> | LogicalFilter<T> | Selector<T>,
-		readFields ?: ReadFields,
-		tx ?: Session,
-		options ?: ReadRequestOptions
+		readFields?: ReadFields,
+		tx?: Session,
+		options?: ReadRequestOptions
 	): Promise<Array<T>> {
 		return new Promise<Array<T>>((resolve, reject) => {
 			if (options === undefined) {
 				options = new ReadRequestOptions();
 			}
 			const result: Array<T> = new Array<T>();
-			this.findManyStream(filter, {
-				onEnd() {
-					resolve(result);
+			this.findManyStream(
+				filter,
+				{
+					onEnd() {
+						resolve(result);
+					},
+					onNext(item: T) {
+						result.push(item);
+					},
+					// eslint-disable-next-line @typescript-eslint/no-unused-vars
+					onError(_error: Error) {
+						reject(_error);
+					},
 				},
-				onNext(item: T) {
-					result.push(item);
-				},
-				// eslint-disable-next-line @typescript-eslint/no-unused-vars
-				onError(_error: Error) {
-					reject(_error);
-				}
-			}, readFields, tx, options);
+				readFields,
+				tx,
+				options
+			);
 		});
 	}
 
 	findManyStream(
 		filter: SelectorFilter<T> | LogicalFilter<T> | Selector<T>,
 		reader: ReaderCallback<T>,
-		readFields ?: ReadFields,
-		tx ?: Session,
-		options ?: ReadRequestOptions
+		readFields?: ReadFields,
+		tx?: Session,
+		options?: ReadRequestOptions
 	) {
 		const readRequest = new ProtoReadRequest()
 			.setDb(this._db)
@@ -253,7 +277,9 @@ export class Collection<T extends TigrisCollectionType> {
 		);
 
 		stream.on("data", (readResponse: ProtoReadResponse) => {
-			const doc: T = Utility.jsonStringToObj<T>(Utility._base64Decode(readResponse.getData_asB64()));
+			const doc: T = Utility.jsonStringToObj<T>(
+				Utility._base64Decode(readResponse.getData_asB64())
+			);
 			reader.onNext(doc);
 		});
 
@@ -261,19 +287,21 @@ export class Collection<T extends TigrisCollectionType> {
 		stream.on("end", () => reader.onEnd());
 	}
 
-	findAllStream(
-		reader: ReaderCallback<T>,
-		readFields ?: ReadFields,
-	) {
-		this.findManyStream({
-				op: SelectorFilterOperator.NONE
+	findAllStream(reader: ReaderCallback<T>, readFields?: ReadFields) {
+		this.findManyStream(
+			{
+				op: SelectorFilterOperator.NONE,
 			},
 			reader,
 			readFields
 		);
 	}
 
-	search(request: SearchRequest<T>, reader: SearchResultCallback<T>, options?: SearchRequestOptions) {
+	search(
+		request: SearchRequest<T>,
+		reader: SearchResultCallback<T>,
+		options?: SearchRequestOptions
+	) {
 		const searchRequest = new ProtoSearchRequest()
 			.setDb(this._db)
 			.setCollection(this._collectionName)
@@ -284,24 +312,17 @@ export class Collection<T extends TigrisCollectionType> {
 		}
 
 		if (request.filter !== undefined) {
-			searchRequest.setFilter(
-				Utility.stringToUint8Array(
-					Utility.filterToString(request.filter)
-				));
+			searchRequest.setFilter(Utility.stringToUint8Array(Utility.filterToString(request.filter)));
 		}
 
 		if (request.facets !== undefined) {
 			searchRequest.setFacet(
-				Utility.stringToUint8Array(
-					Utility.facetQueryToString(request.facets)
-				));
+				Utility.stringToUint8Array(Utility.facetQueryToString(request.facets))
+			);
 		}
 
 		if (request.sort !== undefined) {
-			searchRequest.setSort(
-				Utility.stringToUint8Array(
-					Utility.sortOrderingToString(request.sort)
-				));
+			searchRequest.setSort(Utility.stringToUint8Array(Utility.sortOrderingToString(request.sort)));
 		}
 
 		if (request.includeFields !== undefined) {
@@ -316,23 +337,22 @@ export class Collection<T extends TigrisCollectionType> {
 			searchRequest.setPage(options.page).setPageSize(options.perPage);
 		}
 
-		const stream: grpc.ClientReadableStream<ProtoSearchResponse> = this._grpcClient.search(searchRequest);
+		const stream: grpc.ClientReadableStream<ProtoSearchResponse> =
+			this._grpcClient.search(searchRequest);
 		stream.on("data", (searchResponse: ProtoSearchResponse) => {
 			const searchResult: SearchResult<T> = SearchResult.from(searchResponse);
 			reader.onNext(searchResult);
 		});
 		stream.on("error", (error) => reader.onError(error));
 		stream.on("end", () => reader.onEnd());
-
 	}
 
 	delete(
 		filter: SelectorFilter<T> | LogicalFilter<T> | Selector<T>,
-		tx ?: Session,
+		tx?: Session,
 		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		_options ?: DeleteRequestOptions
-	):
-		Promise<DeleteResponse> {
+		_options?: DeleteRequestOptions
+	): Promise<DeleteResponse> {
 		return new Promise<DeleteResponse>((resolve, reject) => {
 			if (!filter) {
 				reject(new Error("No filter specified"));
@@ -358,10 +378,10 @@ export class Collection<T extends TigrisCollectionType> {
 
 	update(
 		filter: SelectorFilter<T> | LogicalFilter<T> | Selector<T>,
-		fields: (UpdateFields | SimpleUpdateField),
-		tx ?: Session,
+		fields: UpdateFields | SimpleUpdateField,
+		tx?: Session,
 		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		_options ?: UpdateRequestOptions
+		_options?: UpdateRequestOptions
 	): Promise<UpdateResponse> {
 		return new Promise<UpdateResponse>((resolve, reject) => {
 			const updateRequest = new ProtoUpdateRequest()
@@ -387,7 +407,7 @@ export class Collection<T extends TigrisCollectionType> {
 	events(
 		events: EventsCallback<T>,
 		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		_options ?: EventsRequestOptions
+		_options?: EventsRequestOptions
 	) {
 		const eventsRequest = new ProtoEventsRequest()
 			.setDb(this._db)
@@ -398,13 +418,15 @@ export class Collection<T extends TigrisCollectionType> {
 
 		stream.on("data", (eventsResponse: ProtoEventsResponse) => {
 			const event = eventsResponse.getEvent();
-			events.onNext(new StreamEvent<T>(
-				event.getTxId_asB64(),
-				event.getCollection(),
-				event.getOp(),
-				Utility.jsonStringToObj<T>(Utility._base64Decode(event.getData_asB64())),
-				event.getLast()
-			));
+			events.onNext(
+				new StreamEvent<T>(
+					event.getTxId_asB64(),
+					event.getCollection(),
+					event.getOp(),
+					Utility.jsonStringToObj<T>(Utility._base64Decode(event.getData_asB64())),
+					event.getLast()
+				)
+			);
 		});
 
 		stream.on("error", (error) => events.onError(error));

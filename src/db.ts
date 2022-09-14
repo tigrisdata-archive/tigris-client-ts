@@ -1,4 +1,4 @@
-import {TigrisClient} from "./proto/server/v1/api_grpc_pb";
+import { TigrisClient } from "./proto/server/v1/api_grpc_pb";
 import {
 	CollectionDescription,
 	CollectionInfo,
@@ -21,13 +21,13 @@ import {
 	CreateOrUpdateCollectionRequest as ProtoCreateOrUpdateCollectionRequest,
 	DescribeDatabaseRequest as ProtoDescribeDatabaseRequest,
 	DropCollectionRequest as ProtoDropCollectionRequest,
-	ListCollectionsRequest as ProtoListCollectionsRequest
+	ListCollectionsRequest as ProtoListCollectionsRequest,
 } from "./proto/server/v1/api_pb";
-import {Collection} from "./collection";
-import {Session} from "./session";
-import {Utility} from "./utility";
-import {Metadata, ServiceError} from "@grpc/grpc-js";
-import {Topic} from "./topic";
+import { Collection } from "./collection";
+import { Session } from "./session";
+import { Utility } from "./utility";
+import { Metadata, ServiceError } from "@grpc/grpc-js";
+import { Topic } from "./topic";
 
 /**
  * Tigris Database
@@ -46,19 +46,35 @@ export class DB {
 	}
 
 	public createOrUpdateCollection<T extends TigrisCollectionType>(
-		collectionName: string, schema: TigrisSchema<T>): Promise<Collection<T>> {
-		return this.createOrUpdate(collectionName, CollectionType.DOCUMENTS, schema,
-			() => new Collection(collectionName, this._db, this.grpcClient));
+		collectionName: string,
+		schema: TigrisSchema<T>
+	): Promise<Collection<T>> {
+		return this.createOrUpdate(
+			collectionName,
+			CollectionType.DOCUMENTS,
+			schema,
+			() => new Collection(collectionName, this._db, this.grpcClient)
+		);
 	}
 
 	public createOrUpdateTopic<T extends TigrisCollectionType>(
-		topicName: string, schema: TigrisSchema<T>): Promise<Topic<T>> {
-		return this.createOrUpdate(topicName, CollectionType.MESSAGES, schema,
-			() => new Topic(topicName, this._db, this.grpcClient));
+		topicName: string,
+		schema: TigrisSchema<T>
+	): Promise<Topic<T>> {
+		return this.createOrUpdate(
+			topicName,
+			CollectionType.MESSAGES,
+			schema,
+			() => new Topic(topicName, this._db, this.grpcClient)
+		);
 	}
 
 	private createOrUpdate<T extends TigrisCollectionType, R>(
-		name: string, type: CollectionType, schema: TigrisSchema<T>, resolver: () => R): Promise<R> {
+		name: string,
+		type: CollectionType,
+		schema: TigrisSchema<T>,
+		resolver: () => R
+	): Promise<R> {
 		return new Promise<R>((resolve, reject) => {
 			const rawJSONSchema: string = Utility._toJSONSchema(name, type, schema);
 			console.log(rawJSONSchema);
@@ -77,7 +93,8 @@ export class DB {
 						return;
 					}
 					resolve(resolver());
-				});
+				}
+			);
 		});
 	}
 
@@ -176,7 +193,8 @@ export class DB {
 						// pass error to user
 						reject(error);
 					}
-				}).catch(error => reject(error));
+				})
+				.catch((error) => reject(error));
 		});
 	}
 
@@ -185,26 +203,30 @@ export class DB {
 		return new Promise<Session>((resolve, reject) => {
 			const beginTxRequest = new ProtoBeginTransactionRequest().setDb(this._db);
 			const cookie: Metadata = new Metadata();
-			const call = this.grpcClient.makeUnaryRequest(BeginTransactionMethodName,
-				value => Buffer.from(value.serializeBinary()),
-				value => BeginTransactionResponse.deserializeBinary(value),
+			const call = this.grpcClient.makeUnaryRequest(
+				BeginTransactionMethodName,
+				(value) => Buffer.from(value.serializeBinary()),
+				(value) => BeginTransactionResponse.deserializeBinary(value),
 				beginTxRequest,
 				(error: ServiceError, response: BeginTransactionResponse) => {
-					if(error) {
+					if (error) {
 						reject(error);
-					}else{
+					} else {
 						// on metadata is expected to have invoked at this point since response
 						// is served
-						resolve(new Session(
-							response.getTxCtx().getId(),
-							response.getTxCtx().getOrigin(),
-							this.grpcClient,
-							this.db,
-							cookie
-						));
+						resolve(
+							new Session(
+								response.getTxCtx().getId(),
+								response.getTxCtx().getOrigin(),
+								this.grpcClient,
+								this.db,
+								cookie
+							)
+						);
 					}
-				});
-			call.on("metadata", metadata => {
+				}
+			);
+			call.on("metadata", (metadata) => {
 				if (metadata.get(SetCookie)) {
 					for (const inboundCookie of metadata.get(SetCookie)) cookie.add(Cookie, inboundCookie);
 				}

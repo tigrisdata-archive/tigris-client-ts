@@ -83,7 +83,11 @@ export class DatabaseDescription {
 	private readonly _metadata: DatabaseMetadata;
 	private readonly _collectionsDescription: Array<CollectionDescription>;
 
-	constructor(db: string, metadata: DatabaseMetadata, collectionsDescription: Array<CollectionDescription>) {
+	constructor(
+		db: string,
+		metadata: DatabaseMetadata,
+		collectionsDescription: Array<CollectionDescription>
+	) {
 		this._db = db;
 		this._metadata = metadata;
 		this._collectionsDescription = collectionsDescription;
@@ -170,19 +174,15 @@ export class DMLResponse extends TigrisResponse {
 }
 
 export class DeleteResponse extends DMLResponse {
-
 	constructor(status: string, metadata: DMLMetadata) {
 		super(status, metadata);
 	}
-
 }
 
 export class UpdateResponse extends DMLResponse {
-
 	constructor(status: string, metadata: DMLMetadata) {
 		super(status, metadata);
 	}
-
 }
 
 export class WriteOptions {}
@@ -279,7 +279,6 @@ export class CommitTransactionResponse extends TigrisResponse {
 }
 
 export class RollbackTransactionResponse extends TigrisResponse {
-
 	public constructor(status: string) {
 		super(status);
 	}
@@ -334,7 +333,6 @@ export class ServerMetadata {
 		this._serverVersion = serverVersion;
 	}
 
-
 	get serverVersion(): string {
 		return this._serverVersion;
 	}
@@ -342,13 +340,11 @@ export class ServerMetadata {
 
 // Marker interface
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface TigrisCollectionType {
-}
+export interface TigrisCollectionType {}
 
 // Marker interface
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface TigrisTopicType {
-}
+export interface TigrisTopicType {}
 
 export enum CollectionType {
 	DOCUMENTS = "documents",
@@ -366,7 +362,7 @@ export enum SelectorFilterOperator {
 	LTE = "$lte",
 	GT = "$gt",
 	GTE = "$gte",
-	NONE = "$none"
+	NONE = "$none",
 }
 
 export enum UpdateFieldsOperator {
@@ -387,8 +383,8 @@ export type ReadFields = {
 };
 
 export type UpdateFields = {
-	op: UpdateFieldsOperator,
-	fields: SimpleUpdateField
+	op: UpdateFieldsOperator;
+	fields: SimpleUpdateField;
 };
 export type SimpleUpdateField = {
 	[key: string]: FieldTypes | undefined;
@@ -408,23 +404,21 @@ export enum TigrisDataTypes {
 }
 
 export type TigrisSchema<T> = {
-	[K in keyof T]: (
-		{
-			type: (TigrisDataTypes | TigrisSchema<unknown>)
-			primary_key?: TigrisPrimaryKey
-			items?: TigrisArrayItem
-		}
-		)
+	[K in keyof T]: {
+		type: TigrisDataTypes | TigrisSchema<unknown>;
+		primary_key?: TigrisPrimaryKey;
+		items?: TigrisArrayItem;
+	};
 };
 
 export type TigrisArrayItem = {
-	type: TigrisDataTypes | TigrisSchema<unknown>
-	items?: TigrisArrayItem | TigrisDataTypes
+	type: TigrisDataTypes | TigrisSchema<unknown>;
+	items?: TigrisArrayItem | TigrisDataTypes;
 };
 
 export type TigrisPrimaryKey = {
-	order: number,
-	autoGenerate?: boolean
+	order: number;
+	autoGenerate?: boolean;
 };
 
 /**
@@ -453,9 +447,9 @@ type Paths<T, P extends string = ""> = {
 		? T[K] extends unknown[]
 			? `${P}${K & string}`
 			: Paths<T[K], `${P}${K & string}.`> extends infer O
-				? `${O & string}` | `${P}${K & string}`
-				: never
-		: `${P}${K & string}`
+			? `${O & string}` | `${P}${K & string}`
+			: never
+		: `${P}${K & string}`;
 }[keyof T];
 
 /**
@@ -464,16 +458,16 @@ type Paths<T, P extends string = ""> = {
 type PathType<T, P extends string> = P extends keyof T
 	? T[P]
 	: P extends `${infer L}.${infer R}`
-		? L extends keyof T
-			? PathType<T[L], R>
-			: never
-		: never;
+	? L extends keyof T
+		? PathType<T[L], R>
+		: never
+	: never;
 
 export type Selector<T> = Partial<{
-	[K in Paths<T>]: Partial<PathType<T, K & string>>
+	[K in Paths<T>]: Partial<PathType<T, K & string>>;
 }>;
 
 export type SelectorFilter<T> = Partial<{
-	op?: SelectorFilterOperator,
-	fields: Selector<T>
+	op?: SelectorFilterOperator;
+	fields: Selector<T>;
 }>;

@@ -1,38 +1,38 @@
-import {TigrisClient} from "./proto/server/v1/api_grpc_pb";
+import { TigrisClient } from "./proto/server/v1/api_grpc_pb";
 import * as grpc from "@grpc/grpc-js";
-import {status} from "@grpc/grpc-js";
+import { status } from "@grpc/grpc-js";
 import {
 	CreateDatabaseRequest as ProtoCreateDatabaseRequest,
 	DatabaseOptions as ProtoDatabaseOptions,
 	DropDatabaseRequest as ProtoDropDatabaseRequest,
 	GetInfoRequest as ProtoGetInfoRequest,
-	ListDatabasesRequest as ProtoListDatabasesRequest
+	ListDatabasesRequest as ProtoListDatabasesRequest,
 } from "./proto/server/v1/api_pb";
 import {
 	DatabaseInfo,
 	DatabaseMetadata,
 	DatabaseOptions,
 	DropDatabaseResponse,
-	ServerMetadata
+	ServerMetadata,
 } from "./types";
 
 import {
 	GetAccessTokenRequest as ProtoGetAccessTokenRequest,
-	GrantType
+	GrantType,
 } from "./proto/server/v1/auth_pb";
 
-import {DB} from "./db";
-import {AuthClient} from "./proto/server/v1/auth_grpc_pb";
-import {Utility} from "./utility";
+import { DB } from "./db";
+import { AuthClient } from "./proto/server/v1/auth_grpc_pb";
+import { Utility } from "./utility";
 
 const AuthorizationHeaderName = "authorization";
 const AuthorizationBearer = "Bearer ";
 
 export interface TigrisClientConfig {
 	serverUrl: string;
-	insecureChannel?: boolean
-	applicationId?: string
-	applicationSecret?:string
+	insecureChannel?: boolean;
+	applicationId?: string;
+	applicationSecret?: string;
 }
 
 class TokenSupplier {
@@ -68,10 +68,12 @@ class TokenSupplier {
 							const exp = Number(Utility.jsonStringToObj(Utility._base64Decode(parts[1]))["exp"]);
 							// 5 min before expiry (note: exp is in seconds)
 							// add random jitter of 1-5 min (i.e. 60000 - 300000 ms)
-							this.nextRefreshTime = (exp * 1000) - 300_000 - (Utility._getRandomInt(300_000) + 60_000);
+							this.nextRefreshTime =
+								exp * 1000 - 300_000 - (Utility._getRandomInt(300_000) + 60_000);
 							resolve(this.accessToken);
 						}
-					});
+					}
+				);
 			} else {
 				resolve(this.accessToken);
 			}
@@ -100,32 +102,42 @@ export class Tigris {
 		if (config.insecureChannel === true && config.applicationSecret === undefined) {
 			// no auth & insecure channel
 			this.grpcClient = new TigrisClient(config.serverUrl, grpc.credentials.createInsecure());
-		} else if ((config.insecureChannel === undefined || config.insecureChannel == false) && config.applicationSecret === undefined) {
+		} else if (
+			(config.insecureChannel === undefined || config.insecureChannel == false) &&
+			config.applicationSecret === undefined
+		) {
 			// no auth & secure channel
 			this.grpcClient = new TigrisClient(config.serverUrl, grpc.credentials.createSsl());
-		} else if ((config.insecureChannel === undefined || config.insecureChannel) && config.applicationSecret !== undefined) {
+		} else if (
+			(config.insecureChannel === undefined || config.insecureChannel) &&
+			config.applicationSecret !== undefined
+		) {
 			// auth & insecure channel
 			console.error("Passing token on insecure channel is not allowed");
 			process.exitCode = 1;
 		} else {
 			// auth & secure channel
 			const tokenSupplier = new TokenSupplier(config);
-			this.grpcClient = new TigrisClient(config.serverUrl, grpc.credentials.combineChannelCredentials(
-				grpc.credentials.createSsl(),
-				grpc.credentials.createFromMetadataGenerator((params, callback) => {
-					tokenSupplier.getAccessToken()
-						.then(accessToken => {
-							const md = new grpc.Metadata();
-							md.set(AuthorizationHeaderName, AuthorizationBearer + accessToken);
-							return callback(undefined, md);
-						})
-						.catch(error => {
-							return callback(error);
-						});
-				})));
+			this.grpcClient = new TigrisClient(
+				config.serverUrl,
+				grpc.credentials.combineChannelCredentials(
+					grpc.credentials.createSsl(),
+					grpc.credentials.createFromMetadataGenerator((params, callback) => {
+						tokenSupplier
+							.getAccessToken()
+							.then((accessToken) => {
+								const md = new grpc.Metadata();
+								md.set(AuthorizationHeaderName, AuthorizationBearer + accessToken);
+								return callback(undefined, md);
+							})
+							.catch((error) => {
+								return callback(error);
+							});
+					})
+				)
+			);
 		}
 	}
-
 
 	/**
 	 * Lists the databases
@@ -203,4 +215,4 @@ export class Tigris {
 /**
  * Default instance of the Tigris client
  */
-export default new Tigris({serverUrl: `${process.env.TIGRIS_SERVER_URL}`});
+export default new Tigris({ serverUrl: `${process.env.TIGRIS_SERVER_URL}` });

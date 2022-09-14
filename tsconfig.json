@@ -1,17 +1,17 @@
 {
-  "compilerOptions": {
-    "experimentalDecorators": true,
-    "target": "es6",
-    "module": "commonjs",
-    "declaration": true,
-    "outDir": "./dist",
-    "strict": true,
-    "noImplicitAny": false,
-    "strictNullChecks": false,
-    "baseUrl": "./",
-    "typeRoots": ["node_modules/@types"],
-    "esModuleInterop": true
-  },
-  "include": ["src"],
-  "exclude": ["node_modules", "**/__tests__/*"]
+	"compilerOptions": {
+		"experimentalDecorators": true,
+		"target": "es6",
+		"module": "commonjs",
+		"declaration": true,
+		"outDir": "./dist",
+		"strict": true,
+		"noImplicitAny": false,
+		"strictNullChecks": false,
+		"baseUrl": "./",
+		"typeRoots": ["node_modules/@types"],
+		"esModuleInterop": true
+	},
+	"include": ["src"],
+	"exclude": ["node_modules", "**/__tests__/*"]
 }
