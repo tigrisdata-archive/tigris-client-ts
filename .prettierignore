@@ -1,0 +1,5 @@
+# Ignore artifacts:
+dist/
+src/__tests__/
+src/proto/
+api/

@@ -1,6 +1,6 @@
 name: ts-ci
 
-on: [ push ]
+on: [push]
 
 jobs:
   build:
@@ -15,10 +15,13 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'npm'
+          cache: "npm"
       - run: npm run clean
-      - run: npm run build
-      - run: npm run lint
+      - run: |
+          npm install
+          npx prettier --check .
+          npx eslint .
+          npm run build
       - run: npm run test -- --coverage
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v2

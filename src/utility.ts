@@ -1,6 +1,6 @@
-import {Metadata} from "@grpc/grpc-js";
+import { Metadata } from "@grpc/grpc-js";
 import json_bigint from "json-bigint";
-import {Session} from "./session";
+import { Session } from "./session";
 import {
 	CollectionType,
 	LogicalFilter,
@@ -15,11 +15,11 @@ import {
 	TigrisDataTypes,
 	TigrisSchema,
 	UpdateFields,
-	UpdateFieldsOperator
+	UpdateFieldsOperator,
 } from "./types";
 import * as fs from "node:fs";
-import {FacetFieldsQuery, FacetQueryFieldType, FacetQueryOptions, Ordering} from "./search/types";
-import {ReadRequestOptions as ProtoReadRequestOptions} from "./proto/server/v1/api_pb";
+import { FacetFieldsQuery, FacetQueryFieldType, FacetQueryOptions, Ordering } from "./search/types";
+import { ReadRequestOptions as ProtoReadRequestOptions } from "./proto/server/v1/api_pb";
 
 export const Utility = {
 	stringToUint8Array(input: string): Uint8Array {
@@ -31,8 +31,10 @@ export const Utility = {
 	},
 
 	filterToString<T>(filter: SelectorFilter<T> | LogicalFilter<T> | Selector<T>): string {
-		// eslint-disable-next-line no-prototype-builtins
-		if (filter.hasOwnProperty("op") && (filter["op"] === LogicalOperator.AND || filter["op"] === LogicalOperator.OR)) {
+		if (
+			Object.prototype.hasOwnProperty.call(filter, "op") &&
+			(filter["op"] === LogicalOperator.AND || filter["op"] === LogicalOperator.OR)
+		) {
 			// LogicalFilter
 			return Utility._logicalFilterToString(filter as LogicalFilter<T>);
 			// eslint-disable-next-line no-prototype-builtins
@@ -57,7 +59,9 @@ export const Utility = {
 			case SelectorFilterOperator.LTE:
 			case SelectorFilterOperator.GT:
 			case SelectorFilterOperator.GTE:
-				return Utility.objToJsonString(Utility._selectorFilterToFlatJSONObj(filter.op, filter.fields));
+				return Utility.objToJsonString(
+					Utility._selectorFilterToFlatJSONObj(filter.op, filter.fields)
+				);
 			default:
 				return "";
 		}
@@ -75,13 +79,12 @@ export const Utility = {
 			case SelectorFilterOperator.GTE: {
 				const flattenedFields = Utility._flattenObj(fields);
 				for (const key in flattenedFields) {
-					flattenedFields[key] = {[op]: flattenedFields[key]};
+					flattenedFields[key] = { [op]: flattenedFields[key] };
 				}
 				return flattenedFields;
 			}
 			default:
 				return Utility._flattenObj(fields);
-
 		}
 	},
 
@@ -106,23 +109,24 @@ export const Utility = {
 			}
 		}
 		if (filter.logicalFilters) {
-			for (const value of filter.logicalFilters) innerFilters.push(Utility._logicalFilterToJSONObj(value));
+			for (const value of filter.logicalFilters)
+				innerFilters.push(Utility._logicalFilterToJSONObj(value));
 		}
 		return result;
 	},
 
 	readFieldString(readFields: ReadFields): string {
-		const include = readFields.include?.reduce((acc, field) => ({...acc, [field]: true}), {});
-		const exclude = readFields.exclude?.reduce((acc, field) => ({...acc, [field]: false}), {});
+		const include = readFields.include?.reduce((acc, field) => ({ ...acc, [field]: true }), {});
+		const exclude = readFields.exclude?.reduce((acc, field) => ({ ...acc, [field]: false }), {});
 
-		return this.objToJsonString({...include, ...exclude});
+		return this.objToJsonString({ ...include, ...exclude });
 	},
 
 	updateFieldsString(updateFields: UpdateFields | SimpleUpdateField) {
 		// UpdateFields
 		// eslint-disable-next-line no-prototype-builtins
 		if (updateFields.hasOwnProperty("op")) {
-			const {op, fields} = (updateFields as UpdateFields);
+			const { op, fields } = updateFields as UpdateFields;
 
 			return this.objToJsonString({
 				[op]: fields,
@@ -131,18 +135,18 @@ export const Utility = {
 			// SimpleUpdateField
 			return Utility.updateFieldsString({
 				op: UpdateFieldsOperator.SET,
-				fields: (updateFields as SimpleUpdateField)
+				fields: updateFields as SimpleUpdateField,
 			});
 		}
 	},
 
 	objToJsonString(obj: unknown): string {
-		const JSONbigNative = json_bigint({useNativeBigInt: true});
+		const JSONbigNative = json_bigint({ useNativeBigInt: true });
 		return JSONbigNative.stringify(obj);
 	},
 
 	jsonStringToObj<T>(json: string): T {
-		const JSONbigNative = json_bigint({useNativeBigInt: true});
+		const JSONbigNative = json_bigint({ useNativeBigInt: true });
 		return JSONbigNative.parse(json);
 	},
 	txToMetadata(tx: Session): Metadata {
@@ -182,7 +186,7 @@ export const Utility = {
 			// eslint-disable-next-line no-prototype-builtins
 			if (!ob.hasOwnProperty(key)) continue;
 
-			if ((typeof ob[key]) == "object" && ob[key] !== null) {
+			if (typeof ob[key] == "object" && ob[key] !== null) {
 				const flatObject = Utility._flattenObj(ob[key]);
 				for (const x in flatObject) {
 					// eslint-disable-next-line no-prototype-builtins
@@ -197,7 +201,11 @@ export const Utility = {
 		return toReturn;
 	},
 
-	_toJSONSchema<T>(collectionName: string, collectionType: CollectionType, schema: TigrisSchema<T>): string {
+	_toJSONSchema<T>(
+		collectionName: string,
+		collectionType: CollectionType,
+		schema: TigrisSchema<T>
+	): string {
 		const root = {};
 		const pkeyMap = {};
 		root["title"] = collectionName;
@@ -220,8 +228,8 @@ export const Utility = {
 		if (Object.keys(pkeyMap).length === 0) {
 			// if no pkeys was used defined. add implicit pkey
 			result["properties"]["id"] = {
-				"type": "string",
-				"format": "uuid"
+				type: "string",
+				format: "uuid",
 			};
 			result["primary_key"] = ["id"];
 		} else {
@@ -240,11 +248,16 @@ export const Utility = {
 		for (const property of Object.keys(schema)) {
 			let thisProperty = {};
 			// single flat property? OR the property referring to another type (nested collection)
-			if (typeof schema[property].type === "object" || (!(schema[property]["items"] || schema[property]["type"]))) {
+			if (
+				typeof schema[property].type === "object" ||
+				!(schema[property]["items"] || schema[property]["type"])
+			) {
 				thisProperty["type"] = "object";
 				thisProperty["properties"] = this._getSchemaProperties(schema[property]["type"], pkeyMap);
-			} else if (schema[property].type != TigrisDataTypes.ARRAY.valueOf()
-				&& typeof schema[property].type != "object") {
+			} else if (
+				schema[property].type != TigrisDataTypes.ARRAY.valueOf() &&
+				typeof schema[property].type != "object"
+			) {
 				thisProperty["type"] = this._getType(schema[property].type);
 				const format = this._getFormat(schema[property].type);
 				if (format) {
@@ -294,7 +307,10 @@ export const Utility = {
 			// array of custom type?
 		} else if (typeof arraySchema["items"]["type"] === "object") {
 			arrayBlock["items"]["type"] = "object";
-			arrayBlock["items"]["properties"] = this._getSchemaProperties(arraySchema["items"]["type"], pkeyMap);
+			arrayBlock["items"]["properties"] = this._getSchemaProperties(
+				arraySchema["items"]["type"],
+				pkeyMap
+			);
 			// within array: single flat property?
 		} else {
 			arrayBlock["items"]["type"] = this._getType(arraySchema["items"]["type"] as TigrisDataTypes);
@@ -342,7 +358,9 @@ export const Utility = {
 	},
 
 	_readTestDataFile(path: string): string {
-		return Utility.objToJsonString(Utility.jsonStringToObj(fs.readFileSync("src/__tests__/data/" + path, "utf8")));
+		return Utility.objToJsonString(
+			Utility.jsonStringToObj(fs.readFileSync("src/__tests__/data/" + path, "utf8"))
+		);
 	},
 
 	_base64Encode(input: string): string {
@@ -354,8 +372,8 @@ export const Utility = {
 	},
 
 	createFacetQueryOptions(options?: Partial<FacetQueryOptions>): FacetQueryOptions {
-		const defaults = {size: 10, type: FacetQueryFieldType.VALUE};
-		return {...defaults, ...options};
+		const defaults = { size: 10, type: FacetQueryFieldType.VALUE };
+		return { ...defaults, ...options };
 	},
 
 	facetQueryToString(facets: FacetFieldsQuery): string {
@@ -377,7 +395,7 @@ export const Utility = {
 
 		const sortOrders = [];
 		for (const o of ordering) {
-			sortOrders.push({[o.field]: o.order});
+			sortOrders.push({ [o.field]: o.order });
 		}
 		return this.objToJsonString(sortOrders);
 	},

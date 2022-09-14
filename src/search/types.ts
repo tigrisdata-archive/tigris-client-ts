@@ -1,4 +1,4 @@
-import {LogicalFilter, Selector, SelectorFilter, TigrisCollectionType} from "../types";
+import { LogicalFilter, Selector, SelectorFilter, TigrisCollectionType } from "../types";
 import {
 	FacetCount as ProtoFacetCount,
 	FacetStats as ProtoFacetStats,
@@ -7,9 +7,9 @@ import {
 	SearchHit as ProtoSearchHit,
 	SearchHitMeta as ProtoSearchHitMeta,
 	SearchMetadata as ProtoSearchMetadata,
-	SearchResponse as ProtoSearchResponse
+	SearchResponse as ProtoSearchResponse,
 } from "../proto/server/v1/api_pb";
-import {Utility} from "../utility";
+import { Utility } from "../utility";
 
 export const MATCH_ALL_QUERY_STRING = "";
 
@@ -24,19 +24,19 @@ export type SearchRequest<T extends TigrisCollectionType> = {
 	/**
 	 * Fields to project search query on
 	 */
-	searchFields?: Array<string>,
+	searchFields?: Array<string>;
 	/**
 	 * Filter to further refine the search results
 	 */
-	filter?: SelectorFilter<T> | LogicalFilter<T> | Selector<T>,
+	filter?: SelectorFilter<T> | LogicalFilter<T> | Selector<T>;
 	/**
 	 * Facet fields to categorically arrange indexed terms
 	 */
-	facets?: FacetFieldsQuery,
+	facets?: FacetFieldsQuery;
 	/**
 	 * Sort the search results in indicated order
 	 */
-	sort?: Ordering,
+	sort?: Ordering;
 	/**
 	 * Document fields to include when returning search results
 	 */
@@ -93,7 +93,7 @@ export type FacetQueryOptions = {
 };
 
 export enum FacetQueryFieldType {
-	VALUE = "value"
+	VALUE = "value",
 }
 
 /**
@@ -105,8 +105,8 @@ export type Ordering = Array<SortField>;
  * Collection field name and sort order
  */
 export type SortField = {
-	field: string,
-	order: SortOrder
+	field: string;
+	order: SortOrder;
 };
 
 export enum SortOrder {
@@ -118,9 +118,8 @@ export enum SortOrder {
 	/**
 	 * Descending order
 	 */
-	DESC = "$desc"
+	DESC = "$desc",
 }
-
 
 /**
  * Outcome of executing search query
@@ -131,7 +130,11 @@ export class SearchResult<T> {
 	private readonly _facets: ReadonlyMap<string, FacetCountDistribution>;
 	private readonly _meta: SearchMeta | undefined;
 
-	constructor(hits: Array<Hit<T>>, facets: Map<string, FacetCountDistribution>, meta: SearchMeta | undefined) {
+	constructor(
+		hits: Array<Hit<T>>,
+		facets: Map<string, FacetCountDistribution>,
+		meta: SearchMeta | undefined
+	) {
 		this._hits = hits;
 		this._facets = facets;
 		this._meta = meta;
@@ -163,13 +166,18 @@ export class SearchResult<T> {
 	}
 
 	static from<T>(resp: ProtoSearchResponse): SearchResult<T> {
-		const _meta = typeof resp?.getMeta() !== "undefined" ? SearchMeta.from(resp.getMeta()) : undefined;
-		const _hits: Array<Hit<T>> = resp.getHitsList().map(h => Hit.from(h));
+		const _meta =
+			typeof resp?.getMeta() !== "undefined" ? SearchMeta.from(resp.getMeta()) : undefined;
+		const _hits: Array<Hit<T>> = resp.getHitsList().map((h) => Hit.from(h));
 		const _facets: Map<string, FacetCountDistribution> = new Map(
-			resp.getFacetsMap().toArray().map(
-				// eslint-disable-next-line @typescript-eslint/no-unused-vars
-				([k, _]) => [k, FacetCountDistribution.from(resp.getFacetsMap().get(k))]
-			));
+			resp
+				.getFacetsMap()
+				.toArray()
+				.map(
+					// eslint-disable-next-line @typescript-eslint/no-unused-vars
+					([k, _]) => [k, FacetCountDistribution.from(resp.getFacetsMap().get(k))]
+				)
+		);
 		return new SearchResult(_hits, _facets, _meta);
 	}
 }
@@ -239,8 +247,14 @@ export class HitMeta {
 	}
 
 	static from(resp: ProtoSearchHitMeta): HitMeta {
-		const _createdAt = typeof resp?.getCreatedAt()?.getSeconds() !== "undefined" ? new Date(resp.getCreatedAt().getSeconds() * 1000) : undefined;
-		const _updatedAt = typeof resp?.getUpdatedAt()?.getSeconds() !== "undefined" ? new Date(resp.getUpdatedAt().getSeconds() * 1000) : undefined;
+		const _createdAt =
+			typeof resp?.getCreatedAt()?.getSeconds() !== "undefined"
+				? new Date(resp.getCreatedAt().getSeconds() * 1000)
+				: undefined;
+		const _updatedAt =
+			typeof resp?.getUpdatedAt()?.getSeconds() !== "undefined"
+				? new Date(resp.getUpdatedAt().getSeconds() * 1000)
+				: undefined;
 
 		return new HitMeta(_createdAt, _updatedAt);
 	}
@@ -275,8 +289,9 @@ export class FacetCountDistribution {
 	}
 
 	static from(resp: ProtoSearchFacet): FacetCountDistribution {
-		const stats = typeof resp?.getStats() !== "undefined" ? FacetStats.from(resp.getStats()) : undefined;
-		const counts = resp.getCountsList().map(c => FacetCount.from(c));
+		const stats =
+			typeof resp?.getStats() !== "undefined" ? FacetStats.from(resp.getStats()) : undefined;
+		const counts = resp.getCountsList().map((c) => FacetCount.from(c));
 		return new FacetCountDistribution(counts, stats);
 	}
 }
