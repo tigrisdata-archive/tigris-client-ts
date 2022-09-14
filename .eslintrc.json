@@ -1,39 +1,34 @@
 {
-    "env": {
-        "node": true,
-        "es2021": true
-    },
-    "extends": [
-        "eslint:recommended",
-        "plugin:@typescript-eslint/recommended",
-        "plugin:unicorn/recommended"
-    ],
-    "parser": "@typescript-eslint/parser",
-    "parserOptions": {
-        "ecmaVersion": "latest",
-        "sourceType": "module"
-    },
-    "plugins": [
-        "@typescript-eslint",
-        "functional",
-		"unused-imports"
+	"env": {
+		"node": true,
+		"es2021": true
+	},
+	"extends": [
+		"eslint:recommended",
+		"plugin:@typescript-eslint/recommended",
+		"plugin:unicorn/recommended",
+		"prettier"
 	],
+	"parser": "@typescript-eslint/parser",
+	"parserOptions": {
+		"ecmaVersion": "latest",
+		"sourceType": "module"
+	},
+	"plugins": ["@typescript-eslint", "functional", "unused-imports"],
 	"rules": {
 		"unicorn/prevent-abbreviations": "off",
 		"@typescript-eslint/no-empty-interface": "warn",
 		"@typescript-eslint/ban-types": [
-		  "error",
+			"error",
 			{
-			  "types": {"BigInt": false},
-			  "extendDefaults": true
+				"types": { "BigInt": false },
+				"extendDefaults": true
 			}
 		],
-		"@typescript-eslint/semi": [
-			"error"
-		],
+		"@typescript-eslint/semi": ["error"],
 		"unused-imports/no-unused-imports": "error",
 		"quotes": "off",
-        "@typescript-eslint/quotes": ["error"]
-
-	}
+		"@typescript-eslint/quotes": ["error"]
+	},
+	"ignorePatterns": ["src/__tests__/*", "dist/*"]
 }
