@@ -31,9 +31,8 @@ export const Utility = {
 	},
 
 	filterToString<T>(filter: SelectorFilter<T> | LogicalFilter<T> | Selector<T>): string {
-		// eslint-disable-next-line no-prototype-builtins
 		if (
-			filter.hasOwnProperty("op") &&
+			Object.prototype.hasOwnProperty.call(filter, "op") &&
 			(filter["op"] === LogicalOperator.AND || filter["op"] === LogicalOperator.OR)
 		) {
 			// LogicalFilter

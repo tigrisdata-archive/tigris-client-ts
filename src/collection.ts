@@ -82,6 +82,7 @@ export class Collection<T extends TigrisCollectionType> {
 		return this._collectionName;
 	}
 
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	insertMany(docs: Array<T>, tx?: Session, _options?: InsertOptions): Promise<Array<T>> {
 		return new Promise<Array<T>>((resolve, reject) => {
 			const docsArray = new Array<Uint8Array | string>();
@@ -137,7 +138,7 @@ export class Collection<T extends TigrisCollectionType> {
 	insertOrReplaceMany(
 		docs: Array<T>,
 		tx?: Session,
-		options?: InsertOrReplaceOptions
+		options?: InsertOrReplaceOptions // eslint-disable-line @typescript-eslint/no-unused-vars
 	): Promise<Array<T>> {
 		return new Promise<Array<T>>((resolve, reject) => {
 			const docsArray = new Array<Uint8Array | string>();
