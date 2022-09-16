@@ -1,13 +1,16 @@
 import { TigrisClient } from "./proto/server/v1/api_grpc_pb";
+import { ObservabilityClient } from "./proto/server/v1/observability_grpc_pb";
+
 import * as grpc from "@grpc/grpc-js";
-import { status } from "@grpc/grpc-js";
+import { ChannelCredentials, status } from "@grpc/grpc-js";
 import {
 	CreateDatabaseRequest as ProtoCreateDatabaseRequest,
 	DatabaseOptions as ProtoDatabaseOptions,
 	DropDatabaseRequest as ProtoDropDatabaseRequest,
-	GetInfoRequest as ProtoGetInfoRequest,
 	ListDatabasesRequest as ProtoListDatabasesRequest,
 } from "./proto/server/v1/api_pb";
+import { GetInfoRequest as ProtoGetInfoRequest } from "./proto/server/v1/observability_pb";
+
 import {
 	DatabaseInfo,
 	DatabaseMetadata,
@@ -93,6 +96,7 @@ class TokenSupplier {
  */
 export class Tigris {
 	grpcClient: TigrisClient;
+	observabilityClient: ObservabilityClient;
 
 	/**
 	 *
@@ -102,12 +106,20 @@ export class Tigris {
 		if (config.insecureChannel === true && config.applicationSecret === undefined) {
 			// no auth & insecure channel
 			this.grpcClient = new TigrisClient(config.serverUrl, grpc.credentials.createInsecure());
+			this.observabilityClient = new ObservabilityClient(
+				config.serverUrl,
+				grpc.credentials.createInsecure()
+			);
 		} else if (
 			(config.insecureChannel === undefined || config.insecureChannel == false) &&
 			config.applicationSecret === undefined
 		) {
 			// no auth & secure channel
 			this.grpcClient = new TigrisClient(config.serverUrl, grpc.credentials.createSsl());
+			this.observabilityClient = new ObservabilityClient(
+				config.serverUrl,
+				grpc.credentials.createSsl()
+			);
 		} else if (
 			(config.insecureChannel === undefined || config.insecureChannel) &&
 			config.applicationSecret !== undefined
@@ -118,24 +130,23 @@ export class Tigris {
 		} else {
 			// auth & secure channel
 			const tokenSupplier = new TokenSupplier(config);
-			this.grpcClient = new TigrisClient(
-				config.serverUrl,
-				grpc.credentials.combineChannelCredentials(
-					grpc.credentials.createSsl(),
-					grpc.credentials.createFromMetadataGenerator((params, callback) => {
-						tokenSupplier
-							.getAccessToken()
-							.then((accessToken) => {
-								const md = new grpc.Metadata();
-								md.set(AuthorizationHeaderName, AuthorizationBearer + accessToken);
-								return callback(undefined, md);
-							})
-							.catch((error) => {
-								return callback(error);
-							});
-					})
-				)
+			const channelCreds: ChannelCredentials = grpc.credentials.combineChannelCredentials(
+				grpc.credentials.createSsl(),
+				grpc.credentials.createFromMetadataGenerator((params, callback) => {
+					tokenSupplier
+						.getAccessToken()
+						.then((accessToken) => {
+							const md = new grpc.Metadata();
+							md.set(AuthorizationHeaderName, AuthorizationBearer + accessToken);
+							return callback(undefined, md);
+						})
+						.catch((error) => {
+							return callback(error);
+						});
+				})
 			);
+			this.grpcClient = new TigrisClient(config.serverUrl, channelCreds);
+			this.observabilityClient = new ObservabilityClient(config.serverUrl, channelCreds);
 		}
 	}
 
@@ -201,7 +212,7 @@ export class Tigris {
 
 	public getServerMetadata(): Promise<ServerMetadata> {
 		return new Promise<ServerMetadata>((resolve, reject) => {
-			this.grpcClient.getInfo(new ProtoGetInfoRequest(), (error, response) => {
+			this.observabilityClient.getInfo(new ProtoGetInfoRequest(), (error, response) => {
 				if (error) {
 					reject(error);
 				} else {

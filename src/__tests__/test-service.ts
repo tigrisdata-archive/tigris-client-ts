@@ -28,8 +28,6 @@ import {
 	EventsRequest,
 	EventsResponse,
 	FacetCount,
-	GetInfoRequest,
-	GetInfoResponse,
 	InsertRequest,
 	InsertResponse,
 	ListCollectionsRequest,
@@ -481,18 +479,7 @@ export class TestTigrisService {
 					.setUpdatedAt(new google_protobuf_timestamp_pb.Timestamp())
 			);
 			callback(undefined, reply);
-		},
-		/* eslint-disable @typescript-eslint/no-empty-function */
-		getInfo(
-			// eslint-disable-next-line @typescript-eslint/no-unused-vars
-			call: ServerUnaryCall<GetInfoRequest, GetInfoResponse>,
-			// eslint-disable-next-line @typescript-eslint/no-unused-vars
-			callback: sendUnaryData<GetInfoResponse>
-		): void {
-			const reply: GetInfoResponse = new GetInfoResponse();
-			reply.setServerVersion("1.0.0-test-service");
-			callback(undefined, reply);
-		},
+		}
 	};
 }
 

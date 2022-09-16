@@ -15,6 +15,8 @@ import {
 import {Tigris} from "../tigris";
 import {SearchRequest, SearchResult, SortOrder} from "../search/types";
 import {Utility} from "../utility";
+import {ObservabilityService} from "../proto/server/v1/observability_grpc_pb";
+import TestObservabilityService from "./test-observability-service";
 
 describe("rpc tests", () => {
 	let server: Server;
@@ -23,6 +25,7 @@ describe("rpc tests", () => {
 		server = new Server();
 		TestTigrisService.reset();
 		server.addService(TigrisService, TestService.handler.impl);
+		server.addService(ObservabilityService, TestObservabilityService.handler.impl)
 		server.bindAsync(
 			"0.0.0.0:" + SERVER_PORT,
 			// test purpose only
