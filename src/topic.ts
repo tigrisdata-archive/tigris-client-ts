@@ -8,7 +8,14 @@ import {
 	PublishRequest as ProtoPublishRequest,
 	PublishRequestOptions as ProtoPublishRequestOptions,
 } from "./proto/server/v1/api_pb";
-import { PublishOptions, SubscribeOptions, TigrisTopicType } from "./types";
+import {
+	LogicalFilter,
+	PublishOptions,
+	Selector,
+	SelectorFilter,
+	SubscribeOptions,
+	TigrisTopicType,
+} from "./types";
 import { Utility } from "./utility";
 
 export interface SubscribeCallback<T> {
@@ -91,9 +98,21 @@ export class Topic<T extends TigrisTopicType> {
 	}
 
 	subscribe(callback: SubscribeCallback<T>, options?: SubscribeOptions): void {
+		return this.subscribeWithFilter(undefined, callback, options);
+	}
+
+	subscribeWithFilter(
+		filter: SelectorFilter<T> | LogicalFilter<T> | Selector<T>,
+		callback: SubscribeCallback<T>,
+		options?: SubscribeOptions
+	): void {
 		const subscribeRequest = new ProtoSubscribeRequest()
 			.setDb(this._db)
 			.setCollection(this._topicName);
+
+		if (filter !== undefined) {
+			subscribeRequest.setFilter(Utility.stringToUint8Array(Utility.filterToString(filter)));
+		}
 
 		if (options) {
 			subscribeRequest.setOptions(
@@ -116,6 +135,14 @@ export class Topic<T extends TigrisTopicType> {
 	}
 
 	subscribeToPartitions(callback: SubscribeCallback<T>, partitions: Array<number>): void {
-		return this.subscribe(callback, new SubscribeOptions(partitions));
+		return this.subscribeWithFilterToPartitions(undefined, callback, partitions);
+	}
+
+	subscribeWithFilterToPartitions(
+		filter: SelectorFilter<T> | LogicalFilter<T> | Selector<T>,
+		callback: SubscribeCallback<T>,
+		partitions: Array<number>
+	): void {
+		return this.subscribeWithFilter(filter, callback, new SubscribeOptions(partitions));
 	}
 }

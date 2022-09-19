@@ -635,6 +635,35 @@ describe("rpc tests", () => {
 		});
 	});
 
+	it ("subscribeWithFilter", (done) => {
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const db = tigris.getDatabase("test_db");
+		const topic = db.getTopic<Alert>("test_topic");
+		let success = true;
+
+		topic.subscribeWithFilter({
+				op: SelectorFilterOperator.EQ,
+				fields: {
+					text: "test"
+				}
+			},
+			{
+			onNext(alert: Alert) {
+				expect(alert.id).toBe(34);
+				expect(alert.text).toBe("test");
+				expect(success).toBe(true);
+				done();
+			},
+			onEnd() {
+				// not expected to be called
+			},
+			// eslint-disable-next-line @typescript-eslint/no-unused-vars
+			onError(error: Error) {
+				success = false;
+			}
+		});
+	});
+
 	it ("subscribeToPartitions", (done) => {
 		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
 		const db = tigris.getDatabase("test_db");
