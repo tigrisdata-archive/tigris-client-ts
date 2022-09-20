@@ -19,7 +19,7 @@ import {
 } from "./types";
 import * as fs from "node:fs";
 import { FacetFieldsQuery, FacetQueryFieldType, FacetQueryOptions, Ordering } from "./search/types";
-import { ReadRequestOptions as ProtoReadRequestOptions } from "./proto/server/v1/api_pb";
+import { Collation, ReadRequestOptions as ProtoReadRequestOptions } from "./proto/server/v1/api_pb";
 
 export const Utility = {
 	stringToUint8Array(input: string): Uint8Array {
@@ -151,7 +151,7 @@ export const Utility = {
 	},
 	txToMetadata(tx: Session): Metadata {
 		const metadata = new Metadata();
-		if (tx !== undefined) {
+		if (tx !== undefined && tx !== null) {
 			metadata.set("Tigris-Tx-Id", tx.id);
 			metadata.set("Tigris-Tx-Origin", tx.origin);
 			metadata.merge(tx.additionalMetadata);
@@ -288,7 +288,11 @@ export const Utility = {
 			}
 
 			if (input.limit !== undefined) {
-				result.setSkip(input.limit);
+				result.setLimit(input.limit);
+			}
+
+			if (input.collation !== undefined) {
+				result.setCollation(new Collation().setCase(input.collation.case));
 			}
 
 			if (input.offset !== undefined) {

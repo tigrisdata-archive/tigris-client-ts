@@ -48,17 +48,21 @@ export type SearchRequest<T extends TigrisCollectionType> = {
 };
 
 /**
- * Pagination params for search request
+ * Pagination and Collation options for search request
  */
 export type SearchRequestOptions = {
 	/**
 	 * Page number to fetch search results for
 	 */
-	page: number;
+	page?: number;
 	/**
 	 * Number of search results to fetch per page
 	 */
-	perPage: number;
+	perPage?: number;
+	/**
+	 * Allows case-insensitive filtering
+	 */
+	collation?: Collation;
 };
 
 export type FacetFieldsQuery = FacetFieldOptions | FacetFields;
@@ -120,6 +124,20 @@ export enum SortOrder {
 	 */
 	DESC = "$desc",
 }
+
+export enum Case {
+	/**
+	 * Case insensitive collation case
+	 */
+	CaseInsensitive = "ci",
+}
+
+/**
+ * A collation allows you to specify string comparison rules. Default is case-sensitive.
+ */
+export type Collation = {
+	case: Case;
+};
 
 /**
  * Outcome of executing search query

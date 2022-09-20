@@ -4,6 +4,7 @@ import TestService, {TestTigrisService} from "./test-service";
 import {
 	DatabaseOptions,
 	LogicalOperator,
+	ReadRequestOptions,
 	SelectorFilterOperator,
 	StreamEvent,
 	TigrisCollectionType,
@@ -13,7 +14,7 @@ import {
 	UpdateFieldsOperator
 } from "../types";
 import {Tigris} from "../tigris";
-import {SearchRequest, SearchResult, SortOrder} from "../search/types";
+import {Case, SearchRequest, SearchRequestOptions, SearchResult, SortOrder} from "../search/types";
 import {Utility} from "../utility";
 import {ObservabilityService} from "../proto/server/v1/observability_grpc_pb";
 import TestObservabilityService from "./test-observability-service";
@@ -412,6 +413,30 @@ describe("rpc tests", () => {
 		return findManyBatchPromise;
 	});
 
+	it("findManyWithCollation", () => {
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const db1 = tigris.getDatabase("db3");
+		const options = new ReadRequestOptions();
+		options.collation = {
+			case: Case.CaseInsensitive,
+		};
+		const findManyBatchPromise: Promise<IBook[]> = db1.getCollection<IBook>("books").findMany({
+			op: SelectorFilterOperator.EQ,
+			fields: {
+				author: "Marcel Proust"
+			},	
+		  },
+		  null,
+		  null,
+		  options,
+		);
+		findManyBatchPromise.then(books => {
+			expect(books.length).toBe(4);
+		});
+		return findManyBatchPromise;
+	});
+
+
 	it("search", (done) => {
 		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
 		const db3 = tigris.getDatabase("db3");
@@ -426,6 +451,11 @@ describe("rpc tests", () => {
 				{field: "id", order: SortOrder.DESC}
 			]
 		};
+		const options: SearchRequestOptions = {
+			collation: {
+				case: Case.CaseInsensitive,
+			},
+		}
 		db3.getCollection<IBook>("books")
 			.search(request, {
 				onEnd() {
@@ -442,7 +472,8 @@ describe("rpc tests", () => {
 					expect(searchResult.facets).toBeDefined();
 					bookCounter += searchResult.hits.length;
 				}
-			});
+			}, 
+			options);
 	});
 
 	it("beginTx", () => {
