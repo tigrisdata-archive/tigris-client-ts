@@ -34,21 +34,21 @@ const AuthorizationBearer = "Bearer ";
 export interface TigrisClientConfig {
 	serverUrl: string;
 	insecureChannel?: boolean;
-	applicationId?: string;
-	applicationSecret?: string;
+	clientId?: string;
+	clientSecret?: string;
 }
 
 class TokenSupplier {
-	private applicationId: string;
-	private applicationSecret: string;
+	private clientId: string;
+	private clientSecret: string;
 	private accessToken: string;
 	private nextRefreshTime: number;
 	private authClient: AuthClient;
 
 	constructor(config: TigrisClientConfig) {
 		this.authClient = new AuthClient(config.serverUrl, grpc.credentials.createSsl());
-		this.applicationId = config.applicationId;
-		this.applicationSecret = config.applicationSecret;
+		this.clientId = config.clientId;
+		this.clientSecret = config.clientSecret;
 	}
 
 	getAccessToken(): Promise<string> {
@@ -58,8 +58,8 @@ class TokenSupplier {
 				this.authClient.getAccessToken(
 					new ProtoGetAccessTokenRequest()
 						.setGrantType(GrantType.CLIENT_CREDENTIALS)
-						.setClientId(this.applicationId)
-						.setClientSecret(this.applicationSecret),
+						.setClientId(this.clientId)
+						.setClientSecret(this.clientSecret),
 					(error, response) => {
 						if (error) {
 							reject(error);
@@ -103,7 +103,7 @@ export class Tigris {
 	 * @param  {TigrisClientConfig} config configuration
 	 */
 	constructor(config: TigrisClientConfig) {
-		if (config.insecureChannel === true && config.applicationSecret === undefined) {
+		if (config.insecureChannel === true && config.clientSecret === undefined) {
 			// no auth & insecure channel
 			this.grpcClient = new TigrisClient(config.serverUrl, grpc.credentials.createInsecure());
 			this.observabilityClient = new ObservabilityClient(
@@ -112,7 +112,7 @@ export class Tigris {
 			);
 		} else if (
 			(config.insecureChannel === undefined || config.insecureChannel == false) &&
-			config.applicationSecret === undefined
+			config.clientSecret === undefined
 		) {
 			// no auth & secure channel
 			this.grpcClient = new TigrisClient(config.serverUrl, grpc.credentials.createSsl());
@@ -122,7 +122,7 @@ export class Tigris {
 			);
 		} else if (
 			(config.insecureChannel === undefined || config.insecureChannel) &&
-			config.applicationSecret !== undefined
+			config.clientSecret !== undefined
 		) {
 			// auth & insecure channel
 			console.error("Passing token on insecure channel is not allowed");
