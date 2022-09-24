@@ -90,6 +90,7 @@ class TokenSupplier {
 		return Date.now() >= this.nextRefreshTime;
 	}
 }
+const DEFAULT_GRPC_PORT = 443;
 
 /**
  * Tigris client
@@ -103,6 +104,10 @@ export class Tigris {
 	 * @param  {TigrisClientConfig} config configuration
 	 */
 	constructor(config: TigrisClientConfig) {
+		if (!config.serverUrl.includes(":")) {
+			config.serverUrl = config.serverUrl + ":" + DEFAULT_GRPC_PORT;
+		}
+
 		if (config.insecureChannel === true && config.clientSecret === undefined) {
 			// no auth & insecure channel
 			this.grpcClient = new TigrisClient(config.serverUrl, grpc.credentials.createInsecure());
