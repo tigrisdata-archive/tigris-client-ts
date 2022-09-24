@@ -121,7 +121,7 @@ export class Tigris {
 				grpc.credentials.createSsl()
 			);
 		} else if (
-			(config.insecureChannel === undefined || config.insecureChannel) &&
+			(config.insecureChannel !== undefined || config.insecureChannel) &&
 			config.clientSecret !== undefined
 		) {
 			// auth & insecure channel
