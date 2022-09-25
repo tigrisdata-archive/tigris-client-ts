@@ -2,6 +2,7 @@ import * as grpc from "@grpc/grpc-js";
 import { TigrisClient } from "./proto/server/v1/api_grpc_pb";
 import * as server_v1_api_pb from "./proto/server/v1/api_pb";
 import {
+	Collation,
 	DeleteRequest as ProtoDeleteRequest,
 	EventsRequest as ProtoEventsRequest,
 	EventsResponse as ProtoEventsResponse,
@@ -10,7 +11,6 @@ import {
 	ReadRequestOptions as ProtoReadRequestOptions,
 	ReadResponse as ProtoReadResponse,
 	ReplaceRequest as ProtoReplaceRequest,
-	Collation,
 	SearchRequest as ProtoSearchRequest,
 	SearchResponse as ProtoSearchResponse,
 	UpdateRequest as ProtoUpdateRequest,
@@ -233,7 +233,6 @@ export class Collection<T extends TigrisCollectionType> {
 			}
 			const result: Array<T> = new Array<T>();
 			this.findManyStream(
-				filter,
 				{
 					onEnd() {
 						resolve(result);
@@ -246,6 +245,7 @@ export class Collection<T extends TigrisCollectionType> {
 						reject(_error);
 					},
 				},
+				filter,
 				readFields,
 				tx,
 				options
@@ -254,12 +254,19 @@ export class Collection<T extends TigrisCollectionType> {
 	}
 
 	findManyStream(
-		filter: SelectorFilter<T> | LogicalFilter<T> | Selector<T>,
 		reader: ReaderCallback<T>,
+		filter?: SelectorFilter<T> | LogicalFilter<T> | Selector<T>,
 		readFields?: ReadFields,
 		tx?: Session,
 		options?: ReadRequestOptions
 	) {
+		// if no filter is supplied, read all
+		if (filter === undefined) {
+			filter = {
+				op: SelectorFilterOperator.NONE,
+			};
+		}
+
 		const readRequest = new ProtoReadRequest()
 			.setDb(this._db)
 			.setCollection(this._collectionName)
@@ -289,17 +296,31 @@ export class Collection<T extends TigrisCollectionType> {
 		stream.on("end", () => reader.onEnd());
 	}
 
-	findAllStream(reader: ReaderCallback<T>, readFields?: ReadFields) {
-		this.findManyStream(
-			{
-				op: SelectorFilterOperator.NONE,
-			},
-			reader,
-			readFields
-		);
+	search(
+		request: SearchRequest<T>,
+		options?: SearchRequestOptions
+	): Promise<Array<SearchResult<T>>> {
+		return new Promise<Array<SearchResult<T>>>((resolve, reject) => {
+			const result: Array<SearchResult<T>> = new Array<SearchResult<T>>();
+			this.searchStream(
+				request,
+				{
+					onNext(searchResult: SearchResult<T>) {
+						result.push(searchResult);
+					},
+					onEnd() {
+						resolve(result);
+					},
+					onError(error: Error) {
+						reject(error);
+					},
+				},
+				options
+			);
+		});
 	}
 
-	search(
+	searchStream(
 		request: SearchRequest<T>,
 		reader: SearchResultCallback<T>,
 		options?: SearchRequestOptions

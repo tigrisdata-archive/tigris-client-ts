@@ -351,35 +351,36 @@ describe("rpc tests", () => {
 		let success = true;
 		success = true;
 		db1.getCollection<IBook>("books").findManyStream({
-			op: SelectorFilterOperator.EQ,
-			fields: {
-				author: "Marcel Proust"
-			}
-		}, {
-			onEnd() {
-				// test service is coded to return 4 books back
-				expect(bookCounter).toBe(4);
-				expect(success).toBe(true);
-				done();
+				onEnd() {
+					// test service is coded to return 4 books back
+					expect(bookCounter).toBe(4);
+					expect(success).toBe(true);
+					done();
+				},
+				onNext(book: IBook) {
+					bookCounter++;
+					expect(book.author).toBe("Marcel Proust");
+				},
+				// eslint-disable-next-line @typescript-eslint/no-unused-vars
+				onError(_error: Error) {
+					success = false;
+				}
 			},
-			onNext(book: IBook) {
-				bookCounter++;
-				expect(book.author).toBe("Marcel Proust");
-			},
-			// eslint-disable-next-line @typescript-eslint/no-unused-vars
-			onError(_error: Error) {
-				success = false;
-			}
-		});
+			{
+				op: SelectorFilterOperator.EQ,
+				fields: {
+					author: "Marcel Proust"
+				}
+			});
 	});
 
-	it("findAllStream", (done) => {
+	it("findAllUsingFindManyStream", (done) => {
 		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
 		const db1 = tigris.getDatabase("db3");
 		let bookCounter = 0;
 		let success = true;
 		success = true;
-		db1.getCollection<IBook>("books").findAllStream(
+		db1.getCollection<IBook>("books").findManyStream(
 			{
 				onEnd() {
 					// test service is coded to return 4 books back
@@ -421,14 +422,14 @@ describe("rpc tests", () => {
 			case: Case.CaseInsensitive,
 		};
 		const findManyBatchPromise: Promise<IBook[]> = db1.getCollection<IBook>("books").findMany({
-			op: SelectorFilterOperator.EQ,
-			fields: {
-				author: "Marcel Proust"
-			},	
-		  },
-		  null,
-		  null,
-		  options,
+				op: SelectorFilterOperator.EQ,
+				fields: {
+					author: "Marcel Proust"
+				},
+			},
+			null,
+			null,
+			options,
 		);
 		findManyBatchPromise.then(books => {
 			expect(books.length).toBe(4);
@@ -437,7 +438,7 @@ describe("rpc tests", () => {
 	});
 
 
-	it("search", (done) => {
+	it("searchStream", (done) => {
 		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
 		const db3 = tigris.getDatabase("db3");
 		let bookCounter = 0;
@@ -457,23 +458,53 @@ describe("rpc tests", () => {
 			},
 		}
 		db3.getCollection<IBook>("books")
-			.search(request, {
-				onEnd() {
-					expect(bookCounter).toBe(TestTigrisService.BOOKS_B64_BY_ID.size);
-					expect(success).toBe(true);
-					done();
+			.searchStream(request, {
+					onEnd() {
+						expect(bookCounter).toBe(TestTigrisService.BOOKS_B64_BY_ID.size);
+						expect(success).toBe(true);
+						done();
+					},
+					onError(error: Error) {
+						success = false;
+						fail(error);
+					},
+					onNext(searchResult: SearchResult<IBook>) {
+						expect(searchResult.hits).toBeDefined();
+						expect(searchResult.facets).toBeDefined();
+						bookCounter += searchResult.hits.length;
+					}
 				},
-				onError(error: Error) {
-					success = false;
-					fail(error);
-				},
-				onNext(searchResult: SearchResult<IBook>) {
-					expect(searchResult.hits).toBeDefined();
-					expect(searchResult.facets).toBeDefined();
-					bookCounter += searchResult.hits.length;
-				}
-			}, 
-			options);
+				options);
+	});
+
+	it("search", () => {
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const db3 = tigris.getDatabase("db3");
+		const request: SearchRequest<IBook> = {
+			q: "philosophy",
+			facets: {
+				tags: Utility.createFacetQueryOptions()
+			},
+			sort: [
+				{field: "id", order: SortOrder.DESC}
+			]
+		};
+		const options: SearchRequestOptions = {
+			collation: {
+				case: Case.CaseInsensitive,
+			},
+		}
+		const searchPromise: Promise<Array<SearchResult<IBook>>> = db3.getCollection<IBook>("books").search(request, options);
+		searchPromise.then(val => {
+			let hitCounter = 0;
+			val.forEach(searchResult => {
+				expect(searchResult.hits).toBeDefined();
+				expect(searchResult.facets).toBeDefined();
+				hitCounter += searchResult.hits.length;
+			});
+			expect(hitCounter).toBe(TestTigrisService.BOOKS_B64_BY_ID.size)
+		})
+		return searchPromise;
 	});
 
 	it("beginTx", () => {
@@ -624,7 +655,7 @@ describe("rpc tests", () => {
 		});
 	});
 
-	it ("publish", () => {
+	it("publish", () => {
 		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
 		const db = tigris.getDatabase("test_db");
 		const topic = db.getTopic<Alert>("test_topic");
@@ -643,7 +674,7 @@ describe("rpc tests", () => {
 		return promise;
 	});
 
-	it ("subscribe", (done) => {
+	it("subscribe", (done) => {
 		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
 		const db = tigris.getDatabase("test_db");
 		const topic = db.getTopic<Alert>("test_topic");
@@ -666,7 +697,7 @@ describe("rpc tests", () => {
 		});
 	});
 
-	it ("subscribeWithFilter", (done) => {
+	it("subscribeWithFilter", (done) => {
 		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
 		const db = tigris.getDatabase("test_db");
 		const topic = db.getTopic<Alert>("test_topic");
@@ -679,23 +710,23 @@ describe("rpc tests", () => {
 				}
 			},
 			{
-			onNext(alert: Alert) {
-				expect(alert.id).toBe(34);
-				expect(alert.text).toBe("test");
-				expect(success).toBe(true);
-				done();
-			},
-			onEnd() {
-				// not expected to be called
-			},
-			// eslint-disable-next-line @typescript-eslint/no-unused-vars
-			onError(error: Error) {
-				success = false;
-			}
-		});
+				onNext(alert: Alert) {
+					expect(alert.id).toBe(34);
+					expect(alert.text).toBe("test");
+					expect(success).toBe(true);
+					done();
+				},
+				onEnd() {
+					// not expected to be called
+				},
+				// eslint-disable-next-line @typescript-eslint/no-unused-vars
+				onError(error: Error) {
+					success = false;
+				}
+			});
 	});
 
-	it ("subscribeToPartitions", (done) => {
+	it("subscribeToPartitions", (done) => {
 		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
 		const db = tigris.getDatabase("test_db");
 		const topic = db.getTopic<Alert>("test_topic");
