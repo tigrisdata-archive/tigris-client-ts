@@ -19,8 +19,21 @@ import {
 	UpdateFieldsOperator,
 } from "./types";
 import * as fs from "node:fs";
-import { FacetFieldsQuery, FacetQueryFieldType, FacetQueryOptions, Ordering } from "./search/types";
-import { Collation, ReadRequestOptions as ProtoReadRequestOptions } from "./proto/server/v1/api_pb";
+import {
+	Case,
+	FacetFieldsQuery,
+	FacetQueryFieldType,
+	FacetQueryOptions,
+	MATCH_ALL_QUERY_STRING,
+	Ordering,
+	SearchRequest,
+	SearchRequestOptions,
+} from "./search/types";
+import {
+	Collation as ProtoCollation,
+	ReadRequestOptions as ProtoReadRequestOptions,
+	SearchRequest as ProtoSearchRequest,
+} from "./proto/server/v1/api_pb";
 import { TigrisClientConfig } from "./tigris";
 
 export const Utility = {
@@ -312,7 +325,7 @@ export const Utility = {
 			}
 
 			if (input.collation !== undefined) {
-				result.setCollation(new Collation().setCase(input.collation.case));
+				result.setCollation(new ProtoCollation().setCase(input.collation.case));
 			}
 
 			if (input.offset !== undefined) {
@@ -404,6 +417,11 @@ export const Utility = {
 		return { ...defaults, ...options };
 	},
 
+	createSearchRequestOptions(options?: Partial<SearchRequestOptions>): SearchRequestOptions {
+		const defaults = { page: 1, perPage: 20, collation: { case: Case.CaseInsensitive } };
+		return { ...defaults, ...options };
+	},
+
 	facetQueryToString(facets: FacetFieldsQuery): string {
 		if (Array.isArray(facets)) {
 			const optionsMap = {};
@@ -426,5 +444,57 @@ export const Utility = {
 			sortOrders.push({ [o.field]: o.order });
 		}
 		return this.objToJsonString(sortOrders);
+	},
+
+	createProtoSearchRequest<T>(
+		dbName: string,
+		collectionName: string,
+		request: SearchRequest<T>,
+		options?: SearchRequestOptions
+	): ProtoSearchRequest {
+		const searchRequest = new ProtoSearchRequest()
+			.setDb(dbName)
+			.setCollection(collectionName)
+			.setQ(request.q ?? MATCH_ALL_QUERY_STRING);
+
+		if (request.searchFields !== undefined) {
+			searchRequest.setSearchFieldsList(request.searchFields);
+		}
+
+		if (request.filter !== undefined) {
+			searchRequest.setFilter(Utility.stringToUint8Array(Utility.filterToString(request.filter)));
+		}
+
+		if (request.facets !== undefined) {
+			searchRequest.setFacet(
+				Utility.stringToUint8Array(Utility.facetQueryToString(request.facets))
+			);
+		}
+
+		if (request.sort !== undefined) {
+			searchRequest.setSort(Utility.stringToUint8Array(Utility.sortOrderingToString(request.sort)));
+		}
+
+		if (request.includeFields !== undefined) {
+			searchRequest.setIncludeFieldsList(request.includeFields);
+		}
+
+		if (request.excludeFields !== undefined) {
+			searchRequest.setExcludeFieldsList(request.excludeFields);
+		}
+
+		if (options !== undefined) {
+			if (options.page !== undefined) {
+				searchRequest.setPage(options.page);
+			}
+			if (options.perPage !== undefined) {
+				searchRequest.setPageSize(options.perPage);
+			}
+			if (options.collation !== undefined) {
+				searchRequest.setCollation(new ProtoCollation().setCase(options.collation.case));
+			}
+		}
+
+		return searchRequest;
 	},
 };

@@ -196,7 +196,8 @@ export class TestTigrisService {
 			_call: ServerUnaryCall<DescribeCollectionRequest, DescribeCollectionResponse>,
 			// eslint-disable-next-line @typescript-eslint/no-unused-vars
 			_callback: sendUnaryData<DescribeCollectionResponse>
-		): void {},
+		): void {
+		},
 		/* eslint-enable @typescript-eslint/no-empty-function */
 
 		describeDatabase(
@@ -376,37 +377,47 @@ export class TestTigrisService {
 		},
 		// eslint-disable-next-line @typescript-eslint/no-empty-function
 		search(call: ServerWritableStream<SearchRequest, SearchResponse>): void {
-			// empty search response to stream
-			call.write(new SearchResponse());
-
-			// with only meta and not page
 			const searchMeta = new SearchMetadata().setFound(5).setTotalPages(5);
-			call.write(new SearchResponse().setMeta(searchMeta));
 
-			// with meta and page
-			const searchPage = new Page().setSize(1).setCurrent(1);
+			// paginated search impl
+			if (call.request.getPage() > 0) {
+				const searchPage = new Page()
+					.setSize(call.request.getPageSize())
+					.setCurrent(call.request.getPage());
+				const resp = new SearchResponse().setMeta(searchMeta.setPage(searchPage));
+				call.write(resp);
+				call.end();
+			} else {
+				// empty search response to stream
+				call.write(new SearchResponse());
 
-			call.write(new SearchResponse().setMeta(searchMeta.setPage(searchPage)));
+				// with only meta and not page
+				call.write(new SearchResponse().setMeta(searchMeta));
 
-			// with facets, meta and page
-			const searchFacet = new SearchFacet().setCountsList(
-				[new FacetCount().setCount(2).setValue("Marcel Proust")]);
-			const resp = new SearchResponse().setMeta(searchMeta.setPage(searchPage));
-			resp.getFacetsMap().set("author", searchFacet);
-			call.write(resp);
+				// with meta and page
+				const searchPage = new Page().setSize(1).setCurrent(1);
+				call.write(new SearchResponse().setMeta(searchMeta.setPage(searchPage)));
 
-			// with first hit, meta and page
-			const searchHitMeta = new SearchHitMeta().setUpdatedAt(new google_protobuf_timestamp_pb.Timestamp());
-			const searchHit = new SearchHit().setMetadata(searchHitMeta);
+				// with facets, meta and page
+				const searchFacet = new SearchFacet().setCountsList(
+					[new FacetCount().setCount(2).setValue("Marcel Proust")]);
+				const resp = new SearchResponse().setMeta(searchMeta.setPage(searchPage));
+				resp.getFacetsMap().set("author", searchFacet);
+				call.write(resp);
 
-			// write all search hits to stream 1 by 1
-			// eslint-disable-next-line @typescript-eslint/no-unused-vars,@typescript-eslint/ban-ts-comment
-			// @ts-ignore
-			for (const booksb64BYIDElement of TestTigrisService.BOOKS_B64_BY_ID) {
-				searchHit.setData(booksb64BYIDElement[1]);
-				call.write(resp.setHitsList([searchHit]));
+				// with first hit, meta and page
+				const searchHitMeta = new SearchHitMeta().setUpdatedAt(new google_protobuf_timestamp_pb.Timestamp());
+				const searchHit = new SearchHit().setMetadata(searchHitMeta);
+
+				// write all search hits to stream 1 by 1
+				// eslint-disable-next-line @typescript-eslint/no-unused-vars,@typescript-eslint/ban-ts-comment
+				// @ts-ignore
+				for (const booksb64BYIDElement of TestTigrisService.BOOKS_B64_BY_ID) {
+					searchHit.setData(booksb64BYIDElement[1]);
+					call.write(resp.setHitsList([searchHit]));
+				}
+				call.end();
 			}
-			call.end();
 		},
 		/* eslint-disable @typescript-eslint/no-empty-function */
 		replace(

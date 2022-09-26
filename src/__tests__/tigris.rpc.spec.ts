@@ -4,7 +4,6 @@ import TestService, {TestTigrisService} from "./test-service";
 import {
 	DatabaseOptions,
 	LogicalOperator,
-	ReadRequestOptions,
 	SelectorFilterOperator,
 	StreamEvent,
 	TigrisCollectionType,
@@ -14,7 +13,7 @@ import {
 	UpdateFieldsOperator
 } from "../types";
 import {Tigris} from "../tigris";
-import {Case, SearchRequest, SearchRequestOptions, SearchResult, SortOrder} from "../search/types";
+import {SearchRequest, SearchRequestOptions} from "../search/types";
 import {Utility} from "../utility";
 import {ObservabilityService} from "../proto/server/v1/observability_grpc_pb";
 import TestObservabilityService from "./test-observability-service";
@@ -22,7 +21,7 @@ import TestObservabilityService from "./test-observability-service";
 describe("rpc tests", () => {
 	let server: Server;
 	const SERVER_PORT = 5002;
-	beforeAll(() => {
+	beforeAll((done) => {
 		server = new Server();
 		TestTigrisService.reset();
 		server.addService(TigrisService, TestService.handler.impl);
@@ -39,12 +38,15 @@ describe("rpc tests", () => {
 				}
 			}
 		);
+		done();
+
 	});
 	beforeEach(() => {
 		TestTigrisService.reset();
 	});
-	afterAll(() => {
+	afterAll((done) => {
 		server.forceShutdown();
+		done();
 	});
 
 	it("listDatabase", () => {
@@ -344,136 +346,115 @@ describe("rpc tests", () => {
 		return readOnePromise;
 	});
 
-	it("findManyStream", (done) => {
+	describe("findMany", () => {
 		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
-		const db1 = tigris.getDatabase("db3");
-		let bookCounter = 0;
-		let success = true;
-		success = true;
-		db1.getCollection<IBook>("books").findManyStream({
-			op: SelectorFilterOperator.EQ,
-			fields: {
-				author: "Marcel Proust"
-			}
-		}, {
-			onEnd() {
-				// test service is coded to return 4 books back
-				expect(bookCounter).toBe(4);
-				expect(success).toBe(true);
-				done();
-			},
-			onNext(book: IBook) {
-				bookCounter++;
-				expect(book.author).toBe("Marcel Proust");
-			},
-			// eslint-disable-next-line @typescript-eslint/no-unused-vars
-			onError(_error: Error) {
-				success = false;
-			}
-		});
-	});
+		const db = tigris.getDatabase("db3");
 
-	it("findAllStream", (done) => {
-		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
-		const db1 = tigris.getDatabase("db3");
-		let bookCounter = 0;
-		let success = true;
-		success = true;
-		db1.getCollection<IBook>("books").findAllStream(
-			{
-				onEnd() {
-					// test service is coded to return 4 books back
-					expect(bookCounter).toBe(4);
-					expect(success).toBe(true);
-					done();
-				},
-				onNext(book: IBook) {
-					bookCounter++;
-					expect(book.author).toBe("Marcel Proust");
-				},
-				// eslint-disable-next-line @typescript-eslint/no-unused-vars
-				onError(_error: Error) {
-					success = false;
+		it("with filter using for await on cursor", async () => {
+			const cursor = db.getCollection<IBook>("books").findMany({
+				op: SelectorFilterOperator.EQ,
+				fields: {
+					author: "Marcel Proust"
 				}
 			});
-	});
 
-	it("findMany", () => {
-		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
-		const db1 = tigris.getDatabase("db3");
-		const findManyBatchPromise: Promise<IBook[]> = db1.getCollection<IBook>("books").findMany({
-			op: SelectorFilterOperator.EQ,
-			fields: {
-				author: "Marcel Proust"
+			let bookCounter = 0;
+			for await (const book of cursor) {
+				bookCounter++;
+				expect(book.author).toBe("Marcel Proust");
 			}
+			expect(bookCounter).toBe(4);
 		});
-		findManyBatchPromise.then(books => {
-			expect(books.length).toBe(4);
+
+		it("finds all and retrieves results as array", () => {
+			const cursor = db.getCollection<IBook>("books").findMany();
+			const booksPromise = cursor.toArray();
+
+			booksPromise.then(books => expect(books.length).toBe(4));
+			return booksPromise;
 		});
-		return findManyBatchPromise;
+
+		it("finds all and streams through results", async () => {
+			const cursor = db.getCollection<IBook>("books").findMany();
+			const booksIterator = cursor.stream();
+
+			let bookCounter = 0;
+			for await (const book of booksIterator) {
+				bookCounter++;
+				expect(book.author).toBe("Marcel Proust");
+			}
+			expect(bookCounter).toBe(4);
+		});
 	});
 
-	it("findManyWithCollation", () => {
-		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
-		const db1 = tigris.getDatabase("db3");
-		const options = new ReadRequestOptions();
-		options.collation = {
-			case: Case.CaseInsensitive,
-		};
-		const findManyBatchPromise: Promise<IBook[]> = db1.getCollection<IBook>("books").findMany({
-			op: SelectorFilterOperator.EQ,
-			fields: {
-				author: "Marcel Proust"
-			},	
-		  },
-		  null,
-		  null,
-		  options,
-		);
-		findManyBatchPromise.then(books => {
-			expect(books.length).toBe(4);
-		});
-		return findManyBatchPromise;
-	});
-
-
-	it("search", (done) => {
+	it("search", () => {
 		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
 		const db3 = tigris.getDatabase("db3");
-		let bookCounter = 0;
-		let success = true;
+		const options: SearchRequestOptions = {
+			page: 2,
+			perPage: 12
+		}
 		const request: SearchRequest<IBook> = {
 			q: "philosophy",
 			facets: {
 				tags: Utility.createFacetQueryOptions()
-			},
-			sort: [
-				{field: "id", order: SortOrder.DESC}
-			]
+			}
 		};
-		const options: SearchRequestOptions = {
-			collation: {
-				case: Case.CaseInsensitive,
-			},
+
+		const searchPromise = db3.getCollection<IBook>("books").search(request, options);
+
+		searchPromise.then(res => {
+			expect(res.meta.found).toBe(5);
+			expect(res.meta.totalPages).toBe(5);
+			expect(res.meta.page.current).toBe(options.page);
+			expect(res.meta.page.size).toBe(options.perPage);
+		});
+
+		return searchPromise;
+	});
+
+	it("searchStream using iteration", async () => {
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const db3 = tigris.getDatabase("db3");
+		const request: SearchRequest<IBook> = {
+			q: "philosophy",
+			facets: {
+				tags: Utility.createFacetQueryOptions()
+			}
+		};
+		let bookCounter = 0;
+
+		const searchIterator = db3.getCollection<IBook>("books").searchStream(request);
+		// for await loop the iterator
+		for await (const searchResult of searchIterator) {
+			expect(searchResult.hits).toBeDefined();
+			expect(searchResult.facets).toBeDefined();
+			bookCounter += searchResult.hits.length;
 		}
-		db3.getCollection<IBook>("books")
-			.search(request, {
-				onEnd() {
-					expect(bookCounter).toBe(TestTigrisService.BOOKS_B64_BY_ID.size);
-					expect(success).toBe(true);
-					done();
-				},
-				onError(error: Error) {
-					success = false;
-					fail(error);
-				},
-				onNext(searchResult: SearchResult<IBook>) {
-					expect(searchResult.hits).toBeDefined();
-					expect(searchResult.facets).toBeDefined();
-					bookCounter += searchResult.hits.length;
-				}
-			}, 
-			options);
+		expect(bookCounter).toBe(TestTigrisService.BOOKS_B64_BY_ID.size);
+	});
+
+	it("searchStream using next", async () => {
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const db3 = tigris.getDatabase("db3");
+		const request: SearchRequest<IBook> = {
+			q: "philosophy",
+			facets: {
+				tags: Utility.createFacetQueryOptions()
+			}
+		};
+		let bookCounter = 0;
+
+		const searchIterator = db3.getCollection<IBook>("books").searchStream(request);
+		let iterableResult = await searchIterator.next();
+		while (!iterableResult.done) {
+			const searchResult = await iterableResult.value;
+			expect(searchResult.hits).toBeDefined();
+			expect(searchResult.facets).toBeDefined();
+			bookCounter += searchResult.hits.length;
+			iterableResult = await searchIterator.next();
+		}
+		expect(bookCounter).toBe(TestTigrisService.BOOKS_B64_BY_ID.size);
 	});
 
 	it("beginTx", () => {
@@ -624,7 +605,7 @@ describe("rpc tests", () => {
 		});
 	});
 
-	it ("publish", () => {
+	it("publish", () => {
 		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
 		const db = tigris.getDatabase("test_db");
 		const topic = db.getTopic<Alert>("test_topic");
@@ -643,7 +624,7 @@ describe("rpc tests", () => {
 		return promise;
 	});
 
-	it ("subscribe", (done) => {
+	it("subscribe", (done) => {
 		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
 		const db = tigris.getDatabase("test_db");
 		const topic = db.getTopic<Alert>("test_topic");
@@ -666,7 +647,7 @@ describe("rpc tests", () => {
 		});
 	});
 
-	it ("subscribeWithFilter", (done) => {
+	it("subscribeWithFilter", (done) => {
 		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
 		const db = tigris.getDatabase("test_db");
 		const topic = db.getTopic<Alert>("test_topic");
@@ -679,23 +660,23 @@ describe("rpc tests", () => {
 				}
 			},
 			{
-			onNext(alert: Alert) {
-				expect(alert.id).toBe(34);
-				expect(alert.text).toBe("test");
-				expect(success).toBe(true);
-				done();
-			},
-			onEnd() {
-				// not expected to be called
-			},
-			// eslint-disable-next-line @typescript-eslint/no-unused-vars
-			onError(error: Error) {
-				success = false;
-			}
-		});
+				onNext(alert: Alert) {
+					expect(alert.id).toBe(34);
+					expect(alert.text).toBe("test");
+					expect(success).toBe(true);
+					done();
+				},
+				onEnd() {
+					// not expected to be called
+				},
+				// eslint-disable-next-line @typescript-eslint/no-unused-vars
+				onError(error: Error) {
+					success = false;
+				}
+			});
 	});
 
-	it ("subscribeToPartitions", (done) => {
+	it("subscribeToPartitions", (done) => {
 		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
 		const db = tigris.getDatabase("test_db");
 		const topic = db.getTopic<Alert>("test_topic");

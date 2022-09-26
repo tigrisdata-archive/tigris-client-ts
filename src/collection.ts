@@ -10,8 +10,6 @@ import {
 	ReadRequestOptions as ProtoReadRequestOptions,
 	ReadResponse as ProtoReadResponse,
 	ReplaceRequest as ProtoReplaceRequest,
-	Collation,
-	SearchRequest as ProtoSearchRequest,
 	SearchResponse as ProtoSearchResponse,
 	UpdateRequest as ProtoUpdateRequest,
 } from "./proto/server/v1/api_pb";
@@ -37,29 +35,9 @@ import {
 	UpdateResponse,
 } from "./types";
 import { Utility } from "./utility";
-import {
-	MATCH_ALL_QUERY_STRING,
-	SearchRequest,
-	SearchRequestOptions,
-	SearchResult,
-} from "./search/types";
+import { SearchRequest, SearchRequestOptions, SearchResult } from "./search/types";
 import { TigrisClientConfig } from "./tigris";
-
-export interface ReaderCallback<T> {
-	onNext(doc: T): void;
-
-	onEnd(): void;
-
-	onError(error: Error): void;
-}
-
-export interface SearchResultCallback<T> {
-	onNext(result: SearchResult<T>): void;
-
-	onEnd(): void;
-
-	onError(error: Error): void;
-}
+import { Cursor, ReadCursorInitializer } from "./cursor/cursor";
 
 export interface EventsCallback<T> {
 	onNext(event: StreamEvent<T>): void;
@@ -235,44 +213,16 @@ export class Collection<T extends TigrisCollectionType> {
 	}
 
 	findMany(
-		filter: SelectorFilter<T> | LogicalFilter<T> | Selector<T>,
+		filter?: SelectorFilter<T> | LogicalFilter<T> | Selector<T>,
 		readFields?: ReadFields,
 		tx?: Session,
 		options?: ReadRequestOptions
-	): Promise<Array<T>> {
-		return new Promise<Array<T>>((resolve, reject) => {
-			if (options === undefined) {
-				options = new ReadRequestOptions();
-			}
-			const result: Array<T> = new Array<T>();
-			this.findManyStream(
-				filter,
-				{
-					onEnd() {
-						resolve(result);
-					},
-					onNext(item: T) {
-						result.push(item);
-					},
-					// eslint-disable-next-line @typescript-eslint/no-unused-vars
-					onError(_error: Error) {
-						reject(_error);
-					},
-				},
-				readFields,
-				tx,
-				options
-			);
-		});
-	}
+	): Cursor<T> {
+		// find all
+		if (filter === undefined) {
+			filter = { op: SelectorFilterOperator.NONE };
+		}
 
-	findManyStream(
-		filter: SelectorFilter<T> | LogicalFilter<T> | Selector<T>,
-		reader: ReaderCallback<T>,
-		readFields?: ReadFields,
-		tx?: Session,
-		options?: ReadRequestOptions
-	) {
 		const readRequest = new ProtoReadRequest()
 			.setDb(this._db)
 			.setCollection(this._collectionName)
@@ -286,84 +236,52 @@ export class Collection<T extends TigrisCollectionType> {
 			readRequest.setOptions(Utility._readRequestOptionsToProtoReadRequestOptions(options));
 		}
 
-		const stream: grpc.ClientReadableStream<ProtoReadResponse> = this.grpcClient.read(
-			readRequest,
-			Utility.txToMetadata(tx)
-		);
-
-		stream.on("data", (readResponse: ProtoReadResponse) => {
-			const doc: T = Utility.jsonStringToObj<T>(
-				Utility._base64Decode(readResponse.getData_asB64()),
-				this.config
-			);
-			reader.onNext(doc);
-		});
-
-		stream.on("error", (error) => reader.onError(error));
-		stream.on("end", () => reader.onEnd());
-	}
-
-	findAllStream(reader: ReaderCallback<T>, readFields?: ReadFields) {
-		this.findManyStream(
-			{
-				op: SelectorFilterOperator.NONE,
-			},
-			reader,
-			readFields
-		);
+		const initializer = new ReadCursorInitializer(this.grpcClient, readRequest, tx);
+		return new Cursor<T>(initializer, this.config);
 	}
 
 	search(
 		request: SearchRequest<T>,
-		reader: SearchResultCallback<T>,
 		options?: SearchRequestOptions
-	) {
-		const searchRequest = new ProtoSearchRequest()
-			.setDb(this._db)
-			.setCollection(this._collectionName)
-			.setQ(request.q ?? MATCH_ALL_QUERY_STRING);
-
-		if (request.searchFields !== undefined) {
-			searchRequest.setSearchFieldsList(request.searchFields);
-		}
-
-		if (request.filter !== undefined) {
-			searchRequest.setFilter(Utility.stringToUint8Array(Utility.filterToString(request.filter)));
-		}
-
-		if (request.facets !== undefined) {
-			searchRequest.setFacet(
-				Utility.stringToUint8Array(Utility.facetQueryToString(request.facets))
+	): Promise<SearchResult<T> | undefined> {
+		return new Promise<SearchResult<T>>((resolve, reject) => {
+			const searchRequest = Utility.createProtoSearchRequest(
+				this._db,
+				this.collectionName,
+				request,
+				// note: explicit page number is required to signal manual pagination
+				Utility.createSearchRequestOptions(options)
 			);
-		}
+			const stream: grpc.ClientReadableStream<ProtoSearchResponse> =
+				this.grpcClient.search(searchRequest);
 
-		if (request.sort !== undefined) {
-			searchRequest.setSort(Utility.stringToUint8Array(Utility.sortOrderingToString(request.sort)));
-		}
+			stream.on("data", (searchResponse: ProtoSearchResponse) => {
+				const searchResult: SearchResult<T> = SearchResult.from(searchResponse, this.config);
+				resolve(searchResult);
+			});
+			stream.on("error", (error) => reject(error));
+			stream.on("end", () => resolve(undefined));
+		});
+	}
 
-		if (request.includeFields !== undefined) {
-			searchRequest.setIncludeFieldsList(request.includeFields);
-		}
-
-		if (request.excludeFields !== undefined) {
-			searchRequest.setIncludeFieldsList(request.excludeFields);
-		}
-
-		if (options !== undefined) {
-			searchRequest.setPage(options.page).setPageSize(options.perPage);
-			if (options.collation !== undefined) {
-				searchRequest.setCollation(new Collation().setCase(options.collation.case));
-			}
-		}
-
+	async *searchStream(
+		request: SearchRequest<T>,
+		options?: SearchRequestOptions
+	): AsyncIterableIterator<SearchResult<T>> {
+		const searchRequest = Utility.createProtoSearchRequest(
+			this._db,
+			this.collectionName,
+			request,
+			options
+		);
 		const stream: grpc.ClientReadableStream<ProtoSearchResponse> =
 			this.grpcClient.search(searchRequest);
-		stream.on("data", (searchResponse: ProtoSearchResponse) => {
+
+		for await (const searchResponse of stream) {
 			const searchResult: SearchResult<T> = SearchResult.from(searchResponse, this.config);
-			reader.onNext(searchResult);
-		});
-		stream.on("error", (error) => reader.onError(error));
-		stream.on("end", () => reader.onEnd());
+			yield searchResult;
+		}
+		return;
 	}
 
 	delete(
