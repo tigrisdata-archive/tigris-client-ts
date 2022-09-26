@@ -10,6 +10,7 @@ import {
 	SearchResponse as ProtoSearchResponse,
 } from "../proto/server/v1/api_pb";
 import { Utility } from "../utility";
+import { TigrisClientConfig } from "../tigris";
 
 export const MATCH_ALL_QUERY_STRING = "";
 
@@ -183,10 +184,10 @@ export class SearchResult<T> {
 		return this._meta;
 	}
 
-	static from<T>(resp: ProtoSearchResponse): SearchResult<T> {
+	static from<T>(resp: ProtoSearchResponse, config: TigrisClientConfig): SearchResult<T> {
 		const _meta =
 			typeof resp?.getMeta() !== "undefined" ? SearchMeta.from(resp.getMeta()) : undefined;
-		const _hits: Array<Hit<T>> = resp.getHitsList().map((h) => Hit.from(h));
+		const _hits: Array<Hit<T>> = resp.getHitsList().map((h) => Hit.from(h, config));
 		const _facets: Map<string, FacetCountDistribution> = new Map(
 			resp
 				.getFacetsMap()
@@ -229,8 +230,11 @@ export class Hit<T extends TigrisCollectionType> {
 		return this._meta;
 	}
 
-	static from<T>(resp: ProtoSearchHit): Hit<T> {
-		const document = Utility.jsonStringToObj<T>(Utility._base64Decode(resp.getData_asB64()));
+	static from<T>(resp: ProtoSearchHit, config: TigrisClientConfig): Hit<T> {
+		const document = Utility.jsonStringToObj<T>(
+			Utility._base64Decode(resp.getData_asB64()),
+			config
+		);
 		const meta = resp.hasMetadata() ? HitMeta.from(resp.getMetadata()) : undefined;
 		return new Hit<T>(document, meta);
 	}

@@ -26,7 +26,9 @@ describe("SearchResponse parsing", () => {
 		);
 		const input: ProtoSearchResponse = new ProtoSearchResponse();
 		input.setHitsList(expectedHits);
-		const parsed: SearchResult<IBook> = SearchResult.from(input);
+		const parsed: SearchResult<IBook> = SearchResult.from(input, {
+			serverUrl: "test"
+		});
 
 		expect(parsed.hits).toHaveLength(expectedHits.length);
 		const receivedIds: string[] = parsed.hits.map(h => h.document.id.toString());
@@ -46,7 +48,7 @@ describe("SearchResponse parsing", () => {
 		const searchFacet = new ProtoSearchFacet().setCountsList(
 			[new ProtoFacetCount().setCount(2).setValue("Marcel Proust")]);
 		input.getFacetsMap().set("author", searchFacet);
-		const parsed: SearchResult<unknown> = SearchResult.from(input);
+		const parsed: SearchResult<unknown> = SearchResult.from(input, {serverUrl: "test"});
 
 		expect(parsed.facets.size).toBe(1);
 		expect(parsed.facets.get("author")).toBeDefined();
@@ -63,7 +65,7 @@ describe("SearchResponse parsing", () => {
 		const input: ProtoSearchResponse = new ProtoSearchResponse();
 		const searchFacet = new ProtoSearchFacet().setStats(new ProtoFacetStats().setAvg(4.5));
 		input.getFacetsMap().set("author", searchFacet);
-		const parsed: SearchResult<unknown> = SearchResult.from(input);
+		const parsed: SearchResult<unknown> = SearchResult.from(input, {serverUrl: "test"});
 
 		const facetDistribution = parsed.facets.get("author");
 		expect(facetDistribution.stats).toBeDefined();
@@ -76,7 +78,7 @@ describe("SearchResponse parsing", () => {
 
 	it("generates empty result with empty response", () => {
 		const input: ProtoSearchResponse = new ProtoSearchResponse();
-		const parsed: SearchResult<unknown> = SearchResult.from(input);
+		const parsed: SearchResult<unknown> = SearchResult.from(input, {serverUrl: "test"});
 
 		expect(parsed).toBeDefined();
 		expect(parsed.hits).toBeDefined();
@@ -89,7 +91,7 @@ describe("SearchResponse parsing", () => {
 	it("generates default meta values with empty meta", () => {
 		const input: ProtoSearchResponse = new ProtoSearchResponse();
 		input.setMeta(new ProtoSearchMetadata());
-		const parsed: SearchResult<unknown> = SearchResult.from(input);
+		const parsed: SearchResult<unknown> = SearchResult.from(input, {serverUrl: "test"});
 
 		expect(parsed.meta).toBeDefined();
 		expect(parsed.meta.found).toBe(0);
@@ -100,7 +102,7 @@ describe("SearchResponse parsing", () => {
 	it("generates no page values with empty page", () => {
 		const input: ProtoSearchResponse = new ProtoSearchResponse();
 		input.setMeta(new ProtoSearchMetadata().setFound(5));
-		const parsed: SearchResult<unknown> = SearchResult.from(input);
+		const parsed: SearchResult<unknown> = SearchResult.from(input, {serverUrl: "test"});
 
 		expect(parsed.meta.found).toBe(5);
 		expect(parsed.meta.totalPages).toBe(0);
@@ -111,7 +113,7 @@ describe("SearchResponse parsing", () => {
 		const input: ProtoSearchResponse = new ProtoSearchResponse();
 		const page: ProtoPage = new ProtoPage().setSize(3).setCurrent(2);
 		input.setMeta(new ProtoSearchMetadata().setPage(page).setTotalPages(100));
-		const parsed: SearchResult<unknown> = SearchResult.from(input);
+		const parsed: SearchResult<unknown> = SearchResult.from(input, {serverUrl: "test"});
 
 		expect(parsed.meta.page.size).toBe(3);
 		expect(parsed.meta.page.current).toBe(2);

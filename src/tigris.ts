@@ -36,19 +36,28 @@ export interface TigrisClientConfig {
 	insecureChannel?: boolean;
 	clientId?: string;
 	clientSecret?: string;
+	/**
+	 * Tigris uses custom deserialization to support `bigint`. By default, the `bigint` from JSON
+	 * string will be converted back to model object as a `string` field. If user wants to
+	 * convert it back to `bigint`, set this property to `true`.
+	 */
+	supportBigInt?: boolean;
 }
 
 class TokenSupplier {
-	private clientId: string;
-	private clientSecret: string;
+	private readonly clientId: string;
+	private readonly clientSecret: string;
+	private readonly authClient: AuthClient;
+	private readonly config: TigrisClientConfig;
+
 	private accessToken: string;
 	private nextRefreshTime: number;
-	private authClient: AuthClient;
 
 	constructor(config: TigrisClientConfig) {
 		this.authClient = new AuthClient(config.serverUrl, grpc.credentials.createSsl());
 		this.clientId = config.clientId;
 		this.clientSecret = config.clientSecret;
+		this.config = config;
 	}
 
 	getAccessToken(): Promise<string> {
@@ -68,7 +77,9 @@ class TokenSupplier {
 
 							// retrieve exp
 							const parts: string[] = this.accessToken.split(".");
-							const exp = Number(Utility.jsonStringToObj(Utility._base64Decode(parts[1]))["exp"]);
+							const exp = Number(
+								Utility.jsonStringToObj(Utility._base64Decode(parts[1]), this.config)["exp"]
+							);
 							// 5 min before expiry (note: exp is in seconds)
 							// add random jitter of 1-5 min (i.e. 60000 - 300000 ms)
 							this.nextRefreshTime =
@@ -90,14 +101,16 @@ class TokenSupplier {
 		return Date.now() >= this.nextRefreshTime;
 	}
 }
+
 const DEFAULT_GRPC_PORT = 443;
 
 /**
  * Tigris client
  */
 export class Tigris {
-	grpcClient: TigrisClient;
-	observabilityClient: ObservabilityClient;
+	private readonly grpcClient: TigrisClient;
+	private readonly observabilityClient: ObservabilityClient;
+	private readonly config: TigrisClientConfig;
 
 	/**
 	 *
@@ -107,7 +120,7 @@ export class Tigris {
 		if (!config.serverUrl.includes(":")) {
 			config.serverUrl = config.serverUrl + ":" + DEFAULT_GRPC_PORT;
 		}
-
+		this.config = config;
 		if (config.insecureChannel === true && config.clientSecret === undefined) {
 			// no auth & insecure channel
 			this.grpcClient = new TigrisClient(config.serverUrl, grpc.credentials.createInsecure());
@@ -188,7 +201,7 @@ export class Tigris {
 					if (error && error.code != status.ALREADY_EXISTS) {
 						reject(error);
 					} else {
-						resolve(new DB(db, this.grpcClient));
+						resolve(new DB(db, this.grpcClient, this.config));
 					}
 				}
 			);
@@ -212,7 +225,7 @@ export class Tigris {
 	}
 
 	public getDatabase(db: string): DB {
-		return new DB(db, this.grpcClient);
+		return new DB(db, this.grpcClient, this.config);
 	}
 
 	public getServerMetadata(): Promise<ServerMetadata> {
