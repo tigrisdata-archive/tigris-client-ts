@@ -407,6 +407,15 @@ export enum TigrisDataTypes {
 	STRING = "string",
 	BOOLEAN = "boolean",
 	INT32 = "int32",
+	/**
+	 * Due to Javascript's limitation if you want to use int64 with values greater than 53bits
+	 * then use bigint or string in your model (data container interface) schema will still say
+	 * INT64. If you are using default serializer/deserializer
+	 * in your application use it as `string`. server will still keep it as `int64`.
+	 *
+	 * If you have no serde else where in the app or all the serde are handling bigint properly
+	 * then use bigint.
+	 */
 	INT64 = "int64",
 	NUMBER = "number",
 	NUMBER_BIGINT = "bigint",
