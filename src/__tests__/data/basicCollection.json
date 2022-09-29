@@ -8,6 +8,9 @@
       "format": "int32",
       "autoGenerate": true
     },
+    "active": {
+      "type": "boolean"
+    },
     "name": {
       "type": "string"
     },

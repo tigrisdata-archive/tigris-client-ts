@@ -17,6 +17,7 @@ import {
 	TigrisTopicType,
 } from "./types";
 import { Utility } from "./utility";
+import { TigrisClientConfig } from "./tigris";
 
 export interface SubscribeCallback<T> {
 	onNext(message: T): void;
@@ -30,11 +31,13 @@ export class Topic<T extends TigrisTopicType> {
 	private readonly _topicName: string;
 	private readonly _db: string;
 	private readonly _grpcClient: TigrisClient;
+	private readonly config: TigrisClientConfig;
 
-	constructor(topicName: string, db: string, grpcClient: TigrisClient) {
+	constructor(topicName: string, db: string, grpcClient: TigrisClient, config: TigrisClientConfig) {
 		this._topicName = topicName;
 		this._db = db;
 		this._grpcClient = grpcClient;
+		this.config = config;
 	}
 
 	get topicName(): string {
@@ -69,7 +72,8 @@ export class Topic<T extends TigrisTopicType> {
 
 						for (const value of response.getKeysList_asU8()) {
 							const keyValueJsonObj: object = Utility.jsonStringToObj(
-								Utility.uint8ArrayToString(value)
+								Utility.uint8ArrayToString(value),
+								this.config
 							);
 							for (const fieldName of Object.keys(keyValueJsonObj)) {
 								Reflect.set(clonedMessages[messageIndex], fieldName, keyValueJsonObj[fieldName]);
@@ -125,7 +129,8 @@ export class Topic<T extends TigrisTopicType> {
 
 		stream.on("data", (subscribeResponse: ProtoSubscribeResponse) => {
 			const message: T = Utility.jsonStringToObj<T>(
-				Utility._base64Decode(subscribeResponse.getMessage_asB64())
+				Utility._base64Decode(subscribeResponse.getMessage_asB64()),
+				this.config
 			);
 			callback.onNext(message);
 		});

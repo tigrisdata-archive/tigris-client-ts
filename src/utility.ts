@@ -1,6 +1,7 @@
 import { Metadata } from "@grpc/grpc-js";
 import json_bigint from "json-bigint";
 import { Session } from "./session";
+
 import {
 	CollectionType,
 	LogicalFilter,
@@ -20,6 +21,7 @@ import {
 import * as fs from "node:fs";
 import { FacetFieldsQuery, FacetQueryFieldType, FacetQueryOptions, Ordering } from "./search/types";
 import { Collation, ReadRequestOptions as ProtoReadRequestOptions } from "./proto/server/v1/api_pb";
+import { TigrisClientConfig } from "./tigris";
 
 export const Utility = {
 	stringToUint8Array(input: string): Uint8Array {
@@ -139,15 +141,33 @@ export const Utility = {
 			});
 		}
 	},
-
-	objToJsonString(obj: unknown): string {
+	// eslint-disable-next-line @typescript-eslint/ban-types
+	objToJsonString(obj: object): string {
 		const JSONbigNative = json_bigint({ useNativeBigInt: true });
 		return JSONbigNative.stringify(obj);
 	},
-
-	jsonStringToObj<T>(json: string): T {
+	/**
+	 * Tigris uses custom deserialization to support `bigint`. By default the `bigint` from JSON
+	 * string will be converted back to model object as a `string` field. If user wants to
+	 * convert it back to `bigint`, the client config has to have `supportBigInt` set to `true`.
+	 *
+	 * Javascript's native way of ser/de (JSON.stringify(), JSON.parse()) doesn't support bigint
+	 * yet. If the model object used in other parts of the application that depends on native
+	 * JSON serde mechanism - you might want to continue using it as `string`.
+	 *
+	 *
+	 * @param json string representation of JSON object
+	 * @param config Tigris client config instance
+	 */
+	jsonStringToObj<T>(json: string, config: TigrisClientConfig): T {
 		const JSONbigNative = json_bigint({ useNativeBigInt: true });
-		return JSONbigNative.parse(json);
+		return JSONbigNative.parse(json, (k, v) => {
+			// convert bigint to string based on configuration
+			if (typeof v === "bigint" && (config.supportBigInt === undefined || !config.supportBigInt)) {
+				return v.toString();
+			}
+			return v;
+		});
 	},
 	txToMetadata(tx: Session): Metadata {
 		const metadata = new Metadata();
@@ -328,6 +348,8 @@ export const Utility = {
 
 	_getType(fieldType: TigrisDataTypes): string {
 		switch (fieldType.valueOf()) {
+			case TigrisDataTypes.BOOLEAN:
+				return "boolean";
 			case TigrisDataTypes.INT32:
 			case TigrisDataTypes.INT64:
 			case TigrisDataTypes.NUMBER_BIGINT:
@@ -363,7 +385,9 @@ export const Utility = {
 
 	_readTestDataFile(path: string): string {
 		return Utility.objToJsonString(
-			Utility.jsonStringToObj(fs.readFileSync("src/__tests__/data/" + path, "utf8"))
+			Utility.jsonStringToObj(fs.readFileSync("src/__tests__/data/" + path, "utf8"), {
+				serverUrl: "test",
+			})
 		);
 	},
 

@@ -12,6 +12,9 @@ describe("schema tests", () => {
 					autoGenerate: true
 				}
 			},
+			active: {
+				type: TigrisDataTypes.BOOLEAN
+			},
 			name: {
 				type: TigrisDataTypes.STRING
 			},
@@ -62,6 +65,9 @@ describe("schema tests", () => {
 				primary_key: {
 					order: 2, // intentionally the order is skewed to test
 				}
+			},
+			active: {
+				type: TigrisDataTypes.BOOLEAN
 			},
 			name: {
 				type: TigrisDataTypes.STRING
@@ -314,10 +320,11 @@ describe("schema tests", () => {
 
 interface BasicCollection extends TigrisCollectionType {
 	id: number;
+	active: boolean;
 	name: string;
 	uuid: string;
 	int32Number: number;
-	int64Number: number;
+	int64Number: string;
 	date: string;
 	bytes: string;
 }

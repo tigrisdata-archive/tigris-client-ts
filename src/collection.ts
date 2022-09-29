@@ -43,6 +43,7 @@ import {
 	SearchRequestOptions,
 	SearchResult,
 } from "./search/types";
+import { TigrisClientConfig } from "./tigris";
 
 export interface ReaderCallback<T> {
 	onNext(doc: T): void;
@@ -71,12 +72,19 @@ export interface EventsCallback<T> {
 export class Collection<T extends TigrisCollectionType> {
 	private readonly _collectionName: string;
 	private readonly _db: string;
-	private readonly _grpcClient: TigrisClient;
+	private readonly grpcClient: TigrisClient;
+	private readonly config: TigrisClientConfig;
 
-	constructor(collectionName: string, db: string, grpcClient: TigrisClient) {
+	constructor(
+		collectionName: string,
+		db: string,
+		grpcClient: TigrisClient,
+		config: TigrisClientConfig
+	) {
 		this._collectionName = collectionName;
 		this._db = db;
-		this._grpcClient = grpcClient;
+		this.grpcClient = grpcClient;
+		this.config = config;
 	}
 
 	get collectionName(): string {
@@ -96,7 +104,7 @@ export class Collection<T extends TigrisCollectionType> {
 				.setCollection(this._collectionName)
 				.setDocumentsList(docsArray);
 
-			this._grpcClient.insert(
+			this.grpcClient.insert(
 				protoRequest,
 				Utility.txToMetadata(tx),
 				(error: grpc.ServiceError, response: server_v1_api_pb.InsertResponse): void => {
@@ -108,7 +116,8 @@ export class Collection<T extends TigrisCollectionType> {
 
 						for (const value of response.getKeysList_asU8()) {
 							const keyValueJsonObj: object = Utility.jsonStringToObj(
-								Utility.uint8ArrayToString(value)
+								Utility.uint8ArrayToString(value),
+								this.config
 							);
 							for (const fieldName of Object.keys(keyValueJsonObj)) {
 								Reflect.set(clonedDocs[docIndex], fieldName, keyValueJsonObj[fieldName]);
@@ -139,7 +148,7 @@ export class Collection<T extends TigrisCollectionType> {
 	insertOrReplaceMany(
 		docs: Array<T>,
 		tx?: Session,
-		options?: InsertOrReplaceOptions // eslint-disable-line @typescript-eslint/no-unused-vars
+		_options?: InsertOrReplaceOptions // eslint-disable-line @typescript-eslint/no-unused-vars
 	): Promise<Array<T>> {
 		return new Promise<Array<T>>((resolve, reject) => {
 			const docsArray = new Array<Uint8Array | string>();
@@ -151,7 +160,7 @@ export class Collection<T extends TigrisCollectionType> {
 				.setCollection(this._collectionName)
 				.setDocumentsList(docsArray);
 
-			this._grpcClient.replace(
+			this.grpcClient.replace(
 				protoRequest,
 				Utility.txToMetadata(tx),
 				(error: grpc.ServiceError, response: server_v1_api_pb.ReplaceResponse): void => {
@@ -162,7 +171,8 @@ export class Collection<T extends TigrisCollectionType> {
 						const clonedDocs: T[] = Object.assign([], docs);
 						for (const value of response.getKeysList_asU8()) {
 							const keyValueJsonObj: object = Utility.jsonStringToObj(
-								Utility.uint8ArrayToString(value)
+								Utility.uint8ArrayToString(value),
+								this.config
 							);
 							for (const fieldName of Object.keys(keyValueJsonObj)) {
 								Reflect.set(clonedDocs[docIndex], fieldName, keyValueJsonObj[fieldName]);
@@ -202,13 +212,16 @@ export class Collection<T extends TigrisCollectionType> {
 				readRequest.setFields(Utility.stringToUint8Array(Utility.readFieldString(readFields)));
 			}
 
-			const stream: grpc.ClientReadableStream<ProtoReadResponse> = this._grpcClient.read(
+			const stream: grpc.ClientReadableStream<ProtoReadResponse> = this.grpcClient.read(
 				readRequest,
 				Utility.txToMetadata(tx)
 			);
 
 			stream.on("data", (readResponse: ProtoReadResponse) => {
-				const doc = JSON.parse(Utility._base64Decode(readResponse.getData_asB64()));
+				const doc: T = Utility.jsonStringToObj(
+					Utility._base64Decode(readResponse.getData_asB64()),
+					this.config
+				);
 				resolve(doc);
 			});
 
@@ -273,14 +286,15 @@ export class Collection<T extends TigrisCollectionType> {
 			readRequest.setOptions(Utility._readRequestOptionsToProtoReadRequestOptions(options));
 		}
 
-		const stream: grpc.ClientReadableStream<ProtoReadResponse> = this._grpcClient.read(
+		const stream: grpc.ClientReadableStream<ProtoReadResponse> = this.grpcClient.read(
 			readRequest,
 			Utility.txToMetadata(tx)
 		);
 
 		stream.on("data", (readResponse: ProtoReadResponse) => {
 			const doc: T = Utility.jsonStringToObj<T>(
-				Utility._base64Decode(readResponse.getData_asB64())
+				Utility._base64Decode(readResponse.getData_asB64()),
+				this.config
 			);
 			reader.onNext(doc);
 		});
@@ -343,9 +357,9 @@ export class Collection<T extends TigrisCollectionType> {
 		}
 
 		const stream: grpc.ClientReadableStream<ProtoSearchResponse> =
-			this._grpcClient.search(searchRequest);
+			this.grpcClient.search(searchRequest);
 		stream.on("data", (searchResponse: ProtoSearchResponse) => {
-			const searchResult: SearchResult<T> = SearchResult.from(searchResponse);
+			const searchResult: SearchResult<T> = SearchResult.from(searchResponse, this.config);
 			reader.onNext(searchResult);
 		});
 		stream.on("error", (error) => reader.onError(error));
@@ -367,7 +381,7 @@ export class Collection<T extends TigrisCollectionType> {
 				.setCollection(this._collectionName)
 				.setFilter(Utility.stringToUint8Array(Utility.filterToString(filter)));
 
-			this._grpcClient.delete(deleteRequest, Utility.txToMetadata(tx), (error, response) => {
+			this.grpcClient.delete(deleteRequest, Utility.txToMetadata(tx), (error, response) => {
 				if (error) {
 					reject(error);
 				} else {
@@ -395,7 +409,7 @@ export class Collection<T extends TigrisCollectionType> {
 				.setFilter(Utility.stringToUint8Array(Utility.filterToString(filter)))
 				.setFields(Utility.stringToUint8Array(Utility.updateFieldsString(fields)));
 
-			this._grpcClient.update(updateRequest, Utility.txToMetadata(tx), (error, response) => {
+			this.grpcClient.update(updateRequest, Utility.txToMetadata(tx), (error, response) => {
 				if (error) {
 					reject(error);
 				} else {
@@ -419,7 +433,7 @@ export class Collection<T extends TigrisCollectionType> {
 			.setCollection(this._collectionName);
 
 		const stream: grpc.ClientReadableStream<ProtoEventsResponse> =
-			this._grpcClient.events(eventsRequest);
+			this.grpcClient.events(eventsRequest);
 
 		stream.on("data", (eventsResponse: ProtoEventsResponse) => {
 			const event = eventsResponse.getEvent();
@@ -428,7 +442,7 @@ export class Collection<T extends TigrisCollectionType> {
 					event.getTxId_asB64(),
 					event.getCollection(),
 					event.getOp(),
-					Utility.jsonStringToObj<T>(Utility._base64Decode(event.getData_asB64())),
+					Utility.jsonStringToObj<T>(Utility._base64Decode(event.getData_asB64()), this.config),
 					event.getLast()
 				)
 			);

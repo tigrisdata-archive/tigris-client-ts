@@ -28,6 +28,7 @@ import { Session } from "./session";
 import { Utility } from "./utility";
 import { Metadata, ServiceError } from "@grpc/grpc-js";
 import { Topic } from "./topic";
+import { TigrisClientConfig } from "./tigris";
 
 /**
  * Tigris Database
@@ -39,10 +40,12 @@ const BeginTransactionMethodName = "/tigrisdata.v1.Tigris/BeginTransaction";
 export class DB {
 	private readonly _db: string;
 	private readonly grpcClient: TigrisClient;
+	private readonly config: TigrisClientConfig;
 
-	constructor(db: string, grpcClient: TigrisClient) {
+	constructor(db: string, grpcClient: TigrisClient, config: TigrisClientConfig) {
 		this._db = db;
 		this.grpcClient = grpcClient;
+		this.config = config;
 	}
 
 	public createOrUpdateCollection<T extends TigrisCollectionType>(
@@ -53,7 +56,7 @@ export class DB {
 			collectionName,
 			CollectionType.DOCUMENTS,
 			schema,
-			() => new Collection(collectionName, this._db, this.grpcClient)
+			() => new Collection(collectionName, this._db, this.grpcClient, this.config)
 		);
 	}
 
@@ -65,7 +68,7 @@ export class DB {
 			topicName,
 			CollectionType.MESSAGES,
 			schema,
-			() => new Topic(topicName, this._db, this.grpcClient)
+			() => new Topic(topicName, this._db, this.grpcClient, this.config)
 		);
 	}
 
@@ -167,11 +170,11 @@ export class DB {
 	}
 
 	public getCollection<T>(collectionName: string): Collection<T> {
-		return new Collection<T>(collectionName, this.db, this.grpcClient);
+		return new Collection<T>(collectionName, this.db, this.grpcClient, this.config);
 	}
 
 	public getTopic<T>(topicName: string): Topic<T> {
-		return new Topic<T>(topicName, this.db, this.grpcClient);
+		return new Topic<T>(topicName, this.db, this.grpcClient, this.config);
 	}
 
 	public transact(fn: (tx: Session) => void): Promise<TransactionResponse> {

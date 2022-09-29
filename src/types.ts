@@ -405,6 +405,7 @@ export type SimpleUpdateField = {
 
 export enum TigrisDataTypes {
 	STRING = "string",
+	BOOLEAN = "boolean",
 	INT32 = "int32",
 	INT64 = "int64",
 	NUMBER = "number",
