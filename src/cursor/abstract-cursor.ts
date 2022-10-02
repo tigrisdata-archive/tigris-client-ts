@@ -1,6 +1,7 @@
 import * as proto from "google-protobuf";
 import { ClientReadableStream } from "@grpc/grpc-js";
 import { TigrisCursorInUseError } from "../error";
+import { Readable } from "node:stream";
 
 /** @internal */
 export interface Initializer<TResp extends proto.Message> {
@@ -40,8 +41,17 @@ export abstract class AbstractCursor<T, TResp extends proto.Message> {
 		this[tClosed] = true;
 	}
 
+	/** @internal */
+	private async *next(): AsyncIterableIterator<T> {
+		this._assertNotInUse();
+		for await (const message of this[tStream]) {
+			yield this._transform(message);
+		}
+		return;
+	}
+
 	/**
-	 * Returns a stream of documents to iterate on
+	 * Returns a {@link Readable} stream of documents to iterate on
 	 *
 	 * Usage:
 	 * const cursor = myCollection.find();
@@ -52,12 +62,8 @@ export abstract class AbstractCursor<T, TResp extends proto.Message> {
 	 * @throws {@link TigrisCursorInUseError} - if cursor is being consumed or has been consumed.
 	 * @see {@link reset()} to re-use a cursor.
 	 */
-	async *stream(): AsyncIterableIterator<T> {
-		this._assertNotInUse();
-		for await (const message of this[tStream]) {
-			yield this._transform(message);
-		}
-		return;
+	stream(): Readable {
+		return Readable.from(this.next());
 	}
 
 	/**
@@ -73,7 +79,7 @@ export abstract class AbstractCursor<T, TResp extends proto.Message> {
 	 * @see {@link reset()} to re-use a cursor.
 	 */
 	[Symbol.asyncIterator](): AsyncIterableIterator<T> {
-		return this.stream()[Symbol.asyncIterator]();
+		return this.next()[Symbol.asyncIterator]();
 	}
 
 	/**

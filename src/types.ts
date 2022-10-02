@@ -189,7 +189,37 @@ export class UpdateResponse extends DMLResponse {
 
 export class WriteOptions {}
 
-export class DeleteRequestOptions {}
+export class DeleteRequestOptions {
+	private _collation: Collation;
+
+	constructor(collation: Collation) {
+		this._collation = collation;
+	}
+
+	get collation(): Collation {
+		return this._collation;
+	}
+
+	set collation(value: Collation) {
+		this._collation = value;
+	}
+}
+
+export class UpdateRequestOptions {
+	private _collation: Collation;
+
+	constructor(collation: Collation) {
+		this._collation = collation;
+	}
+
+	get collation(): Collation {
+		return this._collation;
+	}
+
+	set collation(value: Collation) {
+		this._collation = value;
+	}
+}
 
 export class ReadRequestOptions {
 	static DEFAULT_LIMIT = 100;
@@ -243,11 +273,7 @@ export class ReadRequestOptions {
 	}
 }
 
-export class UpdateRequestOptions {}
-
 export class TransactionOptions {}
-
-export class EventsRequestOptions {}
 
 export class StreamEvent<T> {
 	private readonly _txId: string;
@@ -303,8 +329,6 @@ export class TransactionResponse extends TigrisResponse {
 	}
 }
 
-export class InsertOptions {}
-
 export class PublishOptions {
 	private _partition: number;
 
@@ -336,8 +360,6 @@ export class SubscribeOptions {
 		this._partitions = value;
 	}
 }
-
-export class InsertOrReplaceOptions {}
 
 export class ServerMetadata {
 	private readonly _serverVersion: string;
@@ -494,3 +516,5 @@ export type SelectorFilter<T> = Partial<{
 	op?: SelectorFilterOperator;
 	fields: Selector<T>;
 }>;
+
+export type Filter<T> = SelectorFilter<T> | LogicalFilter<T> | Selector<T>;

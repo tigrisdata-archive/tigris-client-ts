@@ -7,8 +7,6 @@ import {
 	EventsResponse as ProtoEventsResponse,
 	InsertRequest as ProtoInsertRequest,
 	ReadRequest as ProtoReadRequest,
-	ReadRequestOptions as ProtoReadRequestOptions,
-	ReadResponse as ProtoReadResponse,
 	ReplaceRequest as ProtoReplaceRequest,
 	SearchResponse as ProtoSearchResponse,
 	UpdateRequest as ProtoUpdateRequest,
@@ -18,14 +16,9 @@ import {
 	DeleteRequestOptions,
 	DeleteResponse,
 	DMLMetadata,
-	EventsRequestOptions,
-	InsertOptions,
-	InsertOrReplaceOptions,
-	LogicalFilter,
+	Filter,
 	ReadFields,
 	ReadRequestOptions,
-	Selector,
-	SelectorFilter,
 	SelectorFilterOperator,
 	SimpleUpdateField,
 	StreamEvent,
@@ -39,14 +32,41 @@ import { SearchRequest, SearchRequestOptions, SearchResult } from "./search/type
 import { TigrisClientConfig } from "./tigris";
 import { Cursor, ReadCursorInitializer } from "./cursor/cursor";
 
+/**
+ * Callback to receive events from server
+ */
 export interface EventsCallback<T> {
+	/**
+	 * Receives a message from server. Can be called many times but is never called after
+	 * {@link onError} or {@link onEnd} are called.
+	 *
+	 * <p>If an exception is thrown by an implementation, the caller is expected to terminate the
+	 * stream by calling {@link onError} with the caught exception prior to propagating it.
+	 *
+	 * @param event
+	 */
 	onNext(event: StreamEvent<T>): void;
 
+	/**
+	 * Receives a notification of successful stream completion.
+	 *
+	 * <p>May only be called once and if called it must be the last method called. In particular,
+	 * if an exception is thrown by an implementation of {@link onEnd} no further calls to any
+	 * method are allowed.
+	 */
 	onEnd(): void;
 
+	/**
+	 * Receives terminating error from the stream.
+	 * @param error
+	 */
 	onError(error: Error): void;
 }
 
+/**
+ * The **Collection** class represents Tigris collection allowing insert/find/update/delete/search
+ * and events operations.
+ */
 export class Collection<T extends TigrisCollectionType> {
 	private readonly _collectionName: string;
 	private readonly _db: string;
@@ -65,12 +85,20 @@ export class Collection<T extends TigrisCollectionType> {
 		this.config = config;
 	}
 
+	/**
+	 * Name of this collection
+	 */
 	get collectionName(): string {
 		return this._collectionName;
 	}
 
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	insertMany(docs: Array<T>, tx?: Session, _options?: InsertOptions): Promise<Array<T>> {
+	/**
+	 * Inserts multiple documents in Tigris collection.
+	 *
+	 * @param docs - Array of documents to insert
+	 * @param tx - Optional session information for transaction context
+	 */
+	insertMany(docs: Array<T>, tx?: Session): Promise<Array<T>> {
 		return new Promise<Array<T>>((resolve, reject) => {
 			const docsArray = new Array<Uint8Array | string>();
 			for (const doc of docs) {
@@ -109,11 +137,17 @@ export class Collection<T extends TigrisCollectionType> {
 		});
 	}
 
-	insert(doc: T, tx?: Session, options?: InsertOptions): Promise<T> {
+	/**
+	 * Inserts a single document in Tigris collection.
+	 *
+	 * @param doc - Document to insert
+	 * @param tx - Optional session information for transaction context
+	 */
+	insertOne(doc: T, tx?: Session): Promise<T> {
 		return new Promise<T>((resolve, reject) => {
 			const docArr: Array<T> = new Array<T>();
 			docArr.push(doc);
-			this.insertMany(docArr, tx, options)
+			this.insertMany(docArr, tx)
 				.then((docs) => {
 					resolve(docs[0]);
 				})
@@ -123,11 +157,13 @@ export class Collection<T extends TigrisCollectionType> {
 		});
 	}
 
-	insertOrReplaceMany(
-		docs: Array<T>,
-		tx?: Session,
-		_options?: InsertOrReplaceOptions // eslint-disable-line @typescript-eslint/no-unused-vars
-	): Promise<Array<T>> {
+	/**
+	 * Insert new or replace existing documents in collection.
+	 *
+	 * @param docs - Array of documents to insert or replace
+	 * @param tx - Optional session information for transaction context
+	 */
+	insertOrReplaceMany(docs: Array<T>, tx?: Session): Promise<Array<T>> {
 		return new Promise<Array<T>>((resolve, reject) => {
 			const docsArray = new Array<Uint8Array | string>();
 			for (const doc of docs) {
@@ -164,56 +200,33 @@ export class Collection<T extends TigrisCollectionType> {
 		});
 	}
 
-	insertOrReplace(doc: T, tx?: Session, options?: InsertOptions): Promise<T> {
+	/**
+	 * Insert new or replace an existing document in collection.
+	 *
+	 * @param doc - Document to insert or replace
+	 * @param tx - Optional session information for transaction context
+	 */
+	insertOrReplaceOne(doc: T, tx?: Session): Promise<T> {
 		return new Promise<T>((resolve, reject) => {
 			const docArr: Array<T> = new Array<T>();
 			docArr.push(doc);
-			this.insertOrReplaceMany(docArr, tx, options)
+			this.insertOrReplaceMany(docArr, tx)
 				.then((docs) => resolve(docs[0]))
 				.catch((error) => reject(error));
 		});
 	}
 
-	findOne(
-		filter: SelectorFilter<T> | LogicalFilter<T> | Selector<T>,
-		tx?: Session,
-		readFields?: ReadFields
-	): Promise<T | undefined> {
-		return new Promise<T>((resolve, reject) => {
-			const readRequest = new ProtoReadRequest()
-				.setDb(this._db)
-				.setCollection(this._collectionName)
-				.setOptions(new ProtoReadRequestOptions().setLimit(1))
-				.setFilter(Utility.stringToUint8Array(Utility.filterToString(filter)));
-
-			if (readFields) {
-				readRequest.setFields(Utility.stringToUint8Array(Utility.readFieldString(readFields)));
-			}
-
-			const stream: grpc.ClientReadableStream<ProtoReadResponse> = this.grpcClient.read(
-				readRequest,
-				Utility.txToMetadata(tx)
-			);
-
-			stream.on("data", (readResponse: ProtoReadResponse) => {
-				const doc: T = Utility.jsonStringToObj(
-					Utility._base64Decode(readResponse.getData_asB64()),
-					this.config
-				);
-				resolve(doc);
-			});
-
-			stream.on("error", reject);
-
-			stream.on("end", () => {
-				/* eslint unicorn/no-useless-undefined: ["error", {"checkArguments": false}]*/
-				resolve(undefined);
-			});
-		});
-	}
-
+	/**
+	 * Performs a read query on collection and returns a cursor that can be used to iterate over
+	 * query results.
+	 *
+	 * @param filter - Optional filter. If unspecified, then all documents will match the filter
+	 * @param readFields - Optional field projection param allows returning only specific document fields in result
+	 * @param tx - Optional session information for transaction context
+	 * @param options - Optional settings for the find query
+	 */
 	findMany(
-		filter?: SelectorFilter<T> | LogicalFilter<T> | Selector<T>,
+		filter?: Filter<T>,
 		readFields?: ReadFields,
 		tx?: Session,
 		options?: ReadRequestOptions
@@ -240,6 +253,51 @@ export class Collection<T extends TigrisCollectionType> {
 		return new Cursor<T>(initializer, this.config);
 	}
 
+	/**
+	 * Performs a query to find a single document in collection. Returns the document if found, else
+	 * null.
+	 *
+	 * @param filter - Query to match the document
+	 * @param readFields - Optional field projection param allows returning only specific document fields in result
+	 * @param tx - Optional session information for transaction context
+	 * @param options - Optional settings for the find query
+	 */
+	findOne(
+		filter: Filter<T>,
+		readFields?: ReadFields,
+		tx?: Session,
+		options?: ReadRequestOptions
+	): Promise<T | undefined> {
+		return new Promise<T>((resolve, reject) => {
+			if (options === undefined) {
+				options = new ReadRequestOptions(1);
+			} else {
+				options.limit = 1;
+			}
+
+			const cursor = this.findMany(filter, readFields, tx, options);
+			const iteratorResult = cursor[Symbol.asyncIterator]().next();
+			if (iteratorResult !== undefined) {
+				iteratorResult
+					.then(
+						(r) => resolve(r.value),
+						(error) => reject(error)
+					)
+					.catch(reject);
+			} else {
+				/* eslint unicorn/no-useless-undefined: ["error", {"checkArguments": false}]*/
+				resolve(undefined);
+			}
+		});
+	}
+
+	/**
+	 * Search for documents in a collection. Easily perform sophisticated queries and refine
+	 * results using filters with advanced features like faceting and ordering.
+	 *
+	 * @param request - Search query to execute
+	 * @param options - Optional settings for search
+	 */
 	search(
 		request: SearchRequest<T>,
 		options?: SearchRequestOptions
@@ -264,6 +322,13 @@ export class Collection<T extends TigrisCollectionType> {
 		});
 	}
 
+	/**
+	 * Search for documents in a collection. Easily perform sophisticated queries and refine
+	 * results using filters with advanced features like faceting and ordering.
+	 *
+	 * @param request - Search query to execute
+	 * @param options - Optional settings for search
+	 */
 	async *searchStream(
 		request: SearchRequest<T>,
 		options?: SearchRequestOptions
@@ -284,12 +349,14 @@ export class Collection<T extends TigrisCollectionType> {
 		return;
 	}
 
-	delete(
-		filter: SelectorFilter<T> | LogicalFilter<T> | Selector<T>,
-		tx?: Session,
-		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		_options?: DeleteRequestOptions
-	): Promise<DeleteResponse> {
+	/**
+	 * Deletes documents in collection matching the filter
+	 *
+	 * @param filter - Query to match documents to delete
+	 * @param tx - Optional session information for transaction context
+	 * @param options - Optional settings for delete
+	 */
+	delete(filter: Filter<T>, tx?: Session, options?: DeleteRequestOptions): Promise<DeleteResponse> {
 		return new Promise<DeleteResponse>((resolve, reject) => {
 			if (!filter) {
 				reject(new Error("No filter specified"));
@@ -298,6 +365,10 @@ export class Collection<T extends TigrisCollectionType> {
 				.setDb(this._db)
 				.setCollection(this._collectionName)
 				.setFilter(Utility.stringToUint8Array(Utility.filterToString(filter)));
+
+			if (options !== undefined) {
+				deleteRequest.setOptions(Utility._deleteRequestOptionsToProtoDeleteRequestOptions(options));
+			}
 
 			this.grpcClient.delete(deleteRequest, Utility.txToMetadata(tx), (error, response) => {
 				if (error) {
@@ -313,12 +384,19 @@ export class Collection<T extends TigrisCollectionType> {
 		});
 	}
 
+	/**
+	 * Update multiple documents in collection
+	 *
+	 * @param filter - Query to match documents to apply update
+	 * @param fields - Document fields to update and update operation
+	 * @param tx - Optional session information for transaction context
+	 * @param options - Optional settings for search
+	 */
 	update(
-		filter: SelectorFilter<T> | LogicalFilter<T> | Selector<T>,
+		filter: Filter<T>,
 		fields: UpdateFields | SimpleUpdateField,
 		tx?: Session,
-		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		_options?: UpdateRequestOptions
+		options?: UpdateRequestOptions
 	): Promise<UpdateResponse> {
 		return new Promise<UpdateResponse>((resolve, reject) => {
 			const updateRequest = new ProtoUpdateRequest()
@@ -326,6 +404,10 @@ export class Collection<T extends TigrisCollectionType> {
 				.setCollection(this._collectionName)
 				.setFilter(Utility.stringToUint8Array(Utility.filterToString(filter)))
 				.setFields(Utility.stringToUint8Array(Utility.updateFieldsString(fields)));
+
+			if (options !== undefined) {
+				updateRequest.setOptions(Utility._updateRequestOptionsToProtoUpdateRequestOptions(options));
+			}
 
 			this.grpcClient.update(updateRequest, Utility.txToMetadata(tx), (error, response) => {
 				if (error) {
@@ -341,11 +423,12 @@ export class Collection<T extends TigrisCollectionType> {
 		});
 	}
 
-	events(
-		events: EventsCallback<T>,
-		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		_options?: EventsRequestOptions
-	) {
+	/**
+	 * Consume events from a "topic"
+	 *
+	 * @param callback - Callback to consume events asynchronously
+	 */
+	events(callback: EventsCallback<T>) {
 		const eventsRequest = new ProtoEventsRequest()
 			.setDb(this._db)
 			.setCollection(this._collectionName);
@@ -355,7 +438,7 @@ export class Collection<T extends TigrisCollectionType> {
 
 		stream.on("data", (eventsResponse: ProtoEventsResponse) => {
 			const event = eventsResponse.getEvent();
-			events.onNext(
+			callback.onNext(
 				new StreamEvent<T>(
 					event.getTxId_asB64(),
 					event.getCollection(),
@@ -366,7 +449,7 @@ export class Collection<T extends TigrisCollectionType> {
 			);
 		});
 
-		stream.on("error", (error) => events.onError(error));
-		stream.on("end", () => events.onEnd());
+		stream.on("error", (error) => callback.onError(error));
+		stream.on("end", () => callback.onEnd());
 	}
 }

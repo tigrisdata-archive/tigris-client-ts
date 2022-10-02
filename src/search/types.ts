@@ -1,4 +1,4 @@
-import { LogicalFilter, Selector, SelectorFilter, TigrisCollectionType } from "../types";
+import { Filter, TigrisCollectionType } from "../types";
 import {
 	FacetCount as ProtoFacetCount,
 	FacetStats as ProtoFacetStats,
@@ -29,7 +29,7 @@ export type SearchRequest<T extends TigrisCollectionType> = {
 	/**
 	 * Filter to further refine the search results
 	 */
-	filter?: SelectorFilter<T> | LogicalFilter<T> | Selector<T>;
+	filter?: Filter<T>;
 	/**
 	 * Facet fields to categorically arrange indexed terms
 	 */
