@@ -1,12 +1,16 @@
 import {Utility} from "../utility";
 import {
+	Case,
 	FacetFieldOptions,
 	FacetFields,
 	FacetFieldsQuery,
 	FacetQueryFieldType,
+	MATCH_ALL_QUERY_STRING,
 	Ordering,
+	SearchRequestOptions,
 	SortOrder
 } from "../search/types";
+import {Collation} from "../proto/server/v1/api_pb";
 
 describe("utility tests", () => {
 	it("base64encode", () => {
@@ -25,7 +29,27 @@ describe("utility tests", () => {
 		expect(generatedOptions.type).toBe(FacetQueryFieldType.VALUE);
 	});
 
-	it("backfills missing facet query options", () =>{
+	describe("createSearchRequestOptions",() => {
+		it("generates default with empty options", () => {
+			const generated: SearchRequestOptions = Utility.createSearchRequestOptions();
+			expect(generated.page).toBe(1);
+			expect(generated.perPage).toBe(20);
+		});
+
+		it("fills missing options", () => {
+			const actual: SearchRequestOptions = {
+				page: 2, collation: {
+					case: Case.CaseInsensitive
+				}
+			};
+			const generated: SearchRequestOptions = Utility.createSearchRequestOptions(actual);
+			expect(generated.page).toBe(actual.page);
+			expect(generated.perPage).toBe(20);
+			expect(generated.collation).toBe(actual.collation);
+		});
+	});
+
+	it("backfills missing facet query options", () => {
 		const generatedOptions = Utility.createFacetQueryOptions({
 			size: 55
 		});
@@ -69,5 +93,37 @@ describe("utility tests", () => {
 		];
 		const expected = "[{\"field_1\":\"$asc\"},{\"parent.field_2\":\"$desc\"}]";
 		expect(Utility.sortOrderingToString(ordering)).toBe(expected);
+	});
+
+	describe("createProtoSearchRequest", () => {
+		const dbName = "my_test_db";
+		const collectionName = "my_test_collection";
+
+		it("populates dbName and collection name", () => {
+			const emptyRequest = {q: ""};
+			const generated = Utility.createProtoSearchRequest(dbName, collectionName, emptyRequest);
+			expect(generated.getDb()).toBe(dbName);
+			expect(generated.getCollection()).toBe(collectionName);
+		});
+
+		it("creates default match all query string", () => {
+			const request = {q: undefined};
+			const generated = Utility.createProtoSearchRequest(dbName, collectionName, request);
+			expect(generated.getQ()).toBe(MATCH_ALL_QUERY_STRING);
+		});
+
+		it ("sets collation options", () => {
+			const emptyRequest = {q: ""};
+			const options: SearchRequestOptions = {
+				collation: {
+					case: Case.CaseInsensitive
+				}
+			};
+			const generated = Utility.createProtoSearchRequest(dbName, collectionName, emptyRequest, options);
+			expect(generated.getPage()).toBe(0);
+			expect(generated.getPageSize()).toBe(0);
+			expect(generated.getCollation().getCase()).toBe("ci");
+		});
+
 	});
 });
