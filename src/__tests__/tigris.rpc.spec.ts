@@ -167,7 +167,7 @@ describe("rpc tests", () => {
 	it("insert", () => {
 		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
 		const db1 = tigris.getDatabase("db3");
-		const insertionPromise = db1.getCollection<IBook>("books").insert({
+		const insertionPromise = db1.getCollection<IBook>("books").insertOne({
 			author: "author name",
 			id: 0,
 			tags: ["science"],
@@ -182,7 +182,7 @@ describe("rpc tests", () => {
 	it("insert2", () => {
 		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
 		const db1 = tigris.getDatabase("db3");
-		const insertionPromise = db1.getCollection<IBook2>("books").insert({
+		const insertionPromise = db1.getCollection<IBook2>("books").insertOne({
 			id: 0,
 			title: "science book",
 			metadata: {
@@ -202,7 +202,7 @@ describe("rpc tests", () => {
 		const randomNumber: number = Math.floor(Math.random() * 100);
 		// pass the random number in author field. mock server reads author and sets as the
 		// primaryKey field.
-		const insertionPromise = db1.getCollection<IBook1>("books-with-optional-field").insert({
+		const insertionPromise = db1.getCollection<IBook1>("books-with-optional-field").insertOne({
 			author: "" + randomNumber,
 			tags: ["science"],
 			title: "science book"
@@ -216,7 +216,7 @@ describe("rpc tests", () => {
 	it("insertOrReplace", () => {
 		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
 		const db1 = tigris.getDatabase("db3");
-		const insertOrReplacePromise = db1.getCollection<IBook>("books").insertOrReplace({
+		const insertOrReplacePromise = db1.getCollection<IBook>("books").insertOrReplaceOne({
 			author: "author name",
 			id: 0,
 			tags: ["science"],
@@ -234,7 +234,7 @@ describe("rpc tests", () => {
 		const randomNumber: number = Math.floor(Math.random() * 100);
 		// pass the random number in author field. mock server reads author and sets as the
 		// primaryKey field.
-		const insertOrReplacePromise = db1.getCollection<IBook1>("books-with-optional-field").insertOrReplace({
+		const insertOrReplacePromise = db1.getCollection<IBook1>("books-with-optional-field").insertOrReplaceOne({
 			author: "" + randomNumber,
 			tags: ["science"],
 			title: "science book"
@@ -285,7 +285,7 @@ describe("rpc tests", () => {
 	it("readOne", () => {
 		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
 		const db1 = tigris.getDatabase("db3");
-		const readOnePromise = db1.getCollection<IBook>("books").findOne({
+		const readOnePromise = db1.getCollection<IBook>("books").findOne( {
 			op: SelectorFilterOperator.EQ,
 			fields: {
 				id: 1
@@ -499,7 +499,7 @@ describe("rpc tests", () => {
 		const txDB = tigris.getDatabase("test-tx");
 		const books = txDB.getCollection<IBook>("books");
 		txDB.transact(tx => {
-			books.insert(
+			books.insertOne(
 				{
 					id: 1,
 					author: "Alice",
@@ -513,7 +513,7 @@ describe("rpc tests", () => {
 					fields: {
 						id: 1
 					}
-				}, tx).then(() => {
+				}, undefined, tx).then(() => {
 					books.update({
 							op: SelectorFilterOperator.EQ,
 							fields: {

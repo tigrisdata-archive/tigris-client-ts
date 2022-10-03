@@ -10,7 +10,6 @@ import {
 	SearchRequestOptions,
 	SortOrder
 } from "../search/types";
-import {Collation} from "../proto/server/v1/api_pb";
 
 describe("utility tests", () => {
 	it("base64encode", () => {

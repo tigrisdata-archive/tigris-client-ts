@@ -4,6 +4,7 @@ import { Session } from "./session";
 
 import {
 	CollectionType,
+	DeleteRequestOptions,
 	LogicalFilter,
 	LogicalOperator,
 	ReadFields,
@@ -17,6 +18,7 @@ import {
 	TigrisSchema,
 	UpdateFields,
 	UpdateFieldsOperator,
+	UpdateRequestOptions,
 } from "./types";
 import * as fs from "node:fs";
 import {
@@ -31,8 +33,10 @@ import {
 } from "./search/types";
 import {
 	Collation as ProtoCollation,
+	DeleteRequestOptions as ProtoDeleteRequestOptions,
 	ReadRequestOptions as ProtoReadRequestOptions,
 	SearchRequest as ProtoSearchRequest,
+	UpdateRequestOptions as ProtoUpdateRequestOptions,
 } from "./proto/server/v1/api_pb";
 import { TigrisClientConfig } from "./tigris";
 
@@ -331,6 +335,24 @@ export const Utility = {
 			if (input.offset !== undefined) {
 				result.setOffset(Utility.stringToUint8Array(input.offset));
 			}
+		}
+		return result;
+	},
+	_deleteRequestOptionsToProtoDeleteRequestOptions(
+		input: DeleteRequestOptions
+	): ProtoDeleteRequestOptions {
+		const result: ProtoDeleteRequestOptions = new ProtoDeleteRequestOptions();
+		if (input !== undefined && input.collation !== undefined) {
+			result.setCollation(new ProtoCollation().setCase(input.collation.case));
+		}
+		return result;
+	},
+	_updateRequestOptionsToProtoUpdateRequestOptions(
+		input: UpdateRequestOptions
+	): ProtoUpdateRequestOptions {
+		const result: ProtoUpdateRequestOptions = new ProtoUpdateRequestOptions();
+		if (input !== undefined && input.collation !== undefined) {
+			result.setCollation(new ProtoCollation().setCase(input.collation.case));
 		}
 		return result;
 	},
