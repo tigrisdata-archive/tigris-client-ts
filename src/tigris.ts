@@ -2,7 +2,7 @@ import { TigrisClient } from "./proto/server/v1/api_grpc_pb";
 import { ObservabilityClient } from "./proto/server/v1/observability_grpc_pb";
 
 import * as grpc from "@grpc/grpc-js";
-import { ChannelCredentials, status } from "@grpc/grpc-js";
+import { ChannelCredentials, Metadata, status } from "@grpc/grpc-js";
 import {
 	CreateDatabaseRequest as ProtoCreateDatabaseRequest,
 	DatabaseOptions as ProtoDatabaseOptions,
@@ -104,6 +104,10 @@ class TokenSupplier {
 
 const DEFAULT_GRPC_PORT = 443;
 
+const USER_AGENT_KEY = "user-agent";
+const USER_AGENT_VAL = "tigris-client-ts.grpc";
+const DEST_NAME_KEY = "destination-name";
+
 /**
  * Tigris client
  */
@@ -121,8 +125,12 @@ export class Tigris {
 			config.serverUrl = config.serverUrl + ":" + DEFAULT_GRPC_PORT;
 		}
 		this.config = config;
+		const defaultMetadata: Metadata = new Metadata();
+		defaultMetadata.set(USER_AGENT_KEY, USER_AGENT_VAL);
+		defaultMetadata.set(DEST_NAME_KEY, config.serverUrl);
+
 		if (config.insecureChannel === true && config.clientSecret === undefined) {
-			// no auth & insecure channel
+			// no auth & insecure channel - cannot compose insecure channels
 			this.grpcClient = new TigrisClient(config.serverUrl, grpc.credentials.createInsecure());
 			this.observabilityClient = new ObservabilityClient(
 				config.serverUrl,
@@ -132,12 +140,16 @@ export class Tigris {
 			(config.insecureChannel === undefined || config.insecureChannel == false) &&
 			config.clientSecret === undefined
 		) {
-			// no auth & secure channel
-			this.grpcClient = new TigrisClient(config.serverUrl, grpc.credentials.createSsl());
-			this.observabilityClient = new ObservabilityClient(
-				config.serverUrl,
-				grpc.credentials.createSsl()
+			const channelCreds: ChannelCredentials = grpc.credentials.combineChannelCredentials(
+				grpc.credentials.createSsl(),
+				grpc.credentials.createFromMetadataGenerator((params, callback) =>
+					callback(undefined, defaultMetadata)
+				)
 			);
+
+			// no auth & secure channel
+			this.grpcClient = new TigrisClient(config.serverUrl, channelCreds);
+			this.observabilityClient = new ObservabilityClient(config.serverUrl, channelCreds);
 		} else if (
 			(config.insecureChannel !== undefined || config.insecureChannel) &&
 			config.clientSecret !== undefined
@@ -156,6 +168,7 @@ export class Tigris {
 						.then((accessToken) => {
 							const md = new grpc.Metadata();
 							md.set(AuthorizationHeaderName, AuthorizationBearer + accessToken);
+							md.merge(defaultMetadata);
 							return callback(undefined, md);
 						})
 						.catch((error) => {
