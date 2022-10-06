@@ -30,7 +30,7 @@ import {
 import { Utility } from "./utility";
 import { SearchRequest, SearchRequestOptions, SearchResult } from "./search/types";
 import { TigrisClientConfig } from "./tigris";
-import { Cursor, ReadCursorInitializer } from "./cursor/cursor";
+import { Cursor, ReadCursorInitializer } from "./consumables/cursor";
 
 /**
  * Callback to receive events from server
@@ -39,9 +39,6 @@ export interface EventsCallback<T> {
 	/**
 	 * Receives a message from server. Can be called many times but is never called after
 	 * {@link onError} or {@link onEnd} are called.
-	 *
-	 * <p>If an exception is thrown by an implementation, the caller is expected to terminate the
-	 * stream by calling {@link onError} with the caught exception prior to propagating it.
 	 *
 	 * @param event
 	 */

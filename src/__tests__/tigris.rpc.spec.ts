@@ -17,6 +17,8 @@ import {SearchRequest, SearchRequestOptions} from "../search/types";
 import {Utility} from "../utility";
 import {ObservabilityService} from "../proto/server/v1/observability_grpc_pb";
 import TestObservabilityService from "./test-observability-service";
+import {Readable} from "node:stream";
+import * as assert from "assert";
 
 describe("rpc tests", () => {
 	let server: Server;
@@ -624,21 +626,21 @@ describe("rpc tests", () => {
 		return promise;
 	});
 
-	it("subscribe", (done) => {
+	it("subscribe using callback", (done) => {
 		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
 		const db = tigris.getDatabase("test_db");
 		const topic = db.getTopic<Alert>("test_topic");
 		let success = true;
+		const expectedIds = new Set<number>(TestTigrisService.ALERTS_B64_BY_ID.keys());
 
 		topic.subscribe({
 			onNext(alert: Alert) {
-				expect(alert.id).toBe(34);
-				expect(alert.text).toBe("test");
-				expect(success).toBe(true);
-				done();
+				expect(expectedIds).toContain(alert.id);
+				expectedIds.delete(alert.id);
 			},
 			onEnd() {
-				// not expected to be called
+				expect(success).toBe(true);
+				done();
 			},
 			// eslint-disable-next-line @typescript-eslint/no-unused-vars
 			onError(error: Error) {
@@ -647,11 +649,33 @@ describe("rpc tests", () => {
 		});
 	});
 
+	it("subscribe using stream", (done) => {
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const db = tigris.getDatabase("test_db");
+		const topic = db.getTopic<Alert>("test_topic");
+		const subscription: Readable = topic.subscribe() as Readable;
+		const expectedIds = new Set<number>(TestTigrisService.ALERTS_B64_BY_ID.keys());
+		let success = true;
+
+		subscription.on("data", (alert) =>{
+			expect(expectedIds).toContain(alert.id);
+			expectedIds.delete(alert.id);
+		});
+		subscription.on("error", () => {
+			success = false;
+		});
+		subscription.on("end", () => {
+			expect(success).toBe(true);
+			done();
+		});
+	});
+
 	it("subscribeWithFilter", (done) => {
 		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
 		const db = tigris.getDatabase("test_db");
 		const topic = db.getTopic<Alert>("test_topic");
 		let success = true;
+		const expectedIds = new Set<number>(TestTigrisService.ALERTS_B64_BY_ID.keys());
 
 		topic.subscribeWithFilter({
 				op: SelectorFilterOperator.EQ,
@@ -661,13 +685,12 @@ describe("rpc tests", () => {
 			},
 			{
 				onNext(alert: Alert) {
-					expect(alert.id).toBe(34);
-					expect(alert.text).toBe("test");
-					expect(success).toBe(true);
-					done();
+					expect(expectedIds).toContain(alert.id);
+					expectedIds.delete(alert.id);
 				},
 				onEnd() {
-					// not expected to be called
+					expect(success).toBe(true);
+					done();
 				},
 				// eslint-disable-next-line @typescript-eslint/no-unused-vars
 				onError(error: Error) {
@@ -681,25 +704,25 @@ describe("rpc tests", () => {
 		const db = tigris.getDatabase("test_db");
 		const topic = db.getTopic<Alert>("test_topic");
 		let success = true;
+		const expectedIds = new Set<number>(TestTigrisService.ALERTS_B64_BY_ID.keys());
 
 		const partitions = new Array<number>();
 		partitions.push(55);
 
-		topic.subscribeToPartitions({
+		topic.subscribeToPartitions(partitions,{
 			onNext(alert: Alert) {
-				expect(alert.id).toBe(34);
-				expect(alert.text).toBe("test");
-				expect(success).toBe(true);
-				done();
+				expect(expectedIds).toContain(alert.id);
+				expectedIds.delete(alert.id);
 			},
 			onEnd() {
-				// not expected to be called
+				expect(success).toBe(true);
+				done();
 			},
 			// eslint-disable-next-line @typescript-eslint/no-unused-vars
 			onError(error: Error) {
 				success = false;
 			}
-		}, partitions);
+		});
 	});
 });
 
