@@ -78,9 +78,11 @@ export class TestTigrisService {
 		["6", "eyJpZCI6NiwidGl0bGUiOiJUaGUgUHJpc29uZXIiLCJhdXRob3IiOiJNYXJjZWwgUHJvdXN0In0="]
 	]);
 
-	public static readonly ALERTS_B64_BY_ID: ReadonlyMap<string, string> = new Map([
-		// base64 of {"id":34,"text":"test"}
-		["1", "eyJpZCI6MzQsInRleHQiOiJ0ZXN0In0="]
+	public static readonly ALERTS_B64_BY_ID: ReadonlyMap<number, string> = new Map([
+		// base64 of {"id":1,"text":"test"}
+		[1, "eyJpZCI6MSwidGV4dCI6InRlc3QifQ=="],
+		// base64 of {"id":2,"text":"test message 25"}
+		[2, "eyJpZCI6MiwidGV4dCI6InRlc3QgbWVzc2FnZSAyNSJ9"]
 	]);
 
 	static reset() {
@@ -117,7 +119,9 @@ export class TestTigrisService {
 		},
 		// eslint-disable-next-line @typescript-eslint/no-empty-function,@typescript-eslint/no-unused-vars
 		subscribe(call: ServerWritableStream<SubscribeRequest, SubscribeResponse>): void {
-			call.write(new SubscribeResponse().setMessage(TestTigrisService.ALERTS_B64_BY_ID.get("1")));
+			for (const alert of TestTigrisService.ALERTS_B64_BY_ID) {
+				call.write(new SubscribeResponse().setMessage(alert[1]));
+			}
 			call.end();
 		},
 		beginTransaction(

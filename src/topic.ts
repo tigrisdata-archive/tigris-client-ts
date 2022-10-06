@@ -2,22 +2,17 @@ import * as grpc from "@grpc/grpc-js";
 import { TigrisClient } from "./proto/server/v1/api_grpc_pb";
 import * as server_v1_api_pb from "./proto/server/v1/api_pb";
 import {
+	PublishRequest as ProtoPublishRequest,
+	PublishRequestOptions as ProtoPublishRequestOptions,
 	SubscribeRequest as ProtoSubscribeRequest,
 	SubscribeRequestOptions as ProtoSubscribeRequestOptions,
 	SubscribeResponse as ProtoSubscribeResponse,
-	PublishRequest as ProtoPublishRequest,
-	PublishRequestOptions as ProtoPublishRequestOptions,
 } from "./proto/server/v1/api_pb";
-import {
-	LogicalFilter,
-	PublishOptions,
-	Selector,
-	SelectorFilter,
-	SubscribeOptions,
-	TigrisTopicType,
-} from "./types";
+import { Filter, PublishOptions, SubscribeOptions, TigrisTopicType } from "./types";
 import { Utility } from "./utility";
 import { TigrisClientConfig } from "./tigris";
+import { Readable } from "node:stream";
+import { clientReadableToStream } from "./consumables/utils";
 
 export interface SubscribeCallback<T> {
 	onNext(message: T): void;
@@ -101,15 +96,15 @@ export class Topic<T extends TigrisTopicType> {
 		});
 	}
 
-	subscribe(callback: SubscribeCallback<T>, options?: SubscribeOptions): void {
+	subscribe(callback?: SubscribeCallback<T>, options?: SubscribeOptions): Readable | void {
 		return this.subscribeWithFilter(undefined, callback, options);
 	}
 
 	subscribeWithFilter(
-		filter: SelectorFilter<T> | LogicalFilter<T> | Selector<T>,
-		callback: SubscribeCallback<T>,
+		filter: Filter<T>,
+		callback?: SubscribeCallback<T>,
 		options?: SubscribeOptions
-	): void {
+	): Readable | void {
 		const subscribeRequest = new ProtoSubscribeRequest()
 			.setDb(this._db)
 			.setCollection(this._topicName);
@@ -124,30 +119,40 @@ export class Topic<T extends TigrisTopicType> {
 			);
 		}
 
+		const transform: (ProtoSubscribeResponse) => T = (resp: ProtoSubscribeResponse) => {
+			return Utility.jsonStringToObj<T>(
+				Utility._base64Decode(resp.getMessage_asB64()),
+				this.config
+			);
+		};
+
 		const stream: grpc.ClientReadableStream<ProtoSubscribeResponse> =
 			this._grpcClient.subscribe(subscribeRequest);
 
-		stream.on("data", (subscribeResponse: ProtoSubscribeResponse) => {
-			const message: T = Utility.jsonStringToObj<T>(
-				Utility._base64Decode(subscribeResponse.getMessage_asB64()),
-				this.config
-			);
-			callback.onNext(message);
-		});
+		if (callback !== undefined) {
+			stream.on("data", (subscribeResponse: ProtoSubscribeResponse) => {
+				callback.onNext(transform(subscribeResponse));
+			});
 
-		stream.on("error", (error) => callback.onError(error));
-		stream.on("end", () => callback.onEnd());
+			stream.on("error", (error) => callback.onError(error));
+			stream.on("end", () => callback.onEnd());
+		} else {
+			return clientReadableToStream<T, ProtoSubscribeResponse>(stream, transform);
+		}
 	}
 
-	subscribeToPartitions(callback: SubscribeCallback<T>, partitions: Array<number>): void {
-		return this.subscribeWithFilterToPartitions(undefined, callback, partitions);
+	subscribeToPartitions(
+		partitions: Array<number>,
+		callback?: SubscribeCallback<T>
+	): Readable | void {
+		return this.subscribeWithFilterToPartitions(undefined, partitions, callback);
 	}
 
 	subscribeWithFilterToPartitions(
-		filter: SelectorFilter<T> | LogicalFilter<T> | Selector<T>,
-		callback: SubscribeCallback<T>,
-		partitions: Array<number>
-	): void {
+		filter: Filter<T>,
+		partitions: Array<number>,
+		callback?: SubscribeCallback<T>
+	): Readable | void {
 		return this.subscribeWithFilter(filter, callback, new SubscribeOptions(partitions));
 	}
 }

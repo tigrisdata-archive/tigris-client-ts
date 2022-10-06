@@ -9,9 +9,9 @@
 
 # Documentation
 
-- [Quickstart](https://docs.tigrisdata.com/quickstart)
-- [Getting Started](https://docs.tigrisdata.com/typescript/)
-- [Data Modeling Using TypeScript](https://docs.tigrisdata.com/typescript/datamodel)
+- [About Tigris](https://docs.tigrisdata.com/)
+- [Features](https://docs.tigrisdata.com/overview/features)
+- [Getting Started](https://docs.tigrisdata.com/typescript/getting-started)
 - [CRUD operations API](https://docs.tigrisdata.com/typescript/documents)
 - [Event Streaming API](https://docs.tigrisdata.com/typescript/event_streaming)
 

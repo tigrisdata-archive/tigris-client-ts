@@ -30,7 +30,7 @@ import {
 import { Utility } from "./utility";
 import { SearchRequest, SearchRequestOptions, SearchResult } from "./search/types";
 import { TigrisClientConfig } from "./tigris";
-import { Cursor, ReadCursorInitializer } from "./cursor/cursor";
+import { Cursor, ReadCursorInitializer } from "./consumables/cursor";
 
 /**
  * Callback to receive events from server
