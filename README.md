@@ -9,8 +9,7 @@
 
 # Documentation
 
-- [About Tigris](https://docs.tigrisdata.com/)
-- [Features](https://docs.tigrisdata.com/overview/features)
+- [Tigris Overview](https://docs.tigrisdata.com/overview/)
 - [Getting Started](https://docs.tigrisdata.com/typescript/getting-started)
 - [CRUD operations API](https://docs.tigrisdata.com/typescript/documents)
 - [Event Streaming API](https://docs.tigrisdata.com/typescript/event_streaming)

@@ -171,7 +171,7 @@ export class Topic<T extends TigrisTopicType> {
 	 * 		 	console.log(message);
 	 * 		},
 	 * 		onError(err: Error) {
-	 * 		 	console.log(error);
+	 * 		 	console.log(err);
 	 * 		},
 	 * 		onEnd() {
 	 * 		 	console.log("All messages consumed");
@@ -223,7 +223,7 @@ export class Topic<T extends TigrisTopicType> {
 	 * 		 		console.log(message);
 	 * 			},
 	 * 			onError(err: Error) {
-	 * 		 		console.log(error);
+	 * 		 		console.log(err);
 	 * 			},
 	 * 			onEnd() {
 	 * 		 		console.log("All messages consumed");
