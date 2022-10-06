@@ -639,7 +639,7 @@ describe("rpc tests", () => {
 				expectedIds.delete(alert.id);
 			},
 			onEnd() {
-		expect(success).toBe(true);
+				expect(success).toBe(true);
 				done();
 			},
 			// eslint-disable-next-line @typescript-eslint/no-unused-vars

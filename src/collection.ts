@@ -40,9 +40,6 @@ export interface EventsCallback<T> {
 	 * Receives a message from server. Can be called many times but is never called after
 	 * {@link onError} or {@link onEnd} are called.
 	 *
-	 * <p>If an exception is thrown by an implementation, the caller is expected to terminate the
-	 * stream by calling {@link onError} with the caught exception prior to propagating it.
-	 *
 	 * @param event
 	 */
 	onNext(event: StreamEvent<T>): void;
