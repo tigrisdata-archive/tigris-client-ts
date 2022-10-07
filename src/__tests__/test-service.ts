@@ -339,6 +339,15 @@ export class TestTigrisService {
 					return;
 				}
 			}
+
+			if (call.request.getCollection() === "test_topic") {
+				for (const [id] of TestTigrisService.ALERTS_B64_BY_ID) {
+					call.write(new ReadResponse().setData(TestTigrisService.ALERTS_B64_BY_ID.get(id)));
+				}
+				call.end();
+				return;
+			}
+
 			// read one implementation
 			const filterString = Utility.uint8ArrayToString(call.request.getFilter_asU8());
 			const filter = JSON.parse(filterString);
@@ -370,6 +379,10 @@ export class TestTigrisService {
 				call.write(
 					new ReadResponse().setData(TestTigrisService.BOOKS_B64_BY_ID.get("3"))
 				);
+				call.end();
+			} else if (filter["id"] === -1) {
+				// throw an error
+				call.emit("error", {message: "unknown record requested"});
 				call.end();
 			} else {
 				// returns 4 books

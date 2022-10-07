@@ -18,7 +18,6 @@ import {Utility} from "../utility";
 import {ObservabilityService} from "../proto/server/v1/observability_grpc_pb";
 import TestObservabilityService from "./test-observability-service";
 import {Readable} from "node:stream";
-import * as assert from "assert";
 
 describe("rpc tests", () => {
 	let server: Server;
@@ -388,6 +387,24 @@ describe("rpc tests", () => {
 			}
 			expect(bookCounter).toBe(4);
 		});
+
+		it("throws an error", async () => {
+			const cursor = db.getCollection<IBook>("books").findMany({
+				op: SelectorFilterOperator.EQ,
+				fields: {
+					id: -1
+				}
+			});
+
+			try {
+				for await (const book of cursor) {
+					console.log(book);
+				}
+			} catch (err) {
+				expect((err as Error).message).toContain("unknown record requested");
+			}
+			return cursor;
+		});
 	});
 
 	it("search", () => {
@@ -724,6 +741,22 @@ describe("rpc tests", () => {
 				success = false;
 			}
 		});
+	});
+
+	it("findMany in topic", async () => {
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const db = tigris.getDatabase("test_db");
+		const topic = db.getTopic<Alert>("test_topic");
+		const expectedIds = new Set<number>(TestTigrisService.ALERTS_B64_BY_ID.keys());
+		let seenAlerts = 0;
+
+		for await (const alert of topic.findMany()) {
+			expect(expectedIds).toContain(alert.id);
+			expectedIds.delete(alert.id);
+			seenAlerts++;
+		}
+
+		expect(seenAlerts).toBe(2);
 	});
 });
 
