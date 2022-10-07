@@ -414,7 +414,7 @@ export class Collection<T extends TigrisCollectionType> {
 						response.getMetadata().getCreatedAt(),
 						response.getMetadata().getUpdatedAt()
 					);
-					resolve(new UpdateResponse(response.getStatus(), metadata));
+					resolve(new UpdateResponse(response.getStatus(), response.getModifiedCount(), metadata));
 				}
 			});
 		});

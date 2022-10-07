@@ -182,8 +182,14 @@ export class DeleteResponse extends DMLResponse {
 }
 
 export class UpdateResponse extends DMLResponse {
-	constructor(status: string, metadata: DMLMetadata) {
+	private readonly _modifiedCount: number;
+	constructor(status: string, modifiedCount: number, metadata: DMLMetadata) {
 		super(status, metadata);
+		this._modifiedCount = modifiedCount;
+	}
+
+	get modifiedCount(): number {
+		return this._modifiedCount;
 	}
 }
 

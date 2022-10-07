@@ -280,6 +280,7 @@ describe("rpc tests", () => {
 			});
 		updatePromise.then(value => {
 			expect(value.status).toBe("updated: {\"id\":1}, {\"$set\":{\"title\":\"New Title\"}}");
+			expect(value.modifiedCount).toBe(1);
 		});
 		return updatePromise;
 	});

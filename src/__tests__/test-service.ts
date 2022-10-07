@@ -488,6 +488,7 @@ export class TestTigrisService {
 				", " +
 				Utility.uint8ArrayToString(call.request.getFields_asU8())
 			);
+			reply.setModifiedCount(1);
 			reply.setMetadata(
 				new ResponseMetadata()
 					.setCreatedAt(new google_protobuf_timestamp_pb.Timestamp())
