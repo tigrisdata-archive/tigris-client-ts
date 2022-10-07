@@ -19,7 +19,6 @@ jobs:
       - run: npm run clean
       - run: |
           npm install
-          npx prettier --check .
           npx eslint .
           npm run build
       - run: npm run test -- --coverage
