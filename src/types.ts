@@ -385,7 +385,7 @@ export interface TigrisCollectionType {}
 
 // Marker interface
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface TigrisTopicType {}
+export interface TigrisTopicType extends TigrisCollectionType {}
 
 export enum CollectionType {
 	DOCUMENTS = "documents",

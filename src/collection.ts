@@ -60,159 +60,28 @@ export interface EventsCallback<T> {
 	onError(error: Error): void;
 }
 
-/**
- * The **Collection** class represents Tigris collection allowing insert/find/update/delete/search
- * and events operations.
- */
-export class Collection<T extends TigrisCollectionType> {
-	private readonly _collectionName: string;
-	private readonly _db: string;
-	private readonly grpcClient: TigrisClient;
-	private readonly config: TigrisClientConfig;
+interface ICollection {
+	readonly collectionName: string;
+	readonly db: string;
+}
 
-	constructor(
+export abstract class ReadOnlyCollection<T extends TigrisCollectionType> implements ICollection {
+	readonly collectionName: string;
+	readonly db: string;
+	readonly grpcClient: TigrisClient;
+	readonly config: TigrisClientConfig;
+
+	protected constructor(
 		collectionName: string,
 		db: string,
 		grpcClient: TigrisClient,
 		config: TigrisClientConfig
 	) {
-		this._collectionName = collectionName;
-		this._db = db;
+		this.collectionName = collectionName;
+		this.db = db;
 		this.grpcClient = grpcClient;
 		this.config = config;
 	}
-
-	/**
-	 * Name of this collection
-	 */
-	get collectionName(): string {
-		return this._collectionName;
-	}
-
-	/**
-	 * Inserts multiple documents in Tigris collection.
-	 *
-	 * @param docs - Array of documents to insert
-	 * @param tx - Optional session information for transaction context
-	 */
-	insertMany(docs: Array<T>, tx?: Session): Promise<Array<T>> {
-		return new Promise<Array<T>>((resolve, reject) => {
-			const docsArray = new Array<Uint8Array | string>();
-			for (const doc of docs) {
-				docsArray.push(new TextEncoder().encode(Utility.objToJsonString(doc)));
-			}
-
-			const protoRequest = new ProtoInsertRequest()
-				.setDb(this._db)
-				.setCollection(this._collectionName)
-				.setDocumentsList(docsArray);
-
-			this.grpcClient.insert(
-				protoRequest,
-				Utility.txToMetadata(tx),
-				(error: grpc.ServiceError, response: server_v1_api_pb.InsertResponse): void => {
-					if (error !== undefined && error !== null) {
-						reject(error);
-					} else {
-						let docIndex = 0;
-						const clonedDocs: T[] = Object.assign([], docs);
-
-						for (const value of response.getKeysList_asU8()) {
-							const keyValueJsonObj: object = Utility.jsonStringToObj(
-								Utility.uint8ArrayToString(value),
-								this.config
-							);
-							for (const fieldName of Object.keys(keyValueJsonObj)) {
-								Reflect.set(clonedDocs[docIndex], fieldName, keyValueJsonObj[fieldName]);
-								docIndex++;
-							}
-						}
-						resolve(clonedDocs);
-					}
-				}
-			);
-		});
-	}
-
-	/**
-	 * Inserts a single document in Tigris collection.
-	 *
-	 * @param doc - Document to insert
-	 * @param tx - Optional session information for transaction context
-	 */
-	insertOne(doc: T, tx?: Session): Promise<T> {
-		return new Promise<T>((resolve, reject) => {
-			const docArr: Array<T> = new Array<T>();
-			docArr.push(doc);
-			this.insertMany(docArr, tx)
-				.then((docs) => {
-					resolve(docs[0]);
-				})
-				.catch((error) => {
-					reject(error);
-				});
-		});
-	}
-
-	/**
-	 * Insert new or replace existing documents in collection.
-	 *
-	 * @param docs - Array of documents to insert or replace
-	 * @param tx - Optional session information for transaction context
-	 */
-	insertOrReplaceMany(docs: Array<T>, tx?: Session): Promise<Array<T>> {
-		return new Promise<Array<T>>((resolve, reject) => {
-			const docsArray = new Array<Uint8Array | string>();
-			for (const doc of docs) {
-				docsArray.push(new TextEncoder().encode(Utility.objToJsonString(doc)));
-			}
-			const protoRequest = new ProtoReplaceRequest()
-				.setDb(this._db)
-				.setCollection(this._collectionName)
-				.setDocumentsList(docsArray);
-
-			this.grpcClient.replace(
-				protoRequest,
-				Utility.txToMetadata(tx),
-				(error: grpc.ServiceError, response: server_v1_api_pb.ReplaceResponse): void => {
-					if (error !== undefined && error !== null) {
-						reject(error);
-					} else {
-						let docIndex = 0;
-						const clonedDocs: T[] = Object.assign([], docs);
-						for (const value of response.getKeysList_asU8()) {
-							const keyValueJsonObj: object = Utility.jsonStringToObj(
-								Utility.uint8ArrayToString(value),
-								this.config
-							);
-							for (const fieldName of Object.keys(keyValueJsonObj)) {
-								Reflect.set(clonedDocs[docIndex], fieldName, keyValueJsonObj[fieldName]);
-								docIndex++;
-							}
-						}
-						resolve(clonedDocs);
-					}
-				}
-			);
-		});
-	}
-
-	/**
-	 * Insert new or replace an existing document in collection.
-	 *
-	 * @param doc - Document to insert or replace
-	 * @param tx - Optional session information for transaction context
-	 */
-	insertOrReplaceOne(doc: T, tx?: Session): Promise<T> {
-		return new Promise<T>((resolve, reject) => {
-			const docArr: Array<T> = new Array<T>();
-			docArr.push(doc);
-			this.insertOrReplaceMany(docArr, tx)
-				.then((docs) => resolve(docs[0]))
-				.catch((error) => reject(error));
-		});
-	}
-
 	/**
 	 * Performs a read query on collection and returns a cursor that can be used to iterate over
 	 * query results.
@@ -234,8 +103,8 @@ export class Collection<T extends TigrisCollectionType> {
 		}
 
 		const readRequest = new ProtoReadRequest()
-			.setDb(this._db)
-			.setCollection(this._collectionName)
+			.setDb(this.db)
+			.setCollection(this.collectionName)
 			.setFilter(Utility.stringToUint8Array(Utility.filterToString(filter)));
 
 		if (readFields) {
@@ -301,7 +170,7 @@ export class Collection<T extends TigrisCollectionType> {
 	): Promise<SearchResult<T> | undefined> {
 		return new Promise<SearchResult<T>>((resolve, reject) => {
 			const searchRequest = Utility.createProtoSearchRequest(
-				this._db,
+				this.db,
 				this.collectionName,
 				request,
 				// note: explicit page number is required to signal manual pagination
@@ -331,7 +200,7 @@ export class Collection<T extends TigrisCollectionType> {
 		options?: SearchRequestOptions
 	): AsyncIterableIterator<SearchResult<T>> {
 		const searchRequest = Utility.createProtoSearchRequest(
-			this._db,
+			this.db,
 			this.collectionName,
 			request,
 			options
@@ -347,6 +216,175 @@ export class Collection<T extends TigrisCollectionType> {
 	}
 
 	/**
+	 * Consume events from a "topic"
+	 *
+	 * @param callback - Callback to consume events asynchronously
+	 */
+	events(callback: EventsCallback<T>) {
+		const eventsRequest = new ProtoEventsRequest()
+			.setDb(this.db)
+			.setCollection(this.collectionName);
+
+		const stream: grpc.ClientReadableStream<ProtoEventsResponse> =
+			this.grpcClient.events(eventsRequest);
+
+		stream.on("data", (eventsResponse: ProtoEventsResponse) => {
+			const event = eventsResponse.getEvent();
+			callback.onNext(
+				new StreamEvent<T>(
+					event.getTxId_asB64(),
+					event.getCollection(),
+					event.getOp(),
+					Utility.jsonStringToObj<T>(Utility._base64Decode(event.getData_asB64()), this.config),
+					event.getLast()
+				)
+			);
+		});
+
+		stream.on("error", (error) => callback.onError(error));
+		stream.on("end", () => callback.onEnd());
+	}
+}
+
+/**
+ * The **Collection** class represents Tigris collection allowing insert/find/update/delete/search
+ * and events operations.
+ */
+export class Collection<T extends TigrisCollectionType> extends ReadOnlyCollection<T> {
+	constructor(
+		collectionName: string,
+		db: string,
+		grpcClient: TigrisClient,
+		config: TigrisClientConfig
+	) {
+		super(collectionName, db, grpcClient, config);
+	}
+
+	/**
+	 * Inserts multiple documents in Tigris collection.
+	 *
+	 * @param docs - Array of documents to insert
+	 * @param tx - Optional session information for transaction context
+	 */
+	insertMany(docs: Array<T>, tx?: Session): Promise<Array<T>> {
+		return new Promise<Array<T>>((resolve, reject) => {
+			const docsArray = new Array<Uint8Array | string>();
+			for (const doc of docs) {
+				docsArray.push(new TextEncoder().encode(Utility.objToJsonString(doc)));
+			}
+
+			const protoRequest = new ProtoInsertRequest()
+				.setDb(this.db)
+				.setCollection(this.collectionName)
+				.setDocumentsList(docsArray);
+
+			this.grpcClient.insert(
+				protoRequest,
+				Utility.txToMetadata(tx),
+				(error: grpc.ServiceError, response: server_v1_api_pb.InsertResponse): void => {
+					if (error !== undefined && error !== null) {
+						reject(error);
+					} else {
+						let docIndex = 0;
+						const clonedDocs: T[] = Object.assign([], docs);
+
+						for (const value of response.getKeysList_asU8()) {
+							const keyValueJsonObj: object = Utility.jsonStringToObj(
+								Utility.uint8ArrayToString(value),
+								this.config
+							);
+							for (const fieldName of Object.keys(keyValueJsonObj)) {
+								Reflect.set(clonedDocs[docIndex], fieldName, keyValueJsonObj[fieldName]);
+								docIndex++;
+							}
+						}
+						resolve(clonedDocs);
+					}
+				}
+			);
+		});
+	}
+
+	/**
+	 * Inserts a single document in Tigris collection.
+	 *
+	 * @param doc - Document to insert
+	 * @param tx - Optional session information for transaction context
+	 */
+	insertOne(doc: T, tx?: Session): Promise<T> {
+		return new Promise<T>((resolve, reject) => {
+			const docArr: Array<T> = new Array<T>();
+			docArr.push(doc);
+			this.insertMany(docArr, tx)
+				.then((docs) => {
+					resolve(docs[0]);
+				})
+				.catch((error) => {
+					reject(error);
+				});
+		});
+	}
+
+	/**
+	 * Insert new or replace existing documents in collection.
+	 *
+	 * @param docs - Array of documents to insert or replace
+	 * @param tx - Optional session information for transaction context
+	 */
+	insertOrReplaceMany(docs: Array<T>, tx?: Session): Promise<Array<T>> {
+		return new Promise<Array<T>>((resolve, reject) => {
+			const docsArray = new Array<Uint8Array | string>();
+			for (const doc of docs) {
+				docsArray.push(new TextEncoder().encode(Utility.objToJsonString(doc)));
+			}
+			const protoRequest = new ProtoReplaceRequest()
+				.setDb(this.db)
+				.setCollection(this.collectionName)
+				.setDocumentsList(docsArray);
+
+			this.grpcClient.replace(
+				protoRequest,
+				Utility.txToMetadata(tx),
+				(error: grpc.ServiceError, response: server_v1_api_pb.ReplaceResponse): void => {
+					if (error !== undefined && error !== null) {
+						reject(error);
+					} else {
+						let docIndex = 0;
+						const clonedDocs: T[] = Object.assign([], docs);
+						for (const value of response.getKeysList_asU8()) {
+							const keyValueJsonObj: object = Utility.jsonStringToObj(
+								Utility.uint8ArrayToString(value),
+								this.config
+							);
+							for (const fieldName of Object.keys(keyValueJsonObj)) {
+								Reflect.set(clonedDocs[docIndex], fieldName, keyValueJsonObj[fieldName]);
+								docIndex++;
+							}
+						}
+						resolve(clonedDocs);
+					}
+				}
+			);
+		});
+	}
+
+	/**
+	 * Insert new or replace an existing document in collection.
+	 *
+	 * @param doc - Document to insert or replace
+	 * @param tx - Optional session information for transaction context
+	 */
+	insertOrReplaceOne(doc: T, tx?: Session): Promise<T> {
+		return new Promise<T>((resolve, reject) => {
+			const docArr: Array<T> = new Array<T>();
+			docArr.push(doc);
+			this.insertOrReplaceMany(docArr, tx)
+				.then((docs) => resolve(docs[0]))
+				.catch((error) => reject(error));
+		});
+	}
+
+	/**
 	 * Deletes documents in collection matching the filter
 	 *
 	 * @param filter - Query to match documents to delete
@@ -359,8 +397,8 @@ export class Collection<T extends TigrisCollectionType> {
 				reject(new Error("No filter specified"));
 			}
 			const deleteRequest = new ProtoDeleteRequest()
-				.setDb(this._db)
-				.setCollection(this._collectionName)
+				.setDb(this.db)
+				.setCollection(this.collectionName)
 				.setFilter(Utility.stringToUint8Array(Utility.filterToString(filter)));
 
 			if (options !== undefined) {
@@ -397,8 +435,8 @@ export class Collection<T extends TigrisCollectionType> {
 	): Promise<UpdateResponse> {
 		return new Promise<UpdateResponse>((resolve, reject) => {
 			const updateRequest = new ProtoUpdateRequest()
-				.setDb(this._db)
-				.setCollection(this._collectionName)
+				.setDb(this.db)
+				.setCollection(this.collectionName)
 				.setFilter(Utility.stringToUint8Array(Utility.filterToString(filter)))
 				.setFields(Utility.stringToUint8Array(Utility.updateFieldsString(fields)));
 
@@ -418,35 +456,5 @@ export class Collection<T extends TigrisCollectionType> {
 				}
 			});
 		});
-	}
-
-	/**
-	 * Consume events from a "topic"
-	 *
-	 * @param callback - Callback to consume events asynchronously
-	 */
-	events(callback: EventsCallback<T>) {
-		const eventsRequest = new ProtoEventsRequest()
-			.setDb(this._db)
-			.setCollection(this._collectionName);
-
-		const stream: grpc.ClientReadableStream<ProtoEventsResponse> =
-			this.grpcClient.events(eventsRequest);
-
-		stream.on("data", (eventsResponse: ProtoEventsResponse) => {
-			const event = eventsResponse.getEvent();
-			callback.onNext(
-				new StreamEvent<T>(
-					event.getTxId_asB64(),
-					event.getCollection(),
-					event.getOp(),
-					Utility.jsonStringToObj<T>(Utility._base64Decode(event.getData_asB64()), this.config),
-					event.getLast()
-				)
-			);
-		});
-
-		stream.on("error", (error) => callback.onError(error));
-		stream.on("end", () => callback.onEnd());
 	}
 }

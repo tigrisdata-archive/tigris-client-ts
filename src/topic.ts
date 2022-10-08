@@ -13,6 +13,7 @@ import { Utility } from "./utility";
 import { TigrisClientConfig } from "./tigris";
 import { Readable } from "node:stream";
 import { clientReadableToStream } from "./consumables/utils";
+import { ReadOnlyCollection } from "./collection";
 
 /**
  * Callback to receive events for a topic from server
@@ -45,17 +46,12 @@ export interface SubscribeCallback<T> {
 /**
  * The **Topic** class represents a events stream in Tigris.
  */
-export class Topic<T extends TigrisTopicType> {
+export class Topic<T extends TigrisTopicType> extends ReadOnlyCollection<T> {
 	private readonly _topicName: string;
-	private readonly _db: string;
-	private readonly _grpcClient: TigrisClient;
-	private readonly config: TigrisClientConfig;
 
 	constructor(topicName: string, db: string, grpcClient: TigrisClient, config: TigrisClientConfig) {
+		super(topicName, db, grpcClient, config);
 		this._topicName = topicName;
-		this._db = db;
-		this._grpcClient = grpcClient;
-		this.config = config;
 	}
 
 	/**
@@ -91,7 +87,7 @@ export class Topic<T extends TigrisTopicType> {
 			}
 
 			const protoRequest = new ProtoPublishRequest()
-				.setDb(this._db)
+				.setDb(this.db)
 				.setCollection(this._topicName)
 				.setMessagesList(messagesUintArray);
 
@@ -99,7 +95,7 @@ export class Topic<T extends TigrisTopicType> {
 				protoRequest.setOptions(new ProtoPublishRequestOptions().setPartition(options.partition));
 			}
 
-			this._grpcClient.publish(
+			this.grpcClient.publish(
 				protoRequest,
 				(error: grpc.ServiceError, response: server_v1_api_pb.PublishResponse): void => {
 					if (error !== undefined && error !== null) {
@@ -261,7 +257,7 @@ export class Topic<T extends TigrisTopicType> {
 		options?: SubscribeOptions
 	): Readable | void {
 		const subscribeRequest = new ProtoSubscribeRequest()
-			.setDb(this._db)
+			.setDb(this.db)
 			.setCollection(this._topicName);
 
 		if (filter !== undefined) {
@@ -282,7 +278,7 @@ export class Topic<T extends TigrisTopicType> {
 		};
 
 		const stream: grpc.ClientReadableStream<ProtoSubscribeResponse> =
-			this._grpcClient.subscribe(subscribeRequest);
+			this.grpcClient.subscribe(subscribeRequest);
 
 		if (callback !== undefined) {
 			stream.on("data", (subscribeResponse: ProtoSubscribeResponse) => {
