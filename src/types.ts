@@ -197,9 +197,19 @@ export class WriteOptions {}
 
 export class DeleteRequestOptions {
 	private _collation: Collation;
+	private _limit: number;
 
-	constructor(collation: Collation) {
+	constructor(limit: number, collation?: Collation) {
+		this._limit = limit;
 		this._collation = collation;
+	}
+
+	get limit(): number {
+		return this._limit;
+	}
+
+	set limit(value: number) {
+		this._limit = value;
 	}
 
 	get collation(): Collation {
@@ -213,9 +223,19 @@ export class DeleteRequestOptions {
 
 export class UpdateRequestOptions {
 	private _collation: Collation;
+	private _limit: number;
 
-	constructor(collation: Collation) {
+	constructor(limit: number, collation?: Collation) {
+		this._limit = limit;
 		this._collation = collation;
+	}
+
+	get limit(): number {
+		return this._limit;
+	}
+
+	set limit(value: number) {
+		this._limit = value;
 	}
 
 	get collation(): Collation {

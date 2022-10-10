@@ -342,8 +342,13 @@ export const Utility = {
 		input: DeleteRequestOptions
 	): ProtoDeleteRequestOptions {
 		const result: ProtoDeleteRequestOptions = new ProtoDeleteRequestOptions();
-		if (input !== undefined && input.collation !== undefined) {
-			result.setCollation(new ProtoCollation().setCase(input.collation.case));
+		if (input !== undefined) {
+			if (input.collation !== undefined) {
+				result.setCollation(new ProtoCollation().setCase(input.collation.case));
+			}
+			if (input.limit !== undefined) {
+				result.setLimit(input.limit);
+			}
 		}
 		return result;
 	},
@@ -351,8 +356,13 @@ export const Utility = {
 		input: UpdateRequestOptions
 	): ProtoUpdateRequestOptions {
 		const result: ProtoUpdateRequestOptions = new ProtoUpdateRequestOptions();
-		if (input !== undefined && input.collation !== undefined) {
-			result.setCollation(new ProtoCollation().setCase(input.collation.case));
+		if (input !== undefined) {
+			if (input.collation !== undefined) {
+				result.setCollation(new ProtoCollation().setCase(input.collation.case));
+			}
+			if (input.limit !== undefined) {
+				result.setLimit(input.limit);
+			}
 		}
 		return result;
 	},
