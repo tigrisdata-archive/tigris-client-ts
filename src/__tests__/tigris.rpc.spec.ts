@@ -3,6 +3,7 @@ import {TigrisService} from "../proto/server/v1/api_grpc_pb";
 import TestService, {TestTigrisService} from "./test-service";
 import {
 	DatabaseOptions,
+	DeleteRequestOptions,
 	LogicalOperator,
 	SelectorFilterOperator,
 	StreamEvent,
@@ -10,14 +11,16 @@ import {
 	TigrisDataTypes,
 	TigrisSchema,
 	TigrisTopicType,
-	UpdateFieldsOperator
+	UpdateFieldsOperator,
+	UpdateRequestOptions
 } from "../types";
 import {Tigris} from "../tigris";
-import {SearchRequest, SearchRequestOptions} from "../search/types";
+import {Case, Collation, SearchRequest, SearchRequestOptions} from "../search/types";
 import {Utility} from "../utility";
 import {ObservabilityService} from "../proto/server/v1/observability_grpc_pb";
 import TestObservabilityService from "./test-observability-service";
 import {Readable} from "node:stream";
+import {capture, spy } from "ts-mockito";
 
 describe("rpc tests", () => {
 	let server: Server;
@@ -249,7 +252,7 @@ describe("rpc tests", () => {
 	it("delete", () => {
 		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
 		const db1 = tigris.getDatabase("db3");
-		const deletionPromise = db1.getCollection<IBook>("books").delete({
+		const deletionPromise = db1.getCollection<IBook>("books").deleteMany({
 			op: SelectorFilterOperator.EQ,
 			fields: {
 				id: 1
@@ -261,10 +264,34 @@ describe("rpc tests", () => {
 		return deletionPromise;
 	});
 
+	it("deleteOne", () => {
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const collection = tigris.getDatabase("db3").getCollection<IBook>("books");
+		const spyCollection = spy(collection);
+
+		const expectedFilter = {id: 1};
+		const expectedCollation: Collation = {case: Case.CaseInsensitive};
+		const options = new DeleteRequestOptions(5, expectedCollation);
+
+		const deletePromise = collection.deleteOne(expectedFilter, undefined, options);
+		const [capturedFilter, capturedTx, capturedOptions] = capture(spyCollection.deleteMany).last();
+
+		// filter passed as it is
+		expect(capturedFilter).toBe(expectedFilter);
+		// tx passed as it is
+		expect(capturedTx).toBe(undefined);
+		// options.collation passed as it is
+		expect(capturedOptions.collation).toBe(expectedCollation);
+		// options.limit === 1 while original was 5
+		expect(capturedOptions.limit).toBe(1);
+
+		return deletePromise;
+	});
+
 	it("update", () => {
 		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
 		const db1 = tigris.getDatabase("db3");
-		const updatePromise = db1.getCollection<IBook>("books").update(
+		const updatePromise = db1.getCollection<IBook>("books").updateMany(
 			{
 				op: SelectorFilterOperator.EQ,
 				fields: {
@@ -281,6 +308,33 @@ describe("rpc tests", () => {
 			expect(value.status).toBe("updated: {\"id\":1}, {\"$set\":{\"title\":\"New Title\"}}");
 			expect(value.modifiedCount).toBe(1);
 		});
+		return updatePromise;
+	});
+
+	it("updateOne", () => {
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const collection = tigris.getDatabase("db3").getCollection<IBook>("books");
+		const spyCollection = spy(collection);
+
+		const expectedFilter = {id: 1};
+		const expectedCollation: Collation = {case: Case.CaseInsensitive};
+		const expectedUpdateFields = {title: "one"};
+		const options = new UpdateRequestOptions(5, expectedCollation);
+
+		const updatePromise = collection.updateOne(expectedFilter, expectedUpdateFields, undefined, options);
+		const [capturedFilter, capturedFields, capturedTx, capturedOptions] = capture(spyCollection.updateMany).last();
+
+		// filter passed as it is
+		expect(capturedFilter).toBe(expectedFilter);
+		// updateFields passed as it is
+		expect(capturedFields).toBe(expectedUpdateFields);
+		// tx passed as it is
+		expect(capturedTx).toBe(undefined);
+		// options.collation passed as it is
+		expect(capturedOptions.collation).toBe(expectedCollation);
+		// options.limit === 1 while original was 5
+		expect(capturedOptions.limit).toBe(1);
+
 		return updatePromise;
 	});
 
@@ -534,7 +588,7 @@ describe("rpc tests", () => {
 						id: 1
 					}
 				}, undefined, tx).then(() => {
-					books.update({
+					books.updateMany({
 							op: SelectorFilterOperator.EQ,
 							fields: {
 								id: 1
@@ -548,7 +602,7 @@ describe("rpc tests", () => {
 							}
 							// eslint-disable-next-line @typescript-eslint/no-unused-vars
 						}, tx).then(() => {
-						books.delete({
+						books.deleteMany({
 							op: SelectorFilterOperator.EQ,
 							fields: {
 								id: 1

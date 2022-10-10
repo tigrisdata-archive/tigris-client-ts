@@ -216,7 +216,7 @@ export abstract class ReadOnlyCollection<T extends TigrisCollectionType> impleme
 	}
 
 	/**
-	 * Consume events from a "topic"
+	 * Consume real-time event mutations for the collection
 	 *
 	 * @param callback - Callback to consume events asynchronously
 	 */
@@ -391,7 +391,11 @@ export class Collection<T extends TigrisCollectionType> extends ReadOnlyCollecti
 	 * @param tx - Optional session information for transaction context
 	 * @param options - Optional settings for delete
 	 */
-	delete(filter: Filter<T>, tx?: Session, options?: DeleteRequestOptions): Promise<DeleteResponse> {
+	deleteMany(
+		filter: Filter<T>,
+		tx?: Session,
+		options?: DeleteRequestOptions
+	): Promise<DeleteResponse> {
 		return new Promise<DeleteResponse>((resolve, reject) => {
 			if (!filter) {
 				reject(new Error("No filter specified"));
@@ -420,6 +424,27 @@ export class Collection<T extends TigrisCollectionType> extends ReadOnlyCollecti
 	}
 
 	/**
+	 * Deletes a single document in collection matching the filter
+	 *
+	 * @param filter - Query to match documents to delete
+	 * @param tx - Optional session information for transaction context
+	 * @param options - Optional settings for delete
+	 */
+	deleteOne(
+		filter: Filter<T>,
+		tx?: Session,
+		options?: DeleteRequestOptions
+	): Promise<DeleteResponse> {
+		if (options === undefined) {
+			options = new DeleteRequestOptions(1);
+		} else {
+			options.limit = 1;
+		}
+
+		return this.deleteMany(filter, tx, options);
+	}
+
+	/**
 	 * Update multiple documents in collection
 	 *
 	 * @param filter - Query to match documents to apply update
@@ -427,7 +452,7 @@ export class Collection<T extends TigrisCollectionType> extends ReadOnlyCollecti
 	 * @param tx - Optional session information for transaction context
 	 * @param options - Optional settings for search
 	 */
-	update(
+	updateMany(
 		filter: Filter<T>,
 		fields: UpdateFields | SimpleUpdateField,
 		tx?: Session,
@@ -456,5 +481,27 @@ export class Collection<T extends TigrisCollectionType> extends ReadOnlyCollecti
 				}
 			});
 		});
+	}
+
+	/**
+	 * Updates a single document in collection
+	 *
+	 * @param filter - Query to match document to apply update
+	 * @param fields - Document fields to update and update operation
+	 * @param tx - Optional session information for transaction context
+	 * @param options - Optional settings for search
+	 */
+	updateOne(
+		filter: Filter<T>,
+		fields: UpdateFields | SimpleUpdateField,
+		tx?: Session,
+		options?: UpdateRequestOptions
+	): Promise<UpdateResponse> {
+		if (options === undefined) {
+			options = new UpdateRequestOptions(1);
+		} else {
+			options.limit = 1;
+		}
+		return this.updateMany(filter, fields, tx, options);
 	}
 }
