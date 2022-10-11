@@ -22,7 +22,8 @@ jobs:
           npm install
           npx eslint .
           npm run build
-      - run: npm run preversion
+      - run: npm run lint
+      - run: npm run test
 
   release:
     runs-on: ubuntu-latest
