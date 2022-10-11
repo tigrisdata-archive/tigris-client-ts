@@ -42,7 +42,10 @@
 			{
 				"name": "alpha",
 				"prerelease": true
-			}
+			},
+		  	{
+				"name": "release"
+		  	}
 		],
 		"plugins": [
 			"@semantic-release/commit-analyzer",
