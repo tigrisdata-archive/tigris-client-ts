@@ -1,0 +1,40 @@
+name: release
+on:
+  push:
+    branches:
+      - "alpha"
+      - "beta"
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [12, 14, 16, 17, 18]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup NodeJS
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "npm"
+      - run: npm run clean
+      - run: |
+          npm install
+          npx eslint .
+          npm run build
+      - run: npm run preversion
+
+  release:
+    runs-on: ubuntu-latest
+    needs: [test]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: 16
+      - name: Release
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npx semantic-release --debug --dryRun
