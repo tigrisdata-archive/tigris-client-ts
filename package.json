@@ -33,6 +33,27 @@
 	"files": [
 		"dist/**/*"
 	],
+	"release": {
+		"branches": [
+			{
+				"name": "beta",
+				"prerelease": true
+			},
+			{
+				"name": "alpha",
+				"prerelease": true
+			},
+			{
+				"name": "release"
+			}
+		],
+		"plugins": [
+			"@semantic-release/commit-analyzer",
+			"@semantic-release/release-notes-generator",
+			"@semantic-release/npm",
+			"@semantic-release/github"
+		]
+	},
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/tigrisdata/tigris-client-ts"
@@ -64,6 +85,7 @@
 		"database"
 	],
 	"devDependencies": {
+		"@semantic-release/npm": "^9.0.1",
 		"@types/jest": "^28.1.8",
 		"@typescript-eslint/eslint-plugin": "^5.35.1",
 		"@typescript-eslint/parser": "^5.35.1",
