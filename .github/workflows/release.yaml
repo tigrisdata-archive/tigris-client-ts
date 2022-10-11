@@ -35,6 +35,8 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 16
+      - name: Build package
+        run: npm ci
       - name: Install semantic-release
         run: |
           npm install --no-package-lock --no-save \
