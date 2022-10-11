@@ -42,6 +42,9 @@
 			{
 				"name": "alpha",
 				"prerelease": true
+			},
+			{
+				"name": "release"
 			}
 		],
 		"plugins": [
