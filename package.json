@@ -1,6 +1,6 @@
 {
 	"name": "@tigrisdata/core",
-	"version": "1.0.0-beta.9",
+	"version": "1.0.0-beta.8",
 	"description": "Tigris client for Typescript",
 	"author": "Tigris Data (https://www.tigrisdata.com/)",
 	"contributors": [
@@ -33,6 +33,28 @@
 	"files": [
 		"dist/**/*"
 	],
+	"release": {
+		"branches": [
+			{
+				"name": "beta",
+				"prerelease": true
+			},
+			{
+				"name": "alpha",
+				"prerelease": true
+			},
+			{
+				"name": "release"
+			}
+		],
+		"plugins": [
+			"@semantic-release/commit-analyzer",
+			"@semantic-release/release-notes-generator",
+			"@semantic-release/npm",
+			"@semantic-release/github"
+		],
+		"dryRun": true
+	},
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/tigrisdata/tigris-client-ts"
@@ -52,7 +74,7 @@
 		"prepare": "npm run update_api && npm run protoc && npm run tsc",
 		"prepublishOnly": "npm test && npm run lint",
 		"prettify": "npx prettier --write .",
-		"preversion": "npm run lint",
+		"preversion": "npm run lint && npm run test",
 		"version": "git add -A src",
 		"postversion": "git push && git push --tags"
 	},
@@ -64,6 +86,7 @@
 		"database"
 	],
 	"devDependencies": {
+		"@semantic-release/npm": "^9.0.1",
 		"@types/jest": "^28.1.8",
 		"@typescript-eslint/eslint-plugin": "^5.35.1",
 		"@typescript-eslint/parser": "^5.35.1",
