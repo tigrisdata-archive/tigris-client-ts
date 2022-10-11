@@ -34,6 +34,13 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 16
+      - name: semantic-release-prerequisites
+        run: |
+          npm install --no-package-lock --no-save \
+              @semantic-release/commit-analyzer \
+              @semantic-release/release-notes-generator \
+              @semantic-release/github \
+              @semantic-release/git
       - name: Release
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

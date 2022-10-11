@@ -95,7 +95,6 @@
 		"database"
 	],
 	"devDependencies": {
-		"@semantic-release/git": "^10.0.1",
 		"@semantic-release/npm": "^9.0.1",
 		"@types/jest": "^28.1.8",
 		"@typescript-eslint/eslint-plugin": "^5.35.1",
