@@ -9,7 +9,7 @@ import {
 	StreamEvent,
 	TigrisCollectionType,
 	TigrisDataTypes,
-	TigrisSchema,
+	TigrisSchema, TigrisTopicSchema,
 	TigrisTopicType,
 	UpdateFieldsOperator,
 	UpdateRequestOptions
@@ -643,6 +643,31 @@ describe("rpc tests", () => {
 		});
 	});
 
+	it("createOrUpdateTopic", () => {
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const db = tigris.getDatabase("test_db");
+		const alertSchema: TigrisTopicSchema<Alert> = {
+			id: {
+				type: TigrisDataTypes.INT64,
+				key: {
+					order: 1
+				}
+			},
+			name: {
+				type: TigrisDataTypes.STRING,
+				key: {
+					order: 2
+				}
+			},
+			text: {
+				type: TigrisDataTypes.STRING
+			}
+		};
+		return db.createOrUpdateTopic("alerts", alertSchema).then(value => {
+			expect(value).toBeDefined();
+		});
+	});
+
 	it("serverMetadata", () => {
 		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
 		const serverMetadataPromise = tigris.getServerMetadata();
@@ -836,5 +861,6 @@ export interface IBook2 extends TigrisCollectionType {
 
 export interface Alert extends TigrisTopicType {
 	id: number;
+	name?: number;
 	text: string;
 }

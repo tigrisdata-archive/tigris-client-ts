@@ -474,10 +474,18 @@ export enum TigrisDataTypes {
 	OBJECT = "object",
 }
 
-export type TigrisSchema<T> = {
+export type TigrisSchema<T extends TigrisCollectionType> = {
 	[K in keyof T]: {
 		type: TigrisDataTypes | TigrisSchema<unknown>;
 		primary_key?: TigrisPrimaryKey;
+		items?: TigrisArrayItem;
+	};
+};
+
+export type TigrisTopicSchema<T extends TigrisTopicType> = {
+	[K in keyof T]: {
+		type: TigrisDataTypes | TigrisTopicSchema<unknown>;
+		key?: TigrisPartitionKey;
 		items?: TigrisArrayItem;
 	};
 };
@@ -490,6 +498,10 @@ export type TigrisArrayItem = {
 export type TigrisPrimaryKey = {
 	order: number;
 	autoGenerate?: boolean;
+};
+
+export type TigrisPartitionKey = {
+	order: number;
 };
 
 /**

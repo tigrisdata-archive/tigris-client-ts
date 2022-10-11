@@ -16,6 +16,7 @@ import {
 	TigrisCollectionType,
 	TigrisDataTypes,
 	TigrisSchema,
+	TigrisTopicSchema,
 	UpdateFields,
 	UpdateFieldsOperator,
 	UpdateRequestOptions,
@@ -241,17 +242,20 @@ export const Utility = {
 	_toJSONSchema<T>(
 		collectionName: string,
 		collectionType: CollectionType,
-		schema: TigrisSchema<T>
+		schema: TigrisSchema<T> | TigrisTopicSchema<T>
 	): string {
 		const root = {};
 		const pkeyMap = {};
+		const keyMap = {};
 		root["title"] = collectionName;
 		root["additionalProperties"] = false;
 		root["type"] = "object";
-		root["properties"] = this._getSchemaProperties(schema, pkeyMap);
+		root["properties"] = this._getSchemaProperties(schema, pkeyMap, keyMap);
 		root["collection_type"] = collectionType;
-		if (collectionType !== "messages") {
-			Utility._postProcessSchema(root, pkeyMap);
+		if (collectionType === "documents") {
+			Utility._postProcessDocumentSchema(root, pkeyMap);
+		} else if (collectionType === "messages") {
+			Utility._postProcessMessageSchema(root, keyMap);
 		}
 		return Utility.objToJsonString(root);
 	},
@@ -261,7 +265,7 @@ export const Utility = {
 	  order)
 	 - this can be extended for other schema massaging
 	 */
-	_postProcessSchema(result: object, pkeyMap: object): object {
+	_postProcessDocumentSchema(result: object, pkeyMap: object): object {
 		if (Object.keys(pkeyMap).length === 0) {
 			// if no pkeys was used defined. add implicit pkey
 			result["properties"]["id"] = {
@@ -279,7 +283,23 @@ export const Utility = {
 		return result;
 	},
 
-	_getSchemaProperties<T>(schema: TigrisSchema<T>, pkeyMap: object): object {
+	_postProcessMessageSchema(result: object, keyMap: object): object {
+		const len = Object.keys(keyMap).length;
+		if (len > 0) {
+			result["key"] = [];
+			// add key in order
+			for (let i = 1; i <= len; i++) {
+				result["key"].push(keyMap[i.toString()]);
+			}
+		}
+		return result;
+	},
+
+	_getSchemaProperties<T>(
+		schema: TigrisSchema<T> | TigrisTopicSchema<T>,
+		pkeyMap: object,
+		keyMap: object
+	): object {
 		const properties = {};
 
 		for (const property of Object.keys(schema)) {
@@ -290,7 +310,11 @@ export const Utility = {
 				!(schema[property]["items"] || schema[property]["type"])
 			) {
 				thisProperty["type"] = "object";
-				thisProperty["properties"] = this._getSchemaProperties(schema[property]["type"], pkeyMap);
+				thisProperty["properties"] = this._getSchemaProperties(
+					schema[property]["type"],
+					pkeyMap,
+					keyMap
+				);
 			} else if (
 				schema[property].type != TigrisDataTypes.ARRAY.valueOf() &&
 				typeof schema[property].type != "object"
@@ -301,7 +325,7 @@ export const Utility = {
 					thisProperty["format"] = format;
 				}
 
-				// flat property could be a pkey
+				// flat property could be a primary key
 				if (schema[property].primary_key) {
 					pkeyMap[schema[property].primary_key["order"]] = property;
 					//  autogenerate?
@@ -309,9 +333,15 @@ export const Utility = {
 						thisProperty["autoGenerate"] = true;
 					}
 				}
+
+				// flat property could be a partition key
+				if (schema[property].key) {
+					keyMap[schema[property].key["order"]] = property;
+				}
+
 				// array type?
 			} else if (schema[property].type === TigrisDataTypes.ARRAY.valueOf()) {
-				thisProperty = this._getArrayBlock(schema[property], pkeyMap);
+				thisProperty = this._getArrayBlock(schema[property], pkeyMap, keyMap);
 			}
 			properties[property] = thisProperty;
 		}
@@ -366,19 +396,24 @@ export const Utility = {
 		}
 		return result;
 	},
-	_getArrayBlock(arraySchema: TigrisSchema<unknown> | TigrisDataTypes, pkeyMap: object): object {
+	_getArrayBlock(
+		arraySchema: TigrisSchema<unknown> | TigrisDataTypes,
+		pkeyMap: object,
+		keyMap: object
+	): object {
 		const arrayBlock = {};
 		arrayBlock["type"] = "array";
 		arrayBlock["items"] = {};
 		// array of array?
 		if (arraySchema["items"]["type"] === TigrisDataTypes.ARRAY.valueOf()) {
-			arrayBlock["items"] = this._getArrayBlock(arraySchema["items"], pkeyMap);
+			arrayBlock["items"] = this._getArrayBlock(arraySchema["items"], pkeyMap, keyMap);
 			// array of custom type?
 		} else if (typeof arraySchema["items"]["type"] === "object") {
 			arrayBlock["items"]["type"] = "object";
 			arrayBlock["items"]["properties"] = this._getSchemaProperties(
 				arraySchema["items"]["type"],
-				pkeyMap
+				pkeyMap,
+				keyMap
 			);
 			// within array: single flat property?
 		} else {
