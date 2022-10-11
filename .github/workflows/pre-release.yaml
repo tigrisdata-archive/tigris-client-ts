@@ -1,0 +1,24 @@
+name: release-test
+on:
+  pull_request_target:
+    types:
+      - "opened"
+      - "reopened"
+    branches:
+      - "alpha"
+      - "beta"
+jobs:
+  release-dry-run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+      - name: Release dry run
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_BOT_ACCESS_TOKEN }}
+        run: npx semantic-release --debug --dryRun
