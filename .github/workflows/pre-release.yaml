@@ -1,4 +1,4 @@
-name: pre-release
+name: release-test
 on:
   pull_request_target:
     types:
