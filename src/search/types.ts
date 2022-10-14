@@ -159,6 +159,10 @@ export class SearchResult<T> {
 		this._meta = meta;
 	}
 
+	static get empty(): SearchResult<never> {
+		return new SearchResult([], new Map(), undefined);
+	}
+
 	/**
 	 * @returns matched documents as immutable list
 	 * @readonly

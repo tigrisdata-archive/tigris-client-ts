@@ -164,10 +164,7 @@ export abstract class ReadOnlyCollection<T extends TigrisCollectionType> impleme
 	 * @param request - Search query to execute
 	 * @param options - Optional settings for search
 	 */
-	search(
-		request: SearchRequest<T>,
-		options?: SearchRequestOptions
-	): Promise<SearchResult<T> | undefined> {
+	search(request: SearchRequest<T>, options?: SearchRequestOptions): Promise<SearchResult<T>> {
 		return new Promise<SearchResult<T>>((resolve, reject) => {
 			const searchRequest = Utility.createProtoSearchRequest(
 				this.db,
@@ -184,7 +181,7 @@ export abstract class ReadOnlyCollection<T extends TigrisCollectionType> impleme
 				resolve(searchResult);
 			});
 			stream.on("error", (error) => reject(error));
-			stream.on("end", () => resolve(undefined));
+			stream.on("end", () => resolve(SearchResult.empty));
 		});
 	}
 
