@@ -126,10 +126,17 @@ export class Tigris {
 		}
 		this.config = config;
 		const defaultMetadata: Metadata = new Metadata();
+		const isLocalDev: boolean =
+			config.serverUrl.includes("localhost") ||
+			config.serverUrl.includes("127.0.0.1") ||
+			config.serverUrl.includes("0.0.0.0");
 		defaultMetadata.set(USER_AGENT_KEY, USER_AGENT_VAL);
 		defaultMetadata.set(DEST_NAME_KEY, config.serverUrl);
 
-		if (config.insecureChannel === true && config.clientSecret === undefined) {
+		if (
+			(config.insecureChannel === true || (config.insecureChannel === undefined && isLocalDev)) &&
+			config.clientSecret === undefined
+		) {
 			// no auth & insecure channel - cannot compose insecure channels
 			this.grpcClient = new TigrisClient(config.serverUrl, grpc.credentials.createInsecure());
 			this.observabilityClient = new ObservabilityClient(
