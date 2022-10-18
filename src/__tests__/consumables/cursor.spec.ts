@@ -30,7 +30,7 @@ describe("class FindCursor", () => {
 				}
 			}
 		);
-		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		db = tigris.getDatabase("db3");
 		done();
 	});

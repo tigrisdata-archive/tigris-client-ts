@@ -33,7 +33,6 @@ const AuthorizationBearer = "Bearer ";
 
 export interface TigrisClientConfig {
 	serverUrl: string;
-	insecureChannel?: boolean;
 	clientId?: string;
 	clientSecret?: string;
 	/**
@@ -129,34 +128,15 @@ export class Tigris {
 		defaultMetadata.set(USER_AGENT_KEY, USER_AGENT_VAL);
 		defaultMetadata.set(DEST_NAME_KEY, config.serverUrl);
 
-		if (config.insecureChannel === true && config.clientSecret === undefined) {
-			// no auth & insecure channel - cannot compose insecure channels
+		if (config.clientId === undefined && config.clientSecret === undefined) {
+			// no auth - generate insecure channel
 			this.grpcClient = new TigrisClient(config.serverUrl, grpc.credentials.createInsecure());
 			this.observabilityClient = new ObservabilityClient(
 				config.serverUrl,
 				grpc.credentials.createInsecure()
 			);
-		} else if (
-			(config.insecureChannel === undefined || config.insecureChannel == false) &&
-			config.clientSecret === undefined
-		) {
-			const channelCreds: ChannelCredentials = grpc.credentials.combineChannelCredentials(
-				grpc.credentials.createSsl(),
-				grpc.credentials.createFromMetadataGenerator((params, callback) =>
-					callback(undefined, defaultMetadata)
-				)
-			);
-
-			// no auth & secure channel
-			this.grpcClient = new TigrisClient(config.serverUrl, channelCreds);
-			this.observabilityClient = new ObservabilityClient(config.serverUrl, channelCreds);
-		} else if (
-			(config.insecureChannel !== undefined || config.insecureChannel) &&
-			config.clientSecret !== undefined
-		) {
-			// auth & insecure channel
-			console.error("Passing token on insecure channel is not allowed");
-			process.exitCode = 1;
+		} else if (config.clientId === undefined || config.clientSecret === undefined) {
+			throw new Error("Both `clientId` and `clientSecret` are required");
 		} else {
 			// auth & secure channel
 			const tokenSupplier = new TokenSupplier(config);
