@@ -54,7 +54,7 @@ describe("rpc tests", () => {
 	});
 
 	it("listDatabase", () => {
-		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const listDbsPromise = tigris.listDatabases();
 		listDbsPromise
 			.then((value) => {
@@ -71,7 +71,7 @@ describe("rpc tests", () => {
 	});
 
 	it("createDatabaseIfNotExists", () => {
-		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const dbCreationPromise = tigris.createDatabaseIfNotExists("db6", new DatabaseOptions());
 		dbCreationPromise
 			.then((value) => {
@@ -83,7 +83,7 @@ describe("rpc tests", () => {
 	});
 
 	it("dropDatabase", () => {
-		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const dbDropPromise = tigris.dropDatabase("db6", new DatabaseOptions());
 		dbDropPromise
 			.then((value) => {
@@ -95,13 +95,13 @@ describe("rpc tests", () => {
 	});
 
 	it("getDatabase", () => {
-		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const db1 = tigris.getDatabase("db1");
 		expect(db1.db).toBe("db1");
 	});
 
 	it("listCollections1", () => {
-		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const db1 = tigris.getDatabase("db1");
 
 		const listCollectionPromise = db1.listCollections();
@@ -117,7 +117,7 @@ describe("rpc tests", () => {
 	});
 
 	it("listCollections2", () => {
-		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const db1 = tigris.getDatabase("db3");
 
 		const listCollectionPromise = db1.listCollections();
@@ -133,7 +133,7 @@ describe("rpc tests", () => {
 	});
 
 	it("describeDatabase", () => {
-		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const db1 = tigris.getDatabase("db3");
 
 		const databaseDescriptionPromise = db1.describe();
@@ -150,7 +150,7 @@ describe("rpc tests", () => {
 	});
 
 	it("dropCollection", () => {
-		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const db1 = tigris.getDatabase("db3");
 
 		const dropCollectionPromise = db1.dropCollection("db3_coll_2");
@@ -162,14 +162,14 @@ describe("rpc tests", () => {
 	});
 
 	it("getCollection", () => {
-		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const db1 = tigris.getDatabase("db3");
 		const books = db1.getCollection<IBook>("books");
 		expect(books.collectionName).toBe("books");
 	});
 
 	it("insert", () => {
-		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const db1 = tigris.getDatabase("db3");
 		const insertionPromise = db1.getCollection<IBook>("books").insertOne({
 			author: "author name",
@@ -184,7 +184,7 @@ describe("rpc tests", () => {
 	});
 
 	it("insert2", () => {
-		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const db1 = tigris.getDatabase("db3");
 		const insertionPromise = db1.getCollection<IBook2>("books").insertOne({
 			id: 0,
@@ -201,7 +201,7 @@ describe("rpc tests", () => {
 	});
 
 	it("insertWithOptionalField", () => {
-		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const db1 = tigris.getDatabase("db3");
 		const randomNumber: number = Math.floor(Math.random() * 100);
 		// pass the random number in author field. mock server reads author and sets as the
@@ -218,7 +218,7 @@ describe("rpc tests", () => {
 	});
 
 	it("insertOrReplace", () => {
-		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const db1 = tigris.getDatabase("db3");
 		const insertOrReplacePromise = db1.getCollection<IBook>("books").insertOrReplaceOne({
 			author: "author name",
@@ -233,7 +233,7 @@ describe("rpc tests", () => {
 	});
 
 	it("insertOrReplaceWithOptionalField", () => {
-		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const db1 = tigris.getDatabase("db3");
 		const randomNumber: number = Math.floor(Math.random() * 100);
 		// pass the random number in author field. mock server reads author and sets as the
@@ -250,7 +250,7 @@ describe("rpc tests", () => {
 	});
 
 	it("delete", () => {
-		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const db1 = tigris.getDatabase("db3");
 		const deletionPromise = db1.getCollection<IBook>("books").deleteMany({
 			op: SelectorFilterOperator.EQ,
@@ -265,7 +265,7 @@ describe("rpc tests", () => {
 	});
 
 	it("deleteOne", () => {
-		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const collection = tigris.getDatabase("db3").getCollection<IBook>("books");
 		const spyCollection = spy(collection);
 
@@ -289,7 +289,7 @@ describe("rpc tests", () => {
 	});
 
 	it("update", () => {
-		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const db1 = tigris.getDatabase("db3");
 		const updatePromise = db1.getCollection<IBook>("books").updateMany(
 			{
@@ -312,7 +312,7 @@ describe("rpc tests", () => {
 	});
 
 	it("updateOne", () => {
-		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const collection = tigris.getDatabase("db3").getCollection<IBook>("books");
 		const spyCollection = spy(collection);
 
@@ -339,7 +339,7 @@ describe("rpc tests", () => {
 	});
 
 	it("readOne", () => {
-		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const db1 = tigris.getDatabase("db3");
 		const readOnePromise = db1.getCollection<IBook>("books").findOne( {
 			op: SelectorFilterOperator.EQ,
@@ -358,7 +358,7 @@ describe("rpc tests", () => {
 	});
 
 	it("readOneRecordNotFound", () => {
-		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const db1 = tigris.getDatabase("db3");
 		const readOnePromise = db1.getCollection<IBook>("books").findOne({
 			op: SelectorFilterOperator.EQ,
@@ -373,7 +373,7 @@ describe("rpc tests", () => {
 	});
 
 	it("readOneWithLogicalFilter", () => {
-		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const db1 = tigris.getDatabase("db3");
 		const readOnePromise: Promise<IBook | void> = db1.getCollection<IBook>("books").findOne({
 			op: LogicalOperator.AND,
@@ -403,7 +403,7 @@ describe("rpc tests", () => {
 	});
 
 	describe("findMany", () => {
-		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const db = tigris.getDatabase("db3");
 
 		it("with filter using for await on cursor", async () => {
@@ -462,7 +462,7 @@ describe("rpc tests", () => {
 	});
 
 	it("search", () => {
-		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const db3 = tigris.getDatabase("db3");
 		const options: SearchRequestOptions = {
 			page: 2,
@@ -488,7 +488,7 @@ describe("rpc tests", () => {
 	});
 
 	it("searchStream using iteration", async () => {
-		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const db3 = tigris.getDatabase("db3");
 		const request: SearchRequest<IBook> = {
 			q: "philosophy",
@@ -509,7 +509,7 @@ describe("rpc tests", () => {
 	});
 
 	it("searchStream using next", async () => {
-		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const db3 = tigris.getDatabase("db3");
 		const request: SearchRequest<IBook> = {
 			q: "philosophy",
@@ -532,7 +532,7 @@ describe("rpc tests", () => {
 	});
 
 	it("beginTx", () => {
-		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const db3 = tigris.getDatabase("db3");
 		const beginTxPromise = db3.beginTransaction();
 		beginTxPromise.then(value => {
@@ -543,7 +543,7 @@ describe("rpc tests", () => {
 	});
 
 	it("commitTx", (done) => {
-		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const db3 = tigris.getDatabase("db3");
 		const beginTxPromise = db3.beginTransaction();
 		beginTxPromise.then(session => {
@@ -556,7 +556,7 @@ describe("rpc tests", () => {
 	});
 
 	it("rollbackTx", (done) => {
-		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const db3 = tigris.getDatabase("db3");
 		const beginTxPromise = db3.beginTransaction();
 		beginTxPromise.then(session => {
@@ -569,7 +569,7 @@ describe("rpc tests", () => {
 	});
 
 	it("transact", (done) => {
-		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const txDB = tigris.getDatabase("test-tx");
 		const books = txDB.getCollection<IBook>("books");
 		txDB.transact(tx => {
@@ -615,7 +615,7 @@ describe("rpc tests", () => {
 	});
 
 	it("createOrUpdateCollections", () => {
-		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const db3 = tigris.getDatabase("db3");
 		const bookSchema: TigrisSchema<IBook> = {
 			id: {
@@ -644,7 +644,7 @@ describe("rpc tests", () => {
 	});
 
 	it("createOrUpdateTopic", () => {
-		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const db = tigris.getDatabase("test_db");
 		const alertSchema: TigrisTopicSchema<Alert> = {
 			id: {
@@ -669,7 +669,7 @@ describe("rpc tests", () => {
 	});
 
 	it("serverMetadata", () => {
-		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const serverMetadataPromise = tigris.getServerMetadata();
 		serverMetadataPromise.then(value => {
 			expect(value.serverVersion).toBe("1.0.0-test-service");
@@ -678,7 +678,7 @@ describe("rpc tests", () => {
 	});
 
 	it("events", (done) => {
-		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const db = tigris.getDatabase("test_db");
 		const collection = db.getCollection<IBook>("books");
 		let success = true;
@@ -705,7 +705,7 @@ describe("rpc tests", () => {
 	});
 
 	it("publish", () => {
-		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const db = tigris.getDatabase("test_db");
 		const topic = db.getTopic<Alert>("test_topic");
 		expect(topic.topicName).toBe("test_topic");
@@ -724,7 +724,7 @@ describe("rpc tests", () => {
 	});
 
 	it("subscribe using callback", (done) => {
-		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const db = tigris.getDatabase("test_db");
 		const topic = db.getTopic<Alert>("test_topic");
 		let success = true;
@@ -747,7 +747,7 @@ describe("rpc tests", () => {
 	});
 
 	it("subscribe using stream", (done) => {
-		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const db = tigris.getDatabase("test_db");
 		const topic = db.getTopic<Alert>("test_topic");
 		const subscription: Readable = topic.subscribe() as Readable;
@@ -768,7 +768,7 @@ describe("rpc tests", () => {
 	});
 
 	it("subscribeWithFilter", (done) => {
-		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const db = tigris.getDatabase("test_db");
 		const topic = db.getTopic<Alert>("test_topic");
 		let success = true;
@@ -797,7 +797,7 @@ describe("rpc tests", () => {
 	});
 
 	it("subscribeToPartitions", (done) => {
-		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const db = tigris.getDatabase("test_db");
 		const topic = db.getTopic<Alert>("test_topic");
 		let success = true;
@@ -823,7 +823,7 @@ describe("rpc tests", () => {
 	});
 
 	it("findMany in topic", async () => {
-		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT, insecureChannel: true});
+		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
 		const db = tigris.getDatabase("test_db");
 		const topic = db.getTopic<Alert>("test_topic");
 		const expectedIds = new Set<number>(TestTigrisService.ALERTS_B64_BY_ID.keys());
