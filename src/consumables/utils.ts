@@ -3,7 +3,7 @@ import { Readable } from "node:stream";
 
 function _next<T, TResp>(
 	stream: ClientReadableStream<TResp>,
-	transform: (TResp) => T
+	transform: (arg: TResp) => T
 ): AsyncIterableIterator<T> {
 	const iter: () => AsyncIterableIterator<T> = async function* () {
 		for await (const message of stream) {
@@ -18,7 +18,7 @@ function _next<T, TResp>(
 // Utility to convert grpc response streams to Readable streams
 export function clientReadableToStream<T, TResp>(
 	stream: ClientReadableStream<TResp>,
-	transform: (TResp) => T
+	transform: (arg: TResp) => T
 ): Readable {
 	return Readable.from(_next(stream, transform));
 }

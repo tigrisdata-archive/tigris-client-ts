@@ -270,7 +270,7 @@ export class Topic<T extends TigrisTopicType> extends ReadOnlyCollection<T> {
 			);
 		}
 
-		const transform: (ProtoSubscribeResponse) => T = (resp: ProtoSubscribeResponse) => {
+		const transform: (arg: ProtoSubscribeResponse) => T = (resp: ProtoSubscribeResponse) => {
 			return Utility.jsonStringToObj<T>(
 				Utility._base64Decode(resp.getMessage_asB64()),
 				this.config
