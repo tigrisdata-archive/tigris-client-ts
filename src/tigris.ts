@@ -120,6 +120,12 @@ export class Tigris {
 	 * @param  {TigrisClientConfig} config configuration
 	 */
 	constructor(config: TigrisClientConfig) {
+		if (config.serverUrl.startsWith("https://")) {
+			config.serverUrl = config.serverUrl.replace("https://", "");
+		}
+		if (config.serverUrl.startsWith("http://")) {
+			config.serverUrl = config.serverUrl.replace("http://", "");
+		}
 		if (!config.serverUrl.includes(":")) {
 			config.serverUrl = config.serverUrl + ":" + DEFAULT_GRPC_PORT;
 		}
