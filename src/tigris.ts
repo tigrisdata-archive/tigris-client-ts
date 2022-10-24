@@ -237,4 +237,8 @@ export class Tigris {
 /**
  * Default instance of the Tigris client
  */
-export default new Tigris({ serverUrl: `${process.env.TIGRIS_SERVER_URL}` });
+export default new Tigris({
+	serverUrl: `${process.env.TIGRIS_URI}`,
+	clientId: `${process.env.TIGRIS_CLIENT_ID}`,
+	clientSecret: `${process.env.TIGRIS_CLIENT_SECRET}`,
+});
