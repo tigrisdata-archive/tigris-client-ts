@@ -27,3 +27,19 @@ export class TigrisCursorInUseError extends TigrisError {
 		return "TigrisCursorInUseError";
 	}
 }
+
+/**
+ * An error thrown when path is invalid or not found
+ *
+ * @public
+ * @category Error
+ */
+export class TigrisFileNotFoundError extends TigrisError {
+	constructor(message) {
+		super(message);
+	}
+
+	override get name(): string {
+		return "TigrisFileNotFoundError";
+	}
+}

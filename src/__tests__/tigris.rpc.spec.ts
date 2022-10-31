@@ -25,6 +25,7 @@ import {capture, spy } from "ts-mockito";
 describe("rpc tests", () => {
 	let server: Server;
 	const SERVER_PORT = 5002;
+
 	beforeAll((done) => {
 		server = new Server();
 		TestTigrisService.reset();
@@ -45,9 +46,11 @@ describe("rpc tests", () => {
 		done();
 
 	});
+
 	beforeEach(() => {
 		TestTigrisService.reset();
 	});
+
 	afterAll((done) => {
 		server.forceShutdown();
 		done();
