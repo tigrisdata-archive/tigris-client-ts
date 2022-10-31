@@ -11,6 +11,8 @@ import {
 } from "./proto/server/v1/api_pb";
 import { GetInfoRequest as ProtoGetInfoRequest } from "./proto/server/v1/observability_pb";
 
+import * as dotenv from "dotenv";
+
 import {
 	DatabaseInfo,
 	DatabaseMetadata,
@@ -119,13 +121,14 @@ const DEST_NAME_KEY = "destination-name";
 export class Tigris {
 	private readonly grpcClient: TigrisClient;
 	private readonly observabilityClient: ObservabilityClient;
-	private readonly config: TigrisClientConfig;
+	private readonly _config: TigrisClientConfig;
 
 	/**
 	 *
 	 * @param  {TigrisClientConfig} config configuration
 	 */
 	constructor(config?: TigrisClientConfig) {
+		dotenv.config();
 		if (typeof config === "undefined") {
 			config = {};
 		}
@@ -158,7 +161,7 @@ export class Tigris {
 			config.serverUrl = config.serverUrl + ":" + DEFAULT_GRPC_PORT;
 		}
 
-		this.config = config;
+		this._config = config;
 		const defaultMetadata: Metadata = new Metadata();
 		defaultMetadata.set(USER_AGENT_KEY, USER_AGENT_VAL);
 		defaultMetadata.set(DEST_NAME_KEY, config.serverUrl);
@@ -166,17 +169,14 @@ export class Tigris {
 		if (
 			(config.serverUrl.includes("localhost") ||
 				config.serverUrl.includes("127.0.0.1") ||
-				config.serverUrl.includes("0.0.0.0:") ||
 				config.serverUrl.includes("[::1]")) &&
 			config.clientId === undefined &&
 			config.clientSecret === undefined
 		) {
 			// no auth - generate insecure channel
-			this.grpcClient = new TigrisClient(config.serverUrl, grpc.credentials.createInsecure());
-			this.observabilityClient = new ObservabilityClient(
-				config.serverUrl,
-				grpc.credentials.createInsecure()
-			);
+			const insecureCreds: ChannelCredentials = grpc.credentials.createInsecure();
+			this.grpcClient = new TigrisClient(config.serverUrl, insecureCreds);
+			this.observabilityClient = new ObservabilityClient(config.serverUrl, insecureCreds);
 		} else if (config.clientId === undefined || config.clientSecret === undefined) {
 			throw new Error("Both `clientId` and `clientSecret` are required");
 		} else {
@@ -236,7 +236,7 @@ export class Tigris {
 					if (error && error.code != status.ALREADY_EXISTS) {
 						reject(error);
 					} else {
-						resolve(new DB(db, this.grpcClient, this.config));
+						resolve(new DB(db, this.grpcClient, this._config));
 					}
 				}
 			);
@@ -260,7 +260,7 @@ export class Tigris {
 	}
 
 	public getDatabase(db: string): DB {
-		return new DB(db, this.grpcClient, this.config);
+		return new DB(db, this.grpcClient, this._config);
 	}
 
 	public getServerMetadata(): Promise<ServerMetadata> {
