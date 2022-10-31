@@ -32,7 +32,12 @@ const AuthorizationHeaderName = "authorization";
 const AuthorizationBearer = "Bearer ";
 
 export interface TigrisClientConfig {
-	serverUrl: string;
+	serverUrl?: string;
+	/**
+	 * Use clientId/clientSecret to authenticate production services.
+	 * Obtains at console.preview.tigrisdata.cloud in `Applications Keys` section
+	 * or by running `tigris create application {app_name} {app_description}` CLI command
+	 */
 	clientId?: string;
 	clientSecret?: string;
 	/**
@@ -102,6 +107,7 @@ class TokenSupplier {
 }
 
 const DEFAULT_GRPC_PORT = 443;
+const DEFAULT_URL = "api.preview.tigrisdata.cloud";
 
 const USER_AGENT_KEY = "user-agent";
 const USER_AGENT_VAL = "tigris-client-ts.grpc";
@@ -119,22 +125,52 @@ export class Tigris {
 	 *
 	 * @param  {TigrisClientConfig} config configuration
 	 */
-	constructor(config: TigrisClientConfig) {
+	constructor(config?: TigrisClientConfig) {
+		if (typeof config === "undefined") {
+			config = {};
+		}
+		if (config.serverUrl === undefined) {
+			config.serverUrl = DEFAULT_URL;
+
+			if ("TIGRIS_URI" in process.env) {
+				config.serverUrl = process.env.TIGRIS_URI;
+			}
+			if ("TIGRIS_URL" in process.env) {
+				config.serverUrl = process.env.TIGRIS_URL;
+			}
+		}
+
 		if (config.serverUrl.startsWith("https://")) {
 			config.serverUrl = config.serverUrl.replace("https://", "");
 		}
 		if (config.serverUrl.startsWith("http://")) {
 			config.serverUrl = config.serverUrl.replace("http://", "");
 		}
+
+		if (config.clientId === undefined && "TIGRIS_CLIENT_ID" in process.env) {
+			config.clientId = process.env.TIGRIS_CLIENT_ID;
+		}
+		if (config.clientSecret === undefined && "TIGRIS_CLIENT_SECRET" in process.env) {
+			config.clientSecret = process.env.TIGRIS_CLIENT_SECRET;
+		}
+
 		if (!config.serverUrl.includes(":")) {
 			config.serverUrl = config.serverUrl + ":" + DEFAULT_GRPC_PORT;
 		}
+
 		this.config = config;
 		const defaultMetadata: Metadata = new Metadata();
 		defaultMetadata.set(USER_AGENT_KEY, USER_AGENT_VAL);
 		defaultMetadata.set(DEST_NAME_KEY, config.serverUrl);
 
-		if (config.clientId === undefined && config.clientSecret === undefined) {
+		if (
+			(config.serverUrl.includes("localhost") ||
+				config.serverUrl.includes("127.0.0.1") ||
+				config.serverUrl.includes("0.0.0.0:") ||
+				config.serverUrl.includes("[::1]")) &&
+			config.clientId === undefined &&
+			config.clientSecret === undefined
+		) {
 			// no auth - generate insecure channel
 			this.grpcClient = new TigrisClient(config.serverUrl, grpc.credentials.createInsecure());
 			this.observabilityClient = new ObservabilityClient(
