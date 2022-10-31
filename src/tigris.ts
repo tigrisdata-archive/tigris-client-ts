@@ -168,8 +168,8 @@ export class Tigris {
 				config.serverUrl.includes("127.0.0.1") ||
 				config.serverUrl.includes("0.0.0.0:") ||
 				config.serverUrl.includes("[::1]")) &&
-			config.clientId === undefined &&
-			config.clientSecret === undefined
+			!config.clientId &&
+			!config.clientSecret
 		) {
 			// no auth - generate insecure channel
 			this.grpcClient = new TigrisClient(config.serverUrl, grpc.credentials.createInsecure());
