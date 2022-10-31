@@ -9,5 +9,5 @@
 	"collectCoverage": true,
 	"coverageDirectory": "coverage",
 	"coverageProvider": "v8",
-	"collectCoverageFrom": ["src/*.ts"]
+	"collectCoverageFrom": ["src/*.ts", "src/consumables/*.ts", "src/utils/*.ts", "src/search/*.ts"]
 }

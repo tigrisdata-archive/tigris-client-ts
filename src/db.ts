@@ -29,6 +29,7 @@ import { Utility } from "./utility";
 import { Metadata, ServiceError } from "@grpc/grpc-js";
 import { Topic } from "./topic";
 import { TigrisClientConfig } from "./tigris";
+import { Log } from "./utils/logger";
 
 /**
  * Tigris Database
@@ -80,7 +81,7 @@ export class DB {
 	): Promise<R> {
 		return new Promise<R>((resolve, reject) => {
 			const rawJSONSchema: string = Utility._toJSONSchema(name, type, schema);
-			console.log(rawJSONSchema);
+			Log.debug(rawJSONSchema);
 			const createOrUpdateCollectionRequest = new ProtoCreateOrUpdateCollectionRequest()
 				.setDb(this._db)
 				.setCollection(name)
