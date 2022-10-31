@@ -29,6 +29,8 @@ import {
 import { DB } from "./db";
 import { AuthClient } from "./proto/server/v1/auth_grpc_pb";
 import { Utility } from "./utility";
+import { loadTigrisManifest, TigrisManifest } from "./utils/manifest-loader";
+import { Log } from "./utils/logger";
 
 const AuthorizationHeaderName = "authorization";
 const AuthorizationBearer = "Bearer ";
@@ -273,6 +275,34 @@ export class Tigris {
 				}
 			});
 		});
+	}
+
+	/**
+	 * Automatically provision Databases and Collections based on the directories
+	 * and {@link TigrisSchema} definitions in file system
+	 *
+	 * @param absoluteSchemaPath - Directory location in file system from root
+	 * directory (/) to load schemas from
+	 */
+	public async registerSchemas(absoluteSchemaPath: string) {
+		const manifest: TigrisManifest = loadTigrisManifest(absoluteSchemaPath);
+
+		for (const dbManifest of manifest) {
+			// create DB
+			const tigrisDb = await this.createDatabaseIfNotExists(dbManifest.dbName);
+			Log.event(`Created database: ${dbManifest.dbName}`);
+
+			for (const coll of dbManifest.collections) {
+				// Create a collection
+				const collection = await tigrisDb.createOrUpdateCollection(
+					coll.collectionName,
+					coll.schema
+				);
+				Log.event(
+					`Created collection: ${collection.collectionName} from schema: ${coll.schemaName} in db: ${dbManifest.dbName}`
+				);
+			}
+		}
 	}
 }
 
