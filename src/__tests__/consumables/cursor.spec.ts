@@ -19,7 +19,7 @@ describe("class FindCursor", () => {
 		server.addService(TigrisService, TestService.handler.impl);
 		server.addService(ObservabilityService, TestObservabilityService.handler.impl);
 		server.bindAsync(
-			"0.0.0.0:" + SERVER_PORT,
+			"localhost:" + SERVER_PORT,
 			// test purpose only
 			ServerCredentials.createInsecure(),
 			(err: Error | null) => {
@@ -30,7 +30,7 @@ describe("class FindCursor", () => {
 				}
 			}
 		);
-		const tigris = new Tigris({serverUrl: "0.0.0.0:" + SERVER_PORT});
+		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT});
 		db = tigris.getDatabase("db3");
 		done();
 	});

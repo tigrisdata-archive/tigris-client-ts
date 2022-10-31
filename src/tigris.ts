@@ -166,7 +166,6 @@ export class Tigris {
 		if (
 			(config.serverUrl.includes("localhost") ||
 				config.serverUrl.includes("127.0.0.1") ||
-				config.serverUrl.includes("0.0.0.0:") ||
 				config.serverUrl.includes("[::1]")) &&
 			config.clientId === undefined &&
 			config.clientSecret === undefined
