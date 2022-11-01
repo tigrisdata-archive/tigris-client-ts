@@ -10,7 +10,8 @@ import {
 	ListDatabasesRequest as ProtoListDatabasesRequest,
 } from "./proto/server/v1/api_pb";
 import { GetInfoRequest as ProtoGetInfoRequest } from "./proto/server/v1/observability_pb";
-
+import path from "node:path";
+import appRootPath from "app-root-path";
 import * as dotenv from "dotenv";
 
 import {
@@ -281,11 +282,15 @@ export class Tigris {
 	 * Automatically provision Databases and Collections based on the directories
 	 * and {@link TigrisSchema} definitions in file system
 	 *
-	 * @param absoluteSchemaPath - Directory location in file system from root
-	 * directory (/) to load schemas from
+	 * @param schemaPath - Directory location in file system. Recommended to
+	 * provide an absolute path, else loader will try to access application's root
+	 * path which may not be accurate.
 	 */
-	public async registerSchemas(absoluteSchemaPath: string) {
-		const manifest: TigrisManifest = loadTigrisManifest(absoluteSchemaPath);
+	public async registerSchemas(schemaPath: string) {
+		if (!path.isAbsolute(schemaPath)) {
+			schemaPath = path.join(appRootPath.toString(), schemaPath);
+		}
+		const manifest: TigrisManifest = loadTigrisManifest(schemaPath);
 
 		for (const dbManifest of manifest) {
 			// create DB
