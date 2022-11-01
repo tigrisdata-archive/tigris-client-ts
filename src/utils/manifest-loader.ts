@@ -33,9 +33,7 @@ export function loadTigrisManifest(schemasPath: string): TigrisManifest {
 
 	if (!fs.existsSync(schemasPath)) {
 		Log.error(`Invalid path for Tigris schema: ${schemasPath}`);
-		throw new TigrisFileNotFoundError(
-			`Directory not found: ${schemasPath}. Provide a complete path.`
-		);
+		throw new TigrisFileNotFoundError(`Directory not found: ${schemasPath}`);
 	}
 
 	const tigrisFileManifest: TigrisManifest = new Array<DatabaseManifest>();
