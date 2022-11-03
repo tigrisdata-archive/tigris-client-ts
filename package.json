@@ -67,7 +67,7 @@
 		"copy_api": "copyfiles -u 2 \"./src/proto/**/*.{js,ts}\" \"./dist/proto\"",
 		"tsc": "tsc && npm run copy_api",
 		"build": "npm install && npm run prettier-check && npm run protoc && npm run tsc",
-		"test": "jest --runInBand --coverage --silent",
+		"test": "jest --runInBand --coverage --silent --detectOpenHandles",
 		"prettier-check": "npx prettier --check .",
 		"all": "npm run clean && npm run build && npm run prettier-check && npm run lint && npm run test",
 		"prepare": "npm run update_api && npm run protoc && npm run tsc",
