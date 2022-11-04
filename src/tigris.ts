@@ -1,6 +1,6 @@
 import { TigrisClient } from "./proto/server/v1/api_grpc_pb";
 import { ObservabilityClient } from "./proto/server/v1/observability_grpc_pb";
-
+import { HealthAPIClient } from "./proto/server/v1/health_grpc_pb";
 import * as grpc from "@grpc/grpc-js";
 import { ChannelCredentials, Metadata, status } from "@grpc/grpc-js";
 import {
@@ -10,10 +10,11 @@ import {
 	ListDatabasesRequest as ProtoListDatabasesRequest,
 } from "./proto/server/v1/api_pb";
 import { GetInfoRequest as ProtoGetInfoRequest } from "./proto/server/v1/observability_pb";
+import { HealthCheckInput as ProtoHealthCheckInput } from "./proto/server/v1/health_pb";
+
 import path from "node:path";
 import appRootPath from "app-root-path";
 import * as dotenv from "dotenv";
-
 import {
 	DatabaseInfo,
 	DatabaseMetadata,
@@ -51,6 +52,17 @@ export interface TigrisClientConfig {
 	 * convert it back to `bigint`, set this property to `true`.
 	 */
 	supportBigInt?: boolean;
+
+	/**
+	 * Tigris makes periodic ping to server in order to keep connection alive in case if user's
+	 * workload is pub/sub with no messages for long period.
+	 */
+	disablePing?: boolean;
+
+	/**
+	 * Controls the ping interval, if not specified defaults to 300_000ms (i.e. 5 min)
+	 */
+	pingIntervalMs?: number;
 }
 
 class TokenSupplier {
@@ -124,7 +136,10 @@ const DEST_NAME_KEY = "destination-name";
 export class Tigris {
 	private readonly grpcClient: TigrisClient;
 	private readonly observabilityClient: ObservabilityClient;
+	private readonly healthAPIClient: HealthAPIClient;
 	private readonly _config: TigrisClientConfig;
+	private readonly _ping: () => void;
+	private readonly pingId: NodeJS.Timeout | number | string | undefined;
 
 	/**
 	 *
@@ -180,6 +195,7 @@ export class Tigris {
 			const insecureCreds: ChannelCredentials = grpc.credentials.createInsecure();
 			this.grpcClient = new TigrisClient(config.serverUrl, insecureCreds);
 			this.observabilityClient = new ObservabilityClient(config.serverUrl, insecureCreds);
+			this.healthAPIClient = new HealthAPIClient(config.serverUrl, insecureCreds);
 		} else if (config.clientId === undefined || config.clientSecret === undefined) {
 			throw new Error("Both `clientId` and `clientSecret` are required");
 		} else {
@@ -203,6 +219,27 @@ export class Tigris {
 			);
 			this.grpcClient = new TigrisClient(config.serverUrl, channelCreds);
 			this.observabilityClient = new ObservabilityClient(config.serverUrl, channelCreds);
+			this.healthAPIClient = new HealthAPIClient(config.serverUrl, channelCreds);
+			this._ping = () => {
+				this.healthAPIClient.health(new ProtoHealthCheckInput(), (error, response) => {
+					if (response !== undefined) {
+						Log.debug("health: " + response.getResponse());
+					}
+				});
+			};
+			if (config.disablePing === undefined || !config.disablePing) {
+				// make a ping to server every 5 minute
+				let pingIntervalMs = config.pingIntervalMs;
+				if (pingIntervalMs === undefined) {
+					// 5min
+					pingIntervalMs = 300_000;
+				}
+				this.pingId = setInterval(this._ping, pingIntervalMs);
+				// stop ping on shutdown
+				process.on("exit", () => {
+					this.close();
+				});
+			}
 		}
 	}
 
@@ -309,13 +346,10 @@ export class Tigris {
 			}
 		}
 	}
-}
 
-/**
- * Default instance of the Tigris client
- */
-export default new Tigris({
-	serverUrl: `${process.env.TIGRIS_URI}`,
-	clientId: `${process.env.TIGRIS_CLIENT_ID}`,
-	clientSecret: `${process.env.TIGRIS_CLIENT_SECRET}`,
-});
+	private close(): void {
+		if (this.pingId !== undefined) {
+			clearInterval(this.pingId);
+		}
+	}
+}
