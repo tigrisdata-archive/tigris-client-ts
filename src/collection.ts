@@ -31,6 +31,7 @@ import { Utility } from "./utility";
 import { SearchRequest, SearchRequestOptions, SearchResult } from "./search/types";
 import { TigrisClientConfig } from "./tigris";
 import { Cursor, ReadCursorInitializer } from "./consumables/cursor";
+import { Observable } from "rxjs";
 
 /**
  * Callback to receive events from server
@@ -217,7 +218,9 @@ export abstract class ReadOnlyCollection<T extends TigrisCollectionType> impleme
 	 *
 	 * @param callback - Callback to consume events asynchronously
 	 */
-	events(callback: EventsCallback<T>) {
+	events(): Observable<StreamEvent<T>>;
+	events(callback: EventsCallback<T>): void;
+	events(callback?: EventsCallback<T>): Observable<StreamEvent<T>> {
 		const eventsRequest = new ProtoEventsRequest()
 			.setDb(this.db)
 			.setCollection(this.collectionName);
@@ -225,21 +228,47 @@ export abstract class ReadOnlyCollection<T extends TigrisCollectionType> impleme
 		const stream: grpc.ClientReadableStream<ProtoEventsResponse> =
 			this.grpcClient.events(eventsRequest);
 
-		stream.on("data", (eventsResponse: ProtoEventsResponse) => {
-			const event = eventsResponse.getEvent();
-			callback.onNext(
-				new StreamEvent<T>(
-					event.getTxId_asB64(),
-					event.getCollection(),
-					event.getOp(),
-					Utility.jsonStringToObj<T>(Utility._base64Decode(event.getData_asB64()), this.config),
-					event.getLast()
-				)
-			);
-		});
+		if (callback !== undefined) {
+			stream.on("data", (eventsResponse: ProtoEventsResponse) => {
+				const event = eventsResponse.getEvent();
+				callback.onNext(
+					new StreamEvent<T>(
+						event.getTxId_asB64(),
+						event.getCollection(),
+						event.getOp(),
+						Utility.jsonStringToObj<T>(Utility._base64Decode(event.getData_asB64()), this.config),
+						event.getLast()
+					)
+				);
+			});
 
-		stream.on("error", (error) => callback.onError(error));
-		stream.on("end", () => callback.onEnd());
+			stream.on("error", (error) => callback.onError(error));
+			stream.on("end", () => callback.onEnd());
+		} else {
+			const outStream = new Observable<StreamEvent<T>>((subscriber) => {
+				stream.on("data", (eventsResponse: ProtoEventsResponse) => {
+					const event = eventsResponse.getEvent();
+					subscriber.next(
+						new StreamEvent<T>(
+							event.getTxId_asB64(),
+							event.getCollection(),
+							event.getOp(),
+							Utility.jsonStringToObj<T>(Utility._base64Decode(event.getData_asB64()), this.config),
+							event.getLast()
+						)
+					);
+
+					if (event.getLast()) {
+						subscriber.complete();
+					}
+				});
+
+				stream.on("error", (error) => subscriber.error(error));
+				stream.on("end", () => subscriber.complete());
+			});
+
+			return outStream;
+		}
 	}
 }
 
