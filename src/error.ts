@@ -43,3 +43,14 @@ export class TigrisFileNotFoundError extends TigrisError {
 		return "TigrisFileNotFoundError";
 	}
 }
+
+export class TigrisMoreThanOneSchemaDefined extends TigrisError {
+	constructor(fileName, foundSchemas) {
+		super(
+			`${foundSchemas} TigrisSchema detected in file ${fileName}, should only have 1 TigrisSchema exported`
+		);
+	}
+	override get name(): string {
+		return "TigrisMoreThanOneSchemaDefined";
+	}
+}
