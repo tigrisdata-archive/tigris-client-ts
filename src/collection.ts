@@ -3,8 +3,6 @@ import { TigrisClient } from "./proto/server/v1/api_grpc_pb";
 import * as server_v1_api_pb from "./proto/server/v1/api_pb";
 import {
 	DeleteRequest as ProtoDeleteRequest,
-	EventsRequest as ProtoEventsRequest,
-	EventsResponse as ProtoEventsResponse,
 	InsertRequest as ProtoInsertRequest,
 	ReadRequest as ProtoReadRequest,
 	ReplaceRequest as ProtoReplaceRequest,
@@ -210,36 +208,6 @@ export abstract class ReadOnlyCollection<T extends TigrisCollectionType> impleme
 			yield searchResult;
 		}
 		return;
-	}
-
-	/**
-	 * Consume real-time event mutations for the collection
-	 *
-	 * @param callback - Callback to consume events asynchronously
-	 */
-	events(callback: EventsCallback<T>) {
-		const eventsRequest = new ProtoEventsRequest()
-			.setDb(this.db)
-			.setCollection(this.collectionName);
-
-		const stream: grpc.ClientReadableStream<ProtoEventsResponse> =
-			this.grpcClient.events(eventsRequest);
-
-		stream.on("data", (eventsResponse: ProtoEventsResponse) => {
-			const event = eventsResponse.getEvent();
-			callback.onNext(
-				new StreamEvent<T>(
-					event.getTxId_asB64(),
-					event.getCollection(),
-					event.getOp(),
-					Utility.jsonStringToObj<T>(Utility._base64Decode(event.getData_asB64()), this.config),
-					event.getLast()
-				)
-			);
-		});
-
-		stream.on("error", (error) => callback.onError(error));
-		stream.on("end", () => callback.onEnd());
 	}
 }
 
