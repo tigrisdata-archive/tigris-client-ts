@@ -55,7 +55,6 @@
 			[
 				"@semantic-release/exec",
 				{
-					"verifyConditionsCmd": "./scripts/verifyReleaseNeeded.sh ${nextRelease.version}",
 					"publishCmd": "./scripts/publishLatestRelease.sh ${nextRelease.version}"
 				}
 			]
