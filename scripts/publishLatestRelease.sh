@@ -11,7 +11,7 @@ fi
 
 NEXT=$1
 echo "Setting version in package.json to: $NEXT"
-VERSION_OUT=$(npm version $NEXT --no-git-tag-version | tail -n1)
+VERSION_OUT=$(npm version $NEXT --no-git-tag-version --allow-same-version | tail -n1)
 
 echo "npm version out: $VERSION_OUT"
 
