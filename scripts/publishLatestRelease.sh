@@ -34,6 +34,11 @@ fi
 
 echo 'Release needed on @latest dist-tag'
 
+NPMRC="/tmp/.npmrc"
+cp /dev/null $NPMRC
+# NPM_TOKEN is available in gh workflow
+echo "//registry.npmjs.org/:_authToken = \$NPM_TOKEN" >> $NPMRC
+
 # Attempt to publish a new release to @latest tag
 echo "Setting version in package.json to: $NEXT"
 VERSION_OUT=$(npm version $NEXT --no-git-tag-version --allow-same-version | tail -n1)
@@ -46,6 +51,6 @@ if [[ "$VERSION_OUT" != *"$NEXT"* ]]; then
 fi
 
 echo "Ready to publish $NEXT to dist-tag: @latest"
-npm publish
+npm publish --userconfig $NPMRC
 
 exit 0
