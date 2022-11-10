@@ -2,7 +2,7 @@ import path from "node:path";
 import fs from "node:fs";
 import { Log } from "./logger";
 import { TigrisSchema } from "../types";
-import { TigrisFileNotFoundError } from "../error";
+import { TigrisFileNotFoundError, TigrisMoreThanOneSchemaDefined } from "../error";
 
 const COLL_FILE_SUFFIX = ".ts";
 
@@ -59,16 +59,23 @@ export function loadTigrisManifest(schemasPath: string): TigrisManifest {
 						);
 						// eslint-disable-next-line @typescript-eslint/no-var-requires,unicorn/prefer-module
 						const schemaFile = require(collFilePath);
+						const detectedSchemas = new Map<string, TigrisSchema<unknown>>();
+						// read schemas in that file
 						for (const [key, value] of Object.entries(schemaFile)) {
 							if (canBeSchema(value)) {
-								dbManifest.collections.push({
-									collectionName: collName,
-									schema: value as TigrisSchema<unknown>,
-									schemaName: key,
-								});
-								Log.info(`Found schema definition: ${key}`);
-								break;
+								detectedSchemas.set(key, value as TigrisSchema<unknown>);
 							}
+						}
+						if (detectedSchemas.size > 1) {
+							throw new TigrisMoreThanOneSchemaDefined(dbPathEntry, detectedSchemas.size);
+						}
+						for (const [name, def] of detectedSchemas) {
+							dbManifest.collections.push({
+								collectionName: collName,
+								schema: def,
+								schemaName: name,
+							});
+							Log.info(`Found schema definition: ${name}`);
 						}
 					}
 				}

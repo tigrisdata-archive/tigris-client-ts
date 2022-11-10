@@ -1,13 +1,13 @@
 import { canBeSchema, loadTigrisManifest, TigrisManifest } from "../../utils/manifest-loader";
 import { TigrisDataTypes } from "../../types";
-import { TigrisFileNotFoundError } from "../../error";
+import { TigrisFileNotFoundError, TigrisMoreThanOneSchemaDefined } from "../../error";
 
 describe("Manifest loader", () => {
 
 	it("generates manifest from file system", () => {
 		const schemaPath = process.cwd() + "/src/__tests__/data/models";
 		const manifest: TigrisManifest = loadTigrisManifest(schemaPath);
-		expect(manifest).toHaveLength(2);
+		expect(manifest).toHaveLength(3);
 
 		const expected: TigrisManifest = [{
 			"dbName": "catalog",
@@ -21,13 +21,49 @@ describe("Manifest loader", () => {
 				},
 				"schemaName": "ProductSchema"
 			}]
-		}, { "dbName": "empty", "collections": [] }];
+		},
+			{	"dbName": "embedded",
+				"collections": [{
+					"collectionName": "users",
+					"schemaName": "userSchema",
+					"schema": {
+						"created": { "type": "date-time" },
+						"email": { "type": "string" },
+						"identities": {
+							"type": "array",
+							"items": {
+								"type": {
+									"connection": { "type": "string" },
+									"isSocial": { "type": "boolean" },
+									"provider": { "type": "string" },
+									"user_id": { "type": "string" }
+								}
+							}
+						},
+						"name": { "type": "string" },
+						"picture": { "type": "string" },
+						"stats": {
+							"type": {
+								"loginsCount": { "type": "int64" }
+							}
+						},
+						"updated": { "type": "date-time" },
+						"user_id": { "type": "string", "primary_key": { "order": 1 } }
+					}
+				}]},
+			{ "dbName": "empty", "collections": [] },
+			];
 		expect(manifest).toStrictEqual(expected);
 	});
 
 	it("throws error for invalid path", () => {
 		const schemaPath = "/src/__tests__/data/models";
 		expect(() => loadTigrisManifest(schemaPath)).toThrow(TigrisFileNotFoundError);
+	});
+
+	it("throws error for multiple schema exports", () => {
+		const schemaPath = process.cwd() + "/src/__tests__/data/invalidModels";
+		expect(() => loadTigrisManifest(schemaPath)).toThrow(TigrisMoreThanOneSchemaDefined);
 	});
 
 	const validSchemaDefinitions = [
