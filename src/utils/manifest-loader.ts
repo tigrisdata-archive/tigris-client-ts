@@ -3,8 +3,11 @@ import fs from "node:fs";
 import { Log } from "./logger";
 import { TigrisSchema } from "../types";
 import { TigrisFileNotFoundError, TigrisMoreThanOneSchemaDefined } from "../error";
+import * as crypto from "node:crypto";
 
 const COLL_FILE_SUFFIX = ".ts";
+const NETLIFY_PREVIEW_ENV = new Set<string>(["deploy-preview", "branch-deploy"]);
+const VERCEL_PREVIEW_ENV = "preview";
 
 type CollectionManifest = {
 	collectionName: string;
@@ -15,6 +18,10 @@ type CollectionManifest = {
 type DatabaseManifest = {
 	dbName: string;
 	collections: Array<CollectionManifest>;
+};
+
+type Props = {
+	dbNameSuffix: string;
 };
 
 /**
@@ -29,6 +36,7 @@ export type TigrisManifest = Array<DatabaseManifest>;
  * @return TigrisManifest
  */
 export function loadTigrisManifest(schemasPath: string): TigrisManifest {
+	const props = getProps();
 	Log.event(`Scanning ${schemasPath} for Tigris schema definitions`);
 
 	if (!fs.existsSync(schemasPath)) {
@@ -44,7 +52,7 @@ export function loadTigrisManifest(schemasPath: string): TigrisManifest {
 		if (fs.lstatSync(dbDirPath).isDirectory()) {
 			Log.info(`Found DB definition ${schemaPathEntry}`);
 			const dbManifest: DatabaseManifest = {
-				dbName: schemaPathEntry,
+				dbName: schemaPathEntry + props.dbNameSuffix,
 				collections: new Array<CollectionManifest>(),
 			};
 
@@ -110,4 +118,28 @@ export function canBeSchema(maybeSchema: unknown): boolean {
 		}
 	}
 	return true;
+}
+
+/**
+ * Generate `dbNameSuffix` based off the deploy environment
+ */
+export function getProps(): Props {
+	let suffix = "";
+	if (NETLIFY_PREVIEW_ENV.has(process.env.CONTEXT) && process.env.HEAD) {
+		suffix = "_preview_" + nerfGitBranchName(process.env.HEAD);
+	} else if (VERCEL_PREVIEW_ENV === process.env.VERCEL_ENV && process.env.VERCEL_GIT_COMMIT_REF) {
+		suffix = "_preview_" + nerfGitBranchName(process.env.VERCEL_GIT_COMMIT_REF);
+	}
+	return { dbNameSuffix: suffix };
+}
+
+/**
+ * Utility method to nerf a git branch name to a string acceptable as Tigris db Name
+ *
+ * @example "main/fork" becomes "main_fork_6e3e0518".
+ * @param original - name of git branch
+ */
+export function nerfGitBranchName(original: string) {
+	const hash = crypto.createHash("sha256").update(original).digest("hex").slice(0, 8);
+	return original.replace(/[^\d\n.A-Za-z]/g, "_") + "_" + hash;
 }
