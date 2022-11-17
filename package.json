@@ -36,28 +36,23 @@
 	"release": {
 		"branches": [
 			{
+				"name": "release"
+			},
+			{
 				"name": "beta",
-				"prerelease": true
+				"prerelease": true,
+				"channel": false
 			},
 			{
 				"name": "alpha",
 				"prerelease": true
-			},
-			{
-				"name": "release"
 			}
 		],
 		"plugins": [
 			"@semantic-release/commit-analyzer",
 			"@semantic-release/release-notes-generator",
 			"@semantic-release/npm",
-			"@semantic-release/github",
-			[
-				"@semantic-release/exec",
-				{
-					"publishCmd": "./scripts/publishLatestRelease.sh ${nextRelease.version}"
-				}
-			]
+			"@semantic-release/github"
 		]
 	},
 	"repository": {
