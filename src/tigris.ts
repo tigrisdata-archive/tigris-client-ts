@@ -241,6 +241,7 @@ export class Tigris {
 				});
 			}
 		}
+		Log.info(`Using Tigris at: ${config.serverUrl}`);
 	}
 
 	/**

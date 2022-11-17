@@ -6,7 +6,6 @@ import {
 	DeleteRequestOptions,
 	LogicalOperator,
 	SelectorFilterOperator,
-	StreamEvent,
 	TigrisCollectionType,
 	TigrisDataTypes,
 	TigrisSchema, TigrisTopicSchema,
