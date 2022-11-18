@@ -54,10 +54,10 @@ export interface TigrisClientConfig {
 	supportBigInt?: boolean;
 
 	/**
-	 * Tigris makes periodic ping to server in order to keep connection alive in case if user's
+	 * Tigris can make periodic ping to server in order to keep connection alive in case if user's
 	 * workload is pub/sub with no messages for long period.
 	 */
-	disablePing?: boolean;
+	enablePing?: boolean;
 
 	/**
 	 * Controls the ping interval, if not specified defaults to 300_000ms (i.e. 5 min)
@@ -228,8 +228,8 @@ export class Tigris {
 					}
 				});
 			};
-			if (config.disablePing === undefined || !config.disablePing) {
-				// make a ping to server every 5 minute
+			if (config.enablePing) {
+				// make a ping to server at configured interval
 				let pingIntervalMs = config.pingIntervalMs;
 				if (pingIntervalMs === undefined) {
 					// 5min
