@@ -245,7 +245,6 @@ export const Utility = {
 		root["additionalProperties"] = false;
 		root["type"] = "object";
 		root["properties"] = this._getSchemaProperties(schema, pkeyMap, keyMap);
-		root["collection_type"] = "documents";
 		Utility._postProcessDocumentSchema(root, pkeyMap);
 		return Utility.objToJsonString(root);
 	},
