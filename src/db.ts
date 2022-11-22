@@ -4,7 +4,6 @@ import {
 	CollectionInfo,
 	CollectionMetadata,
 	CollectionOptions,
-	CollectionType,
 	CommitTransactionResponse,
 	DatabaseDescription,
 	DatabaseMetadata,
@@ -27,7 +26,6 @@ import { Collection } from "./collection";
 import { Session } from "./session";
 import { Utility } from "./utility";
 import { Metadata, ServiceError } from "@grpc/grpc-js";
-import { Topic } from "./topic";
 import { TigrisClientConfig } from "./tigris";
 import { Log } from "./utils/logger";
 
@@ -55,32 +53,18 @@ export class DB {
 	): Promise<Collection<T>> {
 		return this.createOrUpdate(
 			collectionName,
-			CollectionType.DOCUMENTS,
 			schema,
 			() => new Collection(collectionName, this._db, this.grpcClient, this.config)
 		);
 	}
 
-	public createOrUpdateTopic<T extends TigrisCollectionType>(
-		topicName: string,
-		schema: TigrisSchema<T>
-	): Promise<Topic<T>> {
-		return this.createOrUpdate(
-			topicName,
-			CollectionType.MESSAGES,
-			schema,
-			() => new Topic(topicName, this._db, this.grpcClient, this.config)
-		);
-	}
-
 	private createOrUpdate<T extends TigrisCollectionType, R>(
 		name: string,
-		type: CollectionType,
 		schema: TigrisSchema<T>,
 		resolver: () => R
 	): Promise<R> {
 		return new Promise<R>((resolve, reject) => {
-			const rawJSONSchema: string = Utility._toJSONSchema(name, type, schema);
+			const rawJSONSchema: string = Utility._toJSONSchema(name, schema);
 			Log.debug(rawJSONSchema);
 			const createOrUpdateCollectionRequest = new ProtoCreateOrUpdateCollectionRequest()
 				.setDb(this._db)
@@ -139,6 +123,19 @@ export class DB {
 		});
 	}
 
+	public dropAllCollections(): Promise<void> {
+		return new Promise<void>((resolve, reject) => {
+			this.listCollections()
+				.then((value: Array<CollectionInfo>) => {
+					for (const collectionInfo of value) {
+						this.dropCollection(collectionInfo.name);
+					}
+					resolve();
+				})
+				.catch((error) => reject(error));
+		});
+	}
+
 	public describe(): Promise<DatabaseDescription> {
 		return new Promise<DatabaseDescription>((resolve, reject) => {
 			this.grpcClient.describeDatabase(
@@ -172,10 +169,6 @@ export class DB {
 
 	public getCollection<T>(collectionName: string): Collection<T> {
 		return new Collection<T>(collectionName, this.db, this.grpcClient, this.config);
-	}
-
-	public getTopic<T>(topicName: string): Topic<T> {
-		return new Topic<T>(topicName, this.db, this.grpcClient, this.config);
 	}
 
 	public transact(fn: (tx: Session) => void): Promise<TransactionResponse> {

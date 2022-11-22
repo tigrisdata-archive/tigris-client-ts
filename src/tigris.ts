@@ -6,8 +6,6 @@ import { ChannelCredentials, Metadata, status } from "@grpc/grpc-js";
 import {
 	CreateDatabaseRequest as ProtoCreateDatabaseRequest,
 	DatabaseOptions as ProtoDatabaseOptions,
-	DropDatabaseRequest as ProtoDropDatabaseRequest,
-	ListDatabasesRequest as ProtoListDatabasesRequest,
 } from "./proto/server/v1/api_pb";
 import { GetInfoRequest as ProtoGetInfoRequest } from "./proto/server/v1/observability_pb";
 import { HealthCheckInput as ProtoHealthCheckInput } from "./proto/server/v1/health_pb";
@@ -15,13 +13,7 @@ import { HealthCheckInput as ProtoHealthCheckInput } from "./proto/server/v1/hea
 import path from "node:path";
 import appRootPath from "app-root-path";
 import * as dotenv from "dotenv";
-import {
-	DatabaseInfo,
-	DatabaseMetadata,
-	DatabaseOptions,
-	DropDatabaseResponse,
-	ServerMetadata,
-} from "./types";
+import { DatabaseOptions, ServerMetadata } from "./types";
 
 import {
 	GetAccessTokenRequest as ProtoGetAccessTokenRequest,
@@ -39,6 +31,7 @@ const AuthorizationBearer = "Bearer ";
 
 export interface TigrisClientConfig {
 	serverUrl?: string;
+	projectName?: string;
 	/**
 	 * Use clientId/clientSecret to authenticate production services.
 	 * Obtains at console.preview.tigrisdata.cloud in `Applications Keys` section
@@ -152,7 +145,11 @@ export class Tigris {
 		}
 		if (config.serverUrl === undefined) {
 			config.serverUrl = DEFAULT_URL;
-
+			if (!("TIGRIS_PROJECT" in process.env)) {
+				throw new Error("Unable to resolve TIGRIS_PROJECT environment variable");
+			} else {
+				config.projectName = process.env.TIGRIS_PROJECT;
+			}
 			if ("TIGRIS_URI" in process.env) {
 				config.serverUrl = process.env.TIGRIS_URI;
 			}
@@ -245,64 +242,8 @@ export class Tigris {
 		Log.info(`Using Tigris at: ${config.serverUrl}`);
 	}
 
-	/**
-	 * Lists the databases
-	 * @return {Promise<Array<DatabaseInfo>>} a promise of an array of
-	 * DatabaseInfo
-	 */
-	public listDatabases(): Promise<Array<DatabaseInfo>> {
-		return new Promise<Array<DatabaseInfo>>((resolve, reject) => {
-			this.grpcClient.listDatabases(new ProtoListDatabasesRequest(), (error, response) => {
-				if (error) {
-					reject(error);
-				} else {
-					const result = response
-						.getDatabasesList()
-						.map(
-							(protoDatabaseInfo) =>
-								new DatabaseInfo(protoDatabaseInfo.getDb(), new DatabaseMetadata())
-						);
-					resolve(result);
-				}
-			});
-		});
-	}
-
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	public createDatabaseIfNotExists(db: string, _options?: DatabaseOptions): Promise<DB> {
-		return new Promise<DB>((resolve, reject) => {
-			this.grpcClient.createDatabase(
-				new ProtoCreateDatabaseRequest().setDb(db).setOptions(new ProtoDatabaseOptions()),
-				// eslint-disable-next-line @typescript-eslint/no-unused-vars
-				(error, _response) => {
-					if (error && error.code != status.ALREADY_EXISTS) {
-						reject(error);
-					} else {
-						resolve(new DB(db, this.grpcClient, this._config));
-					}
-				}
-			);
-		});
-	}
-
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	public dropDatabase(db: string, _options?: DatabaseOptions): Promise<DropDatabaseResponse> {
-		return new Promise<DropDatabaseResponse>((resolve, reject) => {
-			this.grpcClient.dropDatabase(
-				new ProtoDropDatabaseRequest().setDb(db).setOptions(new ProtoDatabaseOptions()),
-				(error, response) => {
-					if (error) {
-						reject(error);
-					} else {
-						resolve(new DropDatabaseResponse(response.getStatus(), response.getMessage()));
-					}
-				}
-			);
-		});
-	}
-
-	public getDatabase(db: string): DB {
-		return new DB(db, this.grpcClient, this._config);
+	public getDatabase(): DB {
+		return new DB(this._config.projectName, this.grpcClient, this._config);
 	}
 
 	public getServerMetadata(): Promise<ServerMetadata> {
@@ -353,5 +294,22 @@ export class Tigris {
 		if (this.pingId !== undefined) {
 			clearInterval(this.pingId);
 		}
+	}
+
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	private createDatabaseIfNotExists(db: string, _options?: DatabaseOptions): Promise<DB> {
+		return new Promise<DB>((resolve, reject) => {
+			this.grpcClient.createDatabase(
+				new ProtoCreateDatabaseRequest().setDb(db).setOptions(new ProtoDatabaseOptions()),
+				// eslint-disable-next-line @typescript-eslint/no-unused-vars
+				(error, _response) => {
+					if (error && error.code != status.ALREADY_EXISTS) {
+						reject(error);
+					} else {
+						resolve(new DB(db, this.grpcClient, this._config));
+					}
+				}
+			);
+		});
 	}
 }
