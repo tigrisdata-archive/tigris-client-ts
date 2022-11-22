@@ -301,42 +301,6 @@ export class ReadRequestOptions {
 
 export class TransactionOptions {}
 
-export class StreamEvent<T> {
-	private readonly _txId: string;
-	private readonly _collection: string;
-	private readonly _op: string;
-	private readonly _data: T;
-	private readonly _last: boolean;
-
-	constructor(txId: string, collection: string, op: string, data: T, last: boolean) {
-		this._txId = txId;
-		this._collection = collection;
-		this._op = op;
-		this._data = data;
-		this._last = last;
-	}
-
-	get txId(): string {
-		return this._txId;
-	}
-
-	get collection(): string {
-		return this._collection;
-	}
-
-	get op(): string {
-		return this._op;
-	}
-
-	get data(): T {
-		return this._data;
-	}
-
-	get last(): boolean {
-		return this._last;
-	}
-}
-
 export class CommitTransactionResponse extends TigrisResponse {
 	constructor(status: string) {
 		super(status);
@@ -352,38 +316,6 @@ export class RollbackTransactionResponse extends TigrisResponse {
 export class TransactionResponse extends TigrisResponse {
 	constructor(status: string) {
 		super(status);
-	}
-}
-
-export class PublishOptions {
-	private _partition: number;
-
-	constructor(partition: number) {
-		this._partition = partition;
-	}
-
-	get partition(): number {
-		return this._partition;
-	}
-
-	set partition(value: number) {
-		this._partition = value;
-	}
-}
-
-export class SubscribeOptions {
-	private _partitions: Array<number>;
-
-	constructor(partitions: Array<number>) {
-		this._partitions = partitions;
-	}
-
-	get partitions(): Array<number> {
-		return this._partitions;
-	}
-
-	set partitions(value: Array<number>) {
-		this._partitions = value;
 	}
 }
 

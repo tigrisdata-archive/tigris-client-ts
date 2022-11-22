@@ -19,7 +19,6 @@ import {
 	ReadRequestOptions,
 	SelectorFilterOperator,
 	SimpleUpdateField,
-	StreamEvent,
 	TigrisCollectionType,
 	UpdateFields,
 	UpdateRequestOptions,
@@ -29,34 +28,6 @@ import { Utility } from "./utility";
 import { SearchRequest, SearchRequestOptions, SearchResult } from "./search/types";
 import { TigrisClientConfig } from "./tigris";
 import { Cursor, ReadCursorInitializer } from "./consumables/cursor";
-
-/**
- * Callback to receive events from server
- */
-export interface EventsCallback<T> {
-	/**
-	 * Receives a message from server. Can be called many times but is never called after
-	 * {@link onError} or {@link onEnd} are called.
-	 *
-	 * @param event
-	 */
-	onNext(event: StreamEvent<T>): void;
-
-	/**
-	 * Receives a notification of successful stream completion.
-	 *
-	 * <p>May only be called once and if called it must be the last method called. In particular,
-	 * if an exception is thrown by an implementation of {@link onEnd} no further calls to any
-	 * method are allowed.
-	 */
-	onEnd(): void;
-
-	/**
-	 * Receives terminating error from the stream.
-	 * @param error
-	 */
-	onError(error: Error): void;
-}
 
 interface ICollection {
 	readonly collectionName: string;
