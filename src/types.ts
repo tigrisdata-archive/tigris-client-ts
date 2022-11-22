@@ -403,15 +403,6 @@ export class ServerMetadata {
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface TigrisCollectionType {}
 
-// Marker interface
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface TigrisTopicType extends TigrisCollectionType {}
-
-export enum CollectionType {
-	DOCUMENTS = "documents",
-	MESSAGES = "messages",
-}
-
 export enum LogicalOperator {
 	AND = "$and",
 	OR = "$or",
@@ -478,14 +469,6 @@ export type TigrisSchema<T extends TigrisCollectionType> = {
 	[K in keyof T]: {
 		type: TigrisDataTypes | TigrisSchema<unknown>;
 		primary_key?: TigrisPrimaryKey;
-		items?: TigrisArrayItem;
-	};
-};
-
-export type TigrisTopicSchema<T extends TigrisTopicType> = {
-	[K in keyof T]: {
-		type: TigrisDataTypes | TigrisTopicSchema<unknown>;
-		key?: TigrisPartitionKey;
 		items?: TigrisArrayItem;
 	};
 };
