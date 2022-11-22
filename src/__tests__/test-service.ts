@@ -273,6 +273,8 @@ export class TestTigrisService {
 				if (call.request.getCollection() === "books-with-optional-field") {
 					const extractedKeyFromAuthor: number = JSON.parse(Utility._base64Decode(call.request.getDocumentsList_asB64()[i - 1]))["author"];
 					keyList.push(Utility._base64Encode("{\"id\":" + extractedKeyFromAuthor + "}"));
+				} else if (call.request.getCollection() === "books-multi-pk") {
+					keyList.push(Utility._base64Encode("{\"id\":" + i + ", \"id2\":" + i+1 + "}"));
 				} else {
 					keyList.push(Utility._base64Encode("{\"id\":" + i + "}"));
 				}

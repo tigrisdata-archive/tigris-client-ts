@@ -184,7 +184,7 @@ export abstract class ReadOnlyCollection<T extends TigrisCollectionType> impleme
 
 /**
  * The **Collection** class represents Tigris collection allowing insert/find/update/delete/search
- * and events operations.
+ * operations.
  */
 export class Collection<T extends TigrisCollectionType> extends ReadOnlyCollection<T> {
 	constructor(
@@ -194,6 +194,24 @@ export class Collection<T extends TigrisCollectionType> extends ReadOnlyCollecti
 		config: TigrisClientConfig
 	) {
 		super(collectionName, db, grpcClient, config);
+	}
+
+	private setDocsMetadata(docs: Array<T>, keys: Array<Uint8Array>): Array<T> {
+		let docIndex = 0;
+		const clonedDocs: T[] = Object.assign([], docs);
+
+		for (const value of keys) {
+			const keyValueJsonObj: object = Utility.jsonStringToObj(
+				Utility.uint8ArrayToString(value),
+				this.config
+			);
+			for (const fieldName of Object.keys(keyValueJsonObj)) {
+				Reflect.set(clonedDocs[docIndex], fieldName, keyValueJsonObj[fieldName]);
+			}
+			docIndex++;
+		}
+
+		return clonedDocs;
 	}
 
 	/**
@@ -221,19 +239,7 @@ export class Collection<T extends TigrisCollectionType> extends ReadOnlyCollecti
 					if (error !== undefined && error !== null) {
 						reject(error);
 					} else {
-						let docIndex = 0;
-						const clonedDocs: T[] = Object.assign([], docs);
-
-						for (const value of response.getKeysList_asU8()) {
-							const keyValueJsonObj: object = Utility.jsonStringToObj(
-								Utility.uint8ArrayToString(value),
-								this.config
-							);
-							for (const fieldName of Object.keys(keyValueJsonObj)) {
-								Reflect.set(clonedDocs[docIndex], fieldName, keyValueJsonObj[fieldName]);
-								docIndex++;
-							}
-						}
+						const clonedDocs = this.setDocsMetadata(docs, response.getKeysList_asU8());
 						resolve(clonedDocs);
 					}
 				}
@@ -285,18 +291,7 @@ export class Collection<T extends TigrisCollectionType> extends ReadOnlyCollecti
 					if (error !== undefined && error !== null) {
 						reject(error);
 					} else {
-						let docIndex = 0;
-						const clonedDocs: T[] = Object.assign([], docs);
-						for (const value of response.getKeysList_asU8()) {
-							const keyValueJsonObj: object = Utility.jsonStringToObj(
-								Utility.uint8ArrayToString(value),
-								this.config
-							);
-							for (const fieldName of Object.keys(keyValueJsonObj)) {
-								Reflect.set(clonedDocs[docIndex], fieldName, keyValueJsonObj[fieldName]);
-								docIndex++;
-							}
-						}
+						const clonedDocs = this.setDocsMetadata(docs, response.getKeysList_asU8());
 						resolve(clonedDocs);
 					}
 				}

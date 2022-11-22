@@ -158,6 +158,58 @@ describe("rpc tests", () => {
 		return insertionPromise;
 	});
 
+	it("insert_multi_pk", () => {
+		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT, projectName: "db3"});
+		const db1 = tigris.getDatabase();
+		const insertionPromise = db1.getCollection<IBookMPK>("books-multi-pk").insertOne({
+			id: 0,
+			id2: 0,
+			title: "science book",
+			metadata: {
+				publish_date: new Date(),
+				num_pages: 100,
+			}
+		});
+		insertionPromise.then(insertedBook => {
+			expect(insertedBook.id).toBe(1);
+			expect(insertedBook.id2).toBe(11);
+		});
+		return insertionPromise;
+	});
+
+	it("insert_multi_pk_many", () => {
+		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT, projectName: "db3"});
+		const db1 = tigris.getDatabase();
+		const insertionPromise = db1.getCollection<IBookMPK>("books-multi-pk").insertMany([
+			{
+				id: 0,
+				id2: 0,
+				title: "science book",
+				metadata: {
+					publish_date: new Date(),
+					num_pages: 100,
+				}
+			},
+			{
+				id: 0,
+				id2: 0,
+				title: "science book",
+				metadata: {
+					publish_date: new Date(),
+					num_pages: 100,
+				}
+			}
+		]);
+		insertionPromise.then(insertedBook => {
+			expect(insertedBook.length).toBe(2);
+			expect(insertedBook[0].id).toBe(1);
+			expect(insertedBook[0].id2).toBe(11);
+			expect(insertedBook[1].id).toBe(2);
+			expect(insertedBook[1].id2).toBe(21);
+		});
+		return insertionPromise;
+	});
+
 	it("insertWithOptionalField", () => {
 		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT, projectName: "db3"});
 		const db1 = tigris.getDatabase();
@@ -627,6 +679,13 @@ export interface IBook1 extends TigrisCollectionType {
 
 export interface IBook2 extends TigrisCollectionType {
 	id?: number;
+	title: string;
+	metadata: object;
+}
+
+export interface IBookMPK extends TigrisCollectionType {
+	id?: number;
+	id2?: number;
 	title: string;
 	metadata: object;
 }
