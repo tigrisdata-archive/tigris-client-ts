@@ -23,7 +23,7 @@ import {
 import { DB } from "./db";
 import { AuthClient } from "./proto/server/v1/auth_grpc_pb";
 import { Utility } from "./utility";
-import { loadTigrisManifest, TigrisManifest } from "./utils/manifest-loader";
+import { loadTigrisManifest, DatabaseManifest } from "./utils/manifest-loader";
 import { Log } from "./utils/logger";
 
 const AuthorizationHeaderName = "authorization";
@@ -265,28 +265,25 @@ export class Tigris {
 	 * @param schemaPath - Directory location in file system. Recommended to
 	 * provide an absolute path, else loader will try to access application's root
 	 * path which may not be accurate.
+	 *
+	 * @param dbName - The name of the database to create the collections in.
 	 */
-	public async registerSchemas(schemaPath: string) {
+	public async registerSchemas(schemaPath: string, dbName: string) {
 		if (!path.isAbsolute(schemaPath)) {
 			schemaPath = path.join(appRootPath.toString(), schemaPath);
 		}
-		const manifest: TigrisManifest = loadTigrisManifest(schemaPath);
 
-		for (const dbManifest of manifest) {
-			// create DB
-			const tigrisDb = await this.createDatabaseIfNotExists(dbManifest.dbName);
-			Log.event(`Created database: ${dbManifest.dbName}`);
+		// create DB
+		const tigrisDb = await this.createDatabaseIfNotExists(dbName);
+		Log.event(`Created database: ${dbName}`);
 
-			for (const coll of dbManifest.collections) {
-				// Create a collection
-				const collection = await tigrisDb.createOrUpdateCollection(
-					coll.collectionName,
-					coll.schema
-				);
-				Log.event(
-					`Created collection: ${collection.collectionName} from schema: ${coll.schemaName} in db: ${dbManifest.dbName}`
-				);
-			}
+		const dbManifest: DatabaseManifest = loadTigrisManifest(schemaPath);
+		for (const coll of dbManifest.collections) {
+			// Create a collection
+			const collection = await tigrisDb.createOrUpdateCollection(coll.collectionName, coll.schema);
+			Log.event(
+				`Created collection: ${collection.collectionName} from schema: ${coll.schemaName} in db: ${dbName}`
+			);
 		}
 	}
 

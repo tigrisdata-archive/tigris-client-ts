@@ -12,15 +12,12 @@ type CollectionManifest = {
 	schema: TigrisSchema<unknown>;
 };
 
-type DatabaseManifest = {
-	dbName: string;
+/**
+ * Array of collections in the database
+ */
+export type DatabaseManifest = {
 	collections: Array<CollectionManifest>;
 };
-
-/**
- * Array of databases and collections in each database
- */
-export type TigrisManifest = Array<DatabaseManifest>;
 
 /**
  * Loads the databases and schema definitions from file system that can be used
@@ -28,7 +25,7 @@ export type TigrisManifest = Array<DatabaseManifest>;
  *
  * @return TigrisManifest
  */
-export function loadTigrisManifest(schemasPath: string): TigrisManifest {
+export function loadTigrisManifest(schemasPath: string): DatabaseManifest {
 	Log.event(`Scanning ${schemasPath} for Tigris schema definitions`);
 
 	if (!fs.existsSync(schemasPath)) {
@@ -36,59 +33,52 @@ export function loadTigrisManifest(schemasPath: string): TigrisManifest {
 		throw new TigrisFileNotFoundError(`Directory not found: ${schemasPath}`);
 	}
 
-	const tigrisFileManifest: TigrisManifest = new Array<DatabaseManifest>();
+	const dbManifest: DatabaseManifest = {
+		collections: new Array<CollectionManifest>(),
+	};
 
 	// load manifest from file structure
-	for (const schemaPathEntry of fs.readdirSync(schemasPath)) {
-		const dbDirPath = path.join(schemasPath, schemaPathEntry);
-		if (fs.lstatSync(dbDirPath).isDirectory()) {
-			Log.info(`Found DB definition ${schemaPathEntry}`);
-			const dbManifest: DatabaseManifest = {
-				dbName: schemaPathEntry,
-				collections: new Array<CollectionManifest>(),
-			};
+	for (const colsFileName of fs.readdirSync(schemasPath)) {
+		const collFilePath = path.join(schemasPath, colsFileName);
+		if (collFilePath.endsWith(COLL_FILE_SUFFIX) && fs.lstatSync(collFilePath).isFile()) {
+			Log.info(`Found Schema file ${colsFileName} in ${schemasPath}`);
+			const collName = colsFileName.slice(
+				0,
+				Math.max(0, colsFileName.length - COLL_FILE_SUFFIX.length)
+			);
 
-			for (const dbPathEntry of fs.readdirSync(dbDirPath)) {
-				if (dbPathEntry.endsWith(COLL_FILE_SUFFIX)) {
-					const collFilePath = path.join(dbDirPath, dbPathEntry);
-					if (fs.lstatSync(collFilePath).isFile()) {
-						Log.info(`Found Schema file ${dbPathEntry} in ${schemaPathEntry}`);
-						const collName = dbPathEntry.slice(
-							0,
-							Math.max(0, dbPathEntry.length - COLL_FILE_SUFFIX.length)
-						);
-						// eslint-disable-next-line @typescript-eslint/no-var-requires,unicorn/prefer-module
-						const schemaFile = require(collFilePath);
-						const detectedSchemas = new Map<string, TigrisSchema<unknown>>();
-						// read schemas in that file
-						for (const [key, value] of Object.entries(schemaFile)) {
-							if (canBeSchema(value)) {
-								detectedSchemas.set(key, value as TigrisSchema<unknown>);
-							}
-						}
-						if (detectedSchemas.size > 1) {
-							throw new TigrisMoreThanOneSchemaDefined(dbPathEntry, detectedSchemas.size);
-						}
-						for (const [name, def] of detectedSchemas) {
-							dbManifest.collections.push({
-								collectionName: collName,
-								schema: def,
-								schemaName: name,
-							});
-							Log.info(`Found schema definition: ${name}`);
-						}
-					}
+			// eslint-disable-next-line @typescript-eslint/no-var-requires,unicorn/prefer-module
+			const schemaFile = require(collFilePath);
+			const detectedSchemas = new Map<string, TigrisSchema<unknown>>();
+
+			// read schemas in that file
+			for (const [key, value] of Object.entries(schemaFile)) {
+				if (canBeSchema(value)) {
+					detectedSchemas.set(key, value as TigrisSchema<unknown>);
 				}
 			}
-			if (dbManifest.collections.length === 0) {
-				Log.warn(`No valid schema definition found in ${schemaPathEntry}`);
+
+			if (detectedSchemas.size > 1) {
+				throw new TigrisMoreThanOneSchemaDefined(collFilePath, detectedSchemas.size);
 			}
-			tigrisFileManifest.push(dbManifest);
+
+			for (const [name, def] of detectedSchemas) {
+				dbManifest.collections.push({
+					collectionName: collName,
+					schema: def,
+					schemaName: name,
+				});
+				Log.info(`Found schema definition: ${name}`);
+			}
 		}
 	}
 
-	Log.debug(`Generated Tigris Manifest: ${JSON.stringify(tigrisFileManifest)}`);
-	return tigrisFileManifest;
+	if (dbManifest.collections.length === 0) {
+		Log.warn(`No valid schema definition found in ${schemasPath}`);
+	}
+
+	Log.debug(`Generated DB Manifest: ${JSON.stringify(dbManifest)}`);
+	return dbManifest;
 }
 
 /**

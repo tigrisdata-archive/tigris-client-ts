@@ -1,16 +1,19 @@
-import { canBeSchema, loadTigrisManifest, TigrisManifest } from "../../utils/manifest-loader";
+import {
+	canBeSchema,
+	DatabaseManifest,
+	loadTigrisManifest,
+} from "../../utils/manifest-loader";
 import { TigrisDataTypes } from "../../types";
 import { TigrisFileNotFoundError, TigrisMoreThanOneSchemaDefined } from "../../error";
 
 describe("Manifest loader", () => {
 
-	it("generates manifest from file system", () => {
-		const schemaPath = process.cwd() + "/src/__tests__/data/models";
-		const manifest: TigrisManifest = loadTigrisManifest(schemaPath);
-		expect(manifest).toHaveLength(3);
+	it("generates manifest from directory with single collection", () => {
+		const schemaPath = process.cwd() + "/src/__tests__/data/models/catalog";
+		const dbManifest: DatabaseManifest = loadTigrisManifest(schemaPath);
+		expect(dbManifest.collections).toHaveLength(1);
 
-		const expected: TigrisManifest = [{
-			"dbName": "catalog",
+		const expected: DatabaseManifest = {
 			"collections": [{
 				"collectionName": "products",
 				"schema": {
@@ -21,48 +24,63 @@ describe("Manifest loader", () => {
 				},
 				"schemaName": "ProductSchema"
 			}]
-		},
-			{	"dbName": "embedded",
-				"collections": [{
-					"collectionName": "users",
-					"schemaName": "userSchema",
-					"schema": {
-						"created": { "type": "date-time" },
-						"email": { "type": "string" },
-						"identities": {
-							"type": "array",
-							"items": {
-								"type": {
-									"connection": { "type": "string" },
-									"isSocial": { "type": "boolean" },
-									"provider": { "type": "string" },
-									"user_id": { "type": "string" }
-								}
-							}
-						},
-						"name": { "type": "string" },
-						"picture": { "type": "string" },
-						"stats": {
+		};
+		expect(dbManifest).toStrictEqual(expected);
+	});
+
+	it("generates manifest from directory with embedded data model", () => {
+		const schemaPath = process.cwd() + "/src/__tests__/data/models/embedded";
+		const dbManifest: DatabaseManifest = loadTigrisManifest(schemaPath);
+		expect(dbManifest.collections).toHaveLength(1);
+
+		const expected: DatabaseManifest = {
+			"collections": [{
+				"collectionName": "users",
+				"schemaName": "userSchema",
+				"schema": {
+					"created": { "type": "date-time" },
+					"email": { "type": "string" },
+					"identities": {
+						"type": "array",
+						"items": {
 							"type": {
-								"loginsCount": { "type": "int64" }
+								"connection": { "type": "string" },
+								"isSocial": { "type": "boolean" },
+								"provider": { "type": "string" },
+								"user_id": { "type": "string" }
 							}
-						},
-						"updated": { "type": "date-time" },
-						"user_id": { "type": "string", "primary_key": { "order": 1 } }
-					}
-				}]},
-			{ "dbName": "empty", "collections": [] },
-			];
-		expect(manifest).toStrictEqual(expected);
+						}
+					},
+					"name": { "type": "string" },
+					"picture": { "type": "string" },
+					"stats": {
+						"type": {
+							"loginsCount": { "type": "int64" }
+						}
+					},
+					"updated": { "type": "date-time" },
+					"user_id": { "type": "string", "primary_key": { "order": 1 } }
+				}
+			}]};
+		expect(dbManifest).toStrictEqual(expected);
+	});
+
+	it("does not generate manifest from empty directory", () => {
+		const schemaPath = process.cwd() + "/src/__tests__/data/models/empty";
+		const dbManifest: DatabaseManifest = loadTigrisManifest(schemaPath);
+		expect(dbManifest.collections).toHaveLength(0);
+
+		const expected: DatabaseManifest = { "collections": [] };
+		expect(dbManifest).toStrictEqual(expected);
 	});
 
 	it("throws error for invalid path", () => {
-		const schemaPath = "/src/__tests__/data/models";
+		const schemaPath = "/src/__tests__/data/doesNotExist";
 		expect(() => loadTigrisManifest(schemaPath)).toThrow(TigrisFileNotFoundError);
 	});
 
 	it("throws error for multiple schema exports", () => {
-		const schemaPath = process.cwd() + "/src/__tests__/data/invalidModels";
+		const schemaPath = process.cwd() + "/src/__tests__/data/invalidModels/multiExport";
 		expect(() => loadTigrisManifest(schemaPath)).toThrow(TigrisMoreThanOneSchemaDefined);
 	});
 
