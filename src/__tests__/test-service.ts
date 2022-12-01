@@ -9,34 +9,30 @@ import {
 	CollectionMetadata,
 	CommitTransactionRequest,
 	CommitTransactionResponse,
-	CreateDatabaseRequest,
-	CreateDatabaseResponse,
+	CreateProjectRequest,
+	CreateProjectResponse,
 	CreateOrUpdateCollectionRequest,
 	CreateOrUpdateCollectionResponse,
-	DatabaseInfo,
-	DatabaseMetadata,
+	ProjectInfo,
+	ProjectMetadata,
 	DeleteRequest,
 	DeleteResponse,
 	DescribeCollectionRequest,
 	DescribeCollectionResponse,
-	DescribeDatabaseRequest,
-	DescribeDatabaseResponse,
+	DescribeProjectRequest,
+	DescribeProjectResponse,
 	DropCollectionRequest,
 	DropCollectionResponse,
-	DropDatabaseRequest,
-	DropDatabaseResponse,
-	EventsRequest,
-	EventsResponse,
+	DeleteProjectRequest,
+	DeleteProjectResponse,
 	FacetCount,
 	InsertRequest,
 	InsertResponse,
 	ListCollectionsRequest,
 	ListCollectionsResponse,
-	ListDatabasesRequest,
-	ListDatabasesResponse,
+	ListProjectsRequest,
+	ListProjectsResponse,
 	Page,
-	PublishRequest,
-	PublishResponse,
 	ReadRequest,
 	ReadResponse,
 	ReplaceRequest,
@@ -50,9 +46,6 @@ import {
 	SearchMetadata,
 	SearchRequest,
 	SearchResponse,
-	StreamEvent,
-	SubscribeRequest,
-	SubscribeResponse,
 	TransactionCtx,
 	UpdateRequest,
 	UpdateResponse
@@ -61,7 +54,7 @@ import * as google_protobuf_timestamp_pb from "google-protobuf/google/protobuf/t
 import {Utility} from "../utility";
 
 export class TestTigrisService {
-	private static DBS: string[] = [];
+	private static PROJECTS: string[] = [];
 	private static COLLECTION_MAP = new Map<string, Array<string>>();
 	private static txId: string;
 	private static txOrigin: string;
@@ -86,12 +79,12 @@ export class TestTigrisService {
 	]);
 
 	static reset() {
-		TestTigrisService.DBS = [];
+		TestTigrisService.PROJECTS = [];
 		TestTigrisService.COLLECTION_MAP = new Map<string, Array<string>>();
 		this.txId = "";
 		this.txOrigin = "";
 		for (let d = 1; d <= 5; d++) {
-			TestTigrisService.DBS.push("db" + d);
+			TestTigrisService.PROJECTS.push("db" + d);
 			const collections: string[] = [];
 			for (let c = 1; c <= 5; c++) {
 				collections[c - 1] = "db" + d + "_coll_" + c;
@@ -101,35 +94,12 @@ export class TestTigrisService {
 	}
 
 	public impl: ITigrisServer = {
-		// eslint-disable-next-line @typescript-eslint/no-empty-function
-		events(call: ServerWritableStream<EventsRequest, EventsResponse>): void {
-			const event = new StreamEvent();
-			event.setTxId(Utility._base64Encode(uuidv4()));
-			event.setCollection("books");
-			event.setOp("insert");
-			event.setData(TestTigrisService.BOOKS_B64_BY_ID.get("5"));
-			event.setLast(true);
-			call.write(new EventsResponse().setEvent(event));
-			call.end();
-		},
-		// eslint-disable-next-line @typescript-eslint/no-empty-function,@typescript-eslint/no-unused-vars
-		publish(call: ServerUnaryCall<PublishRequest, PublishResponse>, callback: sendUnaryData<PublishResponse>): void {
-			const reply: PublishResponse = new PublishResponse();
-			callback(undefined, reply);
-		},
-		// eslint-disable-next-line @typescript-eslint/no-empty-function,@typescript-eslint/no-unused-vars
-		subscribe(call: ServerWritableStream<SubscribeRequest, SubscribeResponse>): void {
-			for (const alert of TestTigrisService.ALERTS_B64_BY_ID) {
-				call.write(new SubscribeResponse().setMessage(alert[1]));
-			}
-			call.end();
-		},
 		beginTransaction(
 			call: ServerUnaryCall<BeginTransactionRequest, BeginTransactionResponse>,
 			callback: sendUnaryData<BeginTransactionResponse>
 		): void {
 			const reply: BeginTransactionResponse = new BeginTransactionResponse();
-			if (call.request.getDb() === "test-tx") {
+			if (call.request.getProject() === "test-tx") {
 				TestTigrisService.txId = uuidv4();
 				TestTigrisService.txOrigin = uuidv4();
 				reply.setTxCtx(
@@ -150,13 +120,13 @@ export class TestTigrisService {
 			reply.setStatus("committed-test");
 			callback(undefined, reply);
 		},
-		createDatabase(
-			call: ServerUnaryCall<CreateDatabaseRequest, CreateDatabaseResponse>,
-			callback: sendUnaryData<CreateDatabaseResponse>
+		createProject(
+			call: ServerUnaryCall<CreateProjectRequest, CreateProjectResponse>,
+			callback: sendUnaryData<CreateProjectResponse>
 		): void {
-			TestTigrisService.DBS.push(call.request.getDb());
-			const reply: CreateDatabaseResponse = new CreateDatabaseResponse();
-			reply.setMessage(call.request.getDb() + " created successfully");
+			TestTigrisService.PROJECTS.push(call.request.getProject());
+			const reply: CreateProjectResponse = new CreateProjectResponse();
+			reply.setMessage(call.request.getProject() + " created successfully");
 			reply.setStatus("created");
 			callback(undefined, reply);
 		},
@@ -177,7 +147,7 @@ export class TestTigrisService {
 			call: ServerUnaryCall<DeleteRequest, DeleteResponse>,
 			callback: sendUnaryData<DeleteResponse>
 		): void {
-			if (call.request.getDb() === "test-tx") {
+			if (call.request.getProject() === "test-tx") {
 				const txIdHeader = call.metadata.get("Tigris-Tx-Id").toString();
 				const txOriginHeader = call.metadata.get("Tigris-Tx-Origin").toString();
 				if (txIdHeader != TestTigrisService.txId || txOriginHeader != TestTigrisService.txOrigin) {
@@ -204,27 +174,27 @@ export class TestTigrisService {
 		},
 		/* eslint-enable @typescript-eslint/no-empty-function */
 
-		describeDatabase(
-			call: ServerUnaryCall<DescribeDatabaseRequest, DescribeDatabaseResponse>,
-			callback: sendUnaryData<DescribeDatabaseResponse>
+		describeProject(
+			call: ServerUnaryCall<DescribeProjectRequest, DescribeProjectResponse>,
+			callback: sendUnaryData<DescribeProjectResponse>
 		): void {
-			const result: DescribeDatabaseResponse = new DescribeDatabaseResponse();
+			const result: DescribeProjectResponse = new DescribeProjectResponse();
 			const collectionsDescription: CollectionDescription[] = [];
 			for (
 				let index = 0;
-				index < TestTigrisService.COLLECTION_MAP.get(call.request.getDb()).length;
+				index < TestTigrisService.COLLECTION_MAP.get(call.request.getProject()).length;
 				index++
 			) {
 				collectionsDescription.push(
 					new CollectionDescription()
-						.setCollection(TestTigrisService.COLLECTION_MAP.get(call.request.getDb())[index])
+						.setCollection(TestTigrisService.COLLECTION_MAP.get(call.request.getProject())[index])
 						.setMetadata(new CollectionMetadata())
 						.setSchema("schema" + index)
 				);
 			}
 			result
-				.setDb(call.request.getDb())
-				.setMetadata(new DatabaseMetadata())
+				.setProject(call.request.getProject())
+				.setMetadata(new ProjectMetadata())
 				.setCollectionsList(collectionsDescription);
 			callback(undefined, result);
 		},
@@ -233,24 +203,24 @@ export class TestTigrisService {
 			call: ServerUnaryCall<DropCollectionRequest, DropCollectionResponse>,
 			callback: sendUnaryData<DropCollectionResponse>
 		): void {
-			const newCollections = TestTigrisService.COLLECTION_MAP.get(call.request.getDb()).filter(
+			const newCollections = TestTigrisService.COLLECTION_MAP.get(call.request.getProject()).filter(
 				(coll) => coll !== call.request.getCollection()
 			);
-			TestTigrisService.COLLECTION_MAP.set(call.request.getDb(), newCollections);
+			TestTigrisService.COLLECTION_MAP.set(call.request.getProject(), newCollections);
 			const reply: DropCollectionResponse = new DropCollectionResponse();
 			reply.setMessage(call.request.getCollection() + " dropped successfully");
 			reply.setStatus("dropped");
 			callback(undefined, reply);
 		},
-		dropDatabase(
-			call: ServerUnaryCall<DropDatabaseRequest, DropDatabaseResponse>,
-			callback: sendUnaryData<DropDatabaseResponse>
+		deleteProject(
+			call: ServerUnaryCall<DeleteProjectRequest, DeleteProjectResponse>,
+			callback: sendUnaryData<DeleteProjectResponse>
 		): void {
-			TestTigrisService.DBS = TestTigrisService.DBS.filter(
-				(database) => database !== call.request.getDb()
+			TestTigrisService.PROJECTS = TestTigrisService.PROJECTS.filter(
+				(database) => database !== call.request.getProject()
 			);
-			const reply: DropDatabaseResponse = new DropDatabaseResponse();
-			reply.setMessage(call.request.getDb() + " dropped successfully");
+			const reply: DeleteProjectResponse = new DeleteProjectResponse();
+			reply.setMessage(call.request.getProject() + " dropped successfully");
 			reply.setStatus("dropped");
 			callback(undefined, reply);
 		},
@@ -258,7 +228,7 @@ export class TestTigrisService {
 			call: ServerUnaryCall<InsertRequest, InsertResponse>,
 			callback: sendUnaryData<InsertResponse>
 		): void {
-			if (call.request.getDb() === "test-tx") {
+			if (call.request.getProject() === "test-tx") {
 				const txIdHeader = call.metadata.get("Tigris-Tx-Id").toString();
 				const txOriginHeader = call.metadata.get("Tigris-Tx-Origin").toString();
 				if (txIdHeader != TestTigrisService.txId || txOriginHeader != TestTigrisService.txOrigin) {
@@ -299,36 +269,36 @@ export class TestTigrisService {
 			const collectionInfos: CollectionInfo[] = [];
 			for (
 				let index = 0;
-				index < TestTigrisService.COLLECTION_MAP.get(call.request.getDb()).length;
+				index < TestTigrisService.COLLECTION_MAP.get(call.request.getProject()).length;
 				index++
 			) {
 				collectionInfos.push(
 					new CollectionInfo()
-						.setCollection(TestTigrisService.COLLECTION_MAP.get(call.request.getDb())[index])
+						.setCollection(TestTigrisService.COLLECTION_MAP.get(call.request.getProject())[index])
 						.setMetadata(new CollectionMetadata())
 				);
 			}
 			reply.setCollectionsList(collectionInfos);
 			callback(undefined, reply);
 		},
-		listDatabases(
-			call: ServerUnaryCall<ListDatabasesRequest, ListDatabasesResponse>,
-			callback: sendUnaryData<ListDatabasesResponse>
+		listProjects(
+			call: ServerUnaryCall<ListProjectsRequest, ListProjectsResponse>,
+			callback: sendUnaryData<ListProjectsResponse>
 		): void {
-			const reply: ListDatabasesResponse = new ListDatabasesResponse();
-			const databaseInfos: DatabaseInfo[] = [];
-			for (let index = 0; index < TestTigrisService.DBS.length; index++) {
+			const reply: ListProjectsResponse = new ListProjectsResponse();
+			const databaseInfos: ProjectInfo[] = [];
+			for (let index = 0; index < TestTigrisService.PROJECTS.length; index++) {
 				databaseInfos.push(
-					new DatabaseInfo().setDb(TestTigrisService.DBS[index]).setMetadata(new DatabaseMetadata())
+					new ProjectInfo().setProject(TestTigrisService.PROJECTS[index]).setMetadata(new ProjectMetadata())
 				);
 			}
 
-			reply.setDatabasesList(databaseInfos);
+			reply.setProjectsList(databaseInfos);
 			callback(undefined, reply);
 		},
 		// eslint-disable-next-line @typescript-eslint/no-empty-function
 		read(call: ServerWritableStream<ReadRequest, ReadResponse>): void {
-			if (call.request.getDb() === "test-tx") {
+			if (call.request.getProject() === "test-tx") {
 				const txIdHeader = call.metadata.get("Tigris-Tx-Id").toString();
 				const txOriginHeader = call.metadata.get("Tigris-Tx-Origin").toString();
 				if (txIdHeader != TestTigrisService.txId || txOriginHeader != TestTigrisService.txOrigin) {
@@ -445,7 +415,7 @@ export class TestTigrisService {
 			// eslint-disable-next-line @typescript-eslint/no-unused-vars
 			callback: sendUnaryData<ReplaceResponse>
 		): void {
-			if (call.request.getDb() === "test-tx") {
+			if (call.request.getProject() === "test-tx") {
 				const txIdHeader = call.metadata.get("Tigris-Tx-Id").toString();
 				const txOriginHeader = call.metadata.get("Tigris-Tx-Origin").toString();
 				if (txIdHeader != TestTigrisService.txId || txOriginHeader != TestTigrisService.txOrigin) {
@@ -488,7 +458,7 @@ export class TestTigrisService {
 			call: ServerUnaryCall<UpdateRequest, UpdateResponse>,
 			callback: sendUnaryData<UpdateResponse>
 		): void {
-			if (call.request.getDb() === "test-tx") {
+			if (call.request.getProject() === "test-tx") {
 				const txIdHeader = call.metadata.get("Tigris-Tx-Id").toString();
 				const txOriginHeader = call.metadata.get("Tigris-Tx-Origin").toString();
 				if (txIdHeader != TestTigrisService.txId || txOriginHeader != TestTigrisService.txOrigin) {

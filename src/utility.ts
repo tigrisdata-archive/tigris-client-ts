@@ -505,7 +505,7 @@ export const Utility = {
 		options?: SearchRequestOptions
 	): ProtoSearchRequest {
 		const searchRequest = new ProtoSearchRequest()
-			.setDb(dbName)
+			.setProject(dbName)
 			.setCollection(collectionName)
 			.setQ(request.q ?? MATCH_ALL_QUERY_STRING);
 

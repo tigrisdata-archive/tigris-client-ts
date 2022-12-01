@@ -18,7 +18,7 @@ import {
 	BeginTransactionResponse,
 	CollectionOptions as ProtoCollectionOptions,
 	CreateOrUpdateCollectionRequest as ProtoCreateOrUpdateCollectionRequest,
-	DescribeDatabaseRequest as ProtoDescribeDatabaseRequest,
+	DescribeProjectRequest as ProtoDescribeProjectRequest,
 	DropCollectionRequest as ProtoDropCollectionRequest,
 	ListCollectionsRequest as ProtoListCollectionsRequest,
 } from "./proto/server/v1/api_pb";
@@ -67,7 +67,7 @@ export class DB {
 			const rawJSONSchema: string = Utility._toJSONSchema(name, schema);
 			Log.debug(rawJSONSchema);
 			const createOrUpdateCollectionRequest = new ProtoCreateOrUpdateCollectionRequest()
-				.setDb(this._db)
+				.setProject(this._db)
 				.setCollection(name)
 				.setOnlyCreate(false)
 				.setSchema(Utility.stringToUint8Array(rawJSONSchema));
@@ -88,7 +88,7 @@ export class DB {
 
 	public listCollections(options?: CollectionOptions): Promise<Array<CollectionInfo>> {
 		return new Promise<Array<CollectionInfo>>((resolve, reject) => {
-			const request = new ProtoListCollectionsRequest().setDb(this.db);
+			const request = new ProtoListCollectionsRequest().setProject(this.db);
 			if (typeof options !== "undefined") {
 				return request.setOptions(new ProtoCollectionOptions());
 			}
@@ -111,7 +111,7 @@ export class DB {
 	public dropCollection(collectionName: string): Promise<DropCollectionResponse> {
 		return new Promise<DropCollectionResponse>((resolve, reject) => {
 			this.grpcClient.dropCollection(
-				new ProtoDropCollectionRequest().setDb(this.db).setCollection(collectionName),
+				new ProtoDropCollectionRequest().setProject(this.db).setCollection(collectionName),
 				(error, response) => {
 					if (error) {
 						reject(error);
@@ -138,8 +138,8 @@ export class DB {
 
 	public describe(): Promise<DatabaseDescription> {
 		return new Promise<DatabaseDescription>((resolve, reject) => {
-			this.grpcClient.describeDatabase(
-				new ProtoDescribeDatabaseRequest().setDb(this.db),
+			this.grpcClient.describeProject(
+				new ProtoDescribeProjectRequest().setProject(this.db),
 				(error, response) => {
 					if (error) {
 						reject(error);
@@ -156,7 +156,7 @@ export class DB {
 						}
 						resolve(
 							new DatabaseDescription(
-								response.getDb(),
+								response.getProject(),
 								new DatabaseMetadata(),
 								collectionsDescription
 							)
@@ -198,7 +198,7 @@ export class DB {
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	public beginTransaction(_options?: TransactionOptions): Promise<Session> {
 		return new Promise<Session>((resolve, reject) => {
-			const beginTxRequest = new ProtoBeginTransactionRequest().setDb(this._db);
+			const beginTxRequest = new ProtoBeginTransactionRequest().setProject(this._db);
 			const cookie: Metadata = new Metadata();
 			const call = this.grpcClient.makeUnaryRequest(
 				BeginTransactionMethodName,

@@ -98,10 +98,10 @@ describe("utility tests", () => {
 		const dbName = "my_test_db";
 		const collectionName = "my_test_collection";
 
-		it("populates dbName and collection name", () => {
+		it("populates projectName and collection name", () => {
 			const emptyRequest = {q: ""};
 			const generated = Utility.createProtoSearchRequest(dbName, collectionName, emptyRequest);
-			expect(generated.getDb()).toBe(dbName);
+			expect(generated.getProject()).toBe(dbName);
 			expect(generated.getCollection()).toBe(collectionName);
 		});
 
