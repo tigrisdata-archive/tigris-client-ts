@@ -150,10 +150,10 @@ export class Tigris {
 			} else {
 				config.projectName = process.env.TIGRIS_PROJECT;
 			}
-			if ("TIGRIS_URI" in process.env) {
+			if (process.env.TIGRIS_URI?.trim().length > 0) {
 				config.serverUrl = process.env.TIGRIS_URI;
 			}
-			if ("TIGRIS_URL" in process.env) {
+			if (process.env.TIGRIS_URL?.trim().length > 0) {
 				config.serverUrl = process.env.TIGRIS_URL;
 			}
 		}
