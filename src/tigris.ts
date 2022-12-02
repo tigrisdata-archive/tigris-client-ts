@@ -268,12 +268,13 @@ export class Tigris {
 	 *
 	 * @param dbName - The name of the database to create the collections in.
 	 */
-	public async registerSchemas(schemaPath: string, dbName: string) {
+	public async registerSchemas(schemaPath: string) {
 		if (!path.isAbsolute(schemaPath)) {
 			schemaPath = path.join(appRootPath.toString(), schemaPath);
 		}
 
 		// create DB
+		const dbName = this._config.projectName;
 		const tigrisDb = await this.createDatabaseIfNotExists(dbName);
 		Log.event(`Created database: ${dbName}`);
 
