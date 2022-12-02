@@ -72,7 +72,7 @@ export abstract class ReadOnlyCollection<T extends TigrisCollectionType> impleme
 		}
 
 		const readRequest = new ProtoReadRequest()
-			.setDb(this.db)
+			.setProject(this.db)
 			.setCollection(this.collectionName)
 			.setFilter(Utility.stringToUint8Array(Utility.filterToString(filter)));
 
@@ -228,7 +228,7 @@ export class Collection<T extends TigrisCollectionType> extends ReadOnlyCollecti
 			}
 
 			const protoRequest = new ProtoInsertRequest()
-				.setDb(this.db)
+				.setProject(this.db)
 				.setCollection(this.collectionName)
 				.setDocumentsList(docsArray);
 
@@ -280,7 +280,7 @@ export class Collection<T extends TigrisCollectionType> extends ReadOnlyCollecti
 				docsArray.push(new TextEncoder().encode(Utility.objToJsonString(doc)));
 			}
 			const protoRequest = new ProtoReplaceRequest()
-				.setDb(this.db)
+				.setProject(this.db)
 				.setCollection(this.collectionName)
 				.setDocumentsList(docsArray);
 
@@ -332,7 +332,7 @@ export class Collection<T extends TigrisCollectionType> extends ReadOnlyCollecti
 				reject(new Error("No filter specified"));
 			}
 			const deleteRequest = new ProtoDeleteRequest()
-				.setDb(this.db)
+				.setProject(this.db)
 				.setCollection(this.collectionName)
 				.setFilter(Utility.stringToUint8Array(Utility.filterToString(filter)));
 
@@ -391,7 +391,7 @@ export class Collection<T extends TigrisCollectionType> extends ReadOnlyCollecti
 	): Promise<UpdateResponse> {
 		return new Promise<UpdateResponse>((resolve, reject) => {
 			const updateRequest = new ProtoUpdateRequest()
-				.setDb(this.db)
+				.setProject(this.db)
 				.setCollection(this.collectionName)
 				.setFilter(Utility.stringToUint8Array(Utility.filterToString(filter)))
 				.setFields(Utility.stringToUint8Array(Utility.updateFieldsString(fields)));

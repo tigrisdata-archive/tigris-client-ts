@@ -4,8 +4,8 @@ import { HealthAPIClient } from "./proto/server/v1/health_grpc_pb";
 import * as grpc from "@grpc/grpc-js";
 import { ChannelCredentials, Metadata, status } from "@grpc/grpc-js";
 import {
-	CreateDatabaseRequest as ProtoCreateDatabaseRequest,
-	DatabaseOptions as ProtoDatabaseOptions,
+	CreateProjectRequest as ProtoCreateProjectRequest,
+	ProjectOptions as ProtoProjectOptions,
 } from "./proto/server/v1/api_pb";
 import { GetInfoRequest as ProtoGetInfoRequest } from "./proto/server/v1/observability_pb";
 import { HealthCheckInput as ProtoHealthCheckInput } from "./proto/server/v1/health_pb";
@@ -297,8 +297,8 @@ export class Tigris {
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	private createDatabaseIfNotExists(db: string, _options?: DatabaseOptions): Promise<DB> {
 		return new Promise<DB>((resolve, reject) => {
-			this.grpcClient.createDatabase(
-				new ProtoCreateDatabaseRequest().setDb(db).setOptions(new ProtoDatabaseOptions()),
+			this.grpcClient.createProject(
+				new ProtoCreateProjectRequest().setProject(db).setOptions(new ProtoProjectOptions()),
 				// eslint-disable-next-line @typescript-eslint/no-unused-vars
 				(error, _response) => {
 					if (error && error.code != status.ALREADY_EXISTS) {
