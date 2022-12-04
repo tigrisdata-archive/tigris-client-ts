@@ -81,22 +81,12 @@ export class DropCollectionResponse {
 }
 
 export class DatabaseDescription {
-	private readonly _db: string;
 	private readonly _metadata: DatabaseMetadata;
 	private readonly _collectionsDescription: Array<CollectionDescription>;
 
-	constructor(
-		db: string,
-		metadata: DatabaseMetadata,
-		collectionsDescription: Array<CollectionDescription>
-	) {
-		this._db = db;
+	constructor(metadata: DatabaseMetadata, collectionsDescription: Array<CollectionDescription>) {
 		this._metadata = metadata;
 		this._collectionsDescription = collectionsDescription;
-	}
-
-	get db(): string {
-		return this._db;
 	}
 
 	get metadata(): DatabaseMetadata {

@@ -18,7 +18,7 @@ import {
 	BeginTransactionResponse,
 	CollectionOptions as ProtoCollectionOptions,
 	CreateOrUpdateCollectionRequest as ProtoCreateOrUpdateCollectionRequest,
-	DescribeProjectRequest as ProtoDescribeProjectRequest,
+	DescribeDatabaseRequest as ProtoDescribeDatabaseRequest,
 	DropCollectionRequest as ProtoDropCollectionRequest,
 	ListCollectionsRequest as ProtoListCollectionsRequest,
 } from "./proto/server/v1/api_pb";
@@ -138,8 +138,8 @@ export class DB {
 
 	public describe(): Promise<DatabaseDescription> {
 		return new Promise<DatabaseDescription>((resolve, reject) => {
-			this.grpcClient.describeProject(
-				new ProtoDescribeProjectRequest().setProject(this.db),
+			this.grpcClient.describeDatabase(
+				new ProtoDescribeDatabaseRequest().setProject(this.db),
 				(error, response) => {
 					if (error) {
 						reject(error);
@@ -154,13 +154,7 @@ export class DB {
 								)
 							);
 						}
-						resolve(
-							new DatabaseDescription(
-								response.getProject(),
-								new DatabaseMetadata(),
-								collectionsDescription
-							)
-						);
+						resolve(new DatabaseDescription(new DatabaseMetadata(), collectionsDescription));
 					}
 				}
 			);

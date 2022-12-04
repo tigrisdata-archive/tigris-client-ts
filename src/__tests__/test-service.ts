@@ -19,8 +19,6 @@ import {
 	DeleteResponse,
 	DescribeCollectionRequest,
 	DescribeCollectionResponse,
-	DescribeProjectRequest,
-	DescribeProjectResponse,
 	DropCollectionRequest,
 	DropCollectionResponse,
 	DeleteProjectRequest,
@@ -48,7 +46,7 @@ import {
 	SearchResponse,
 	TransactionCtx,
 	UpdateRequest,
-	UpdateResponse
+	UpdateResponse, DescribeDatabaseRequest, DescribeDatabaseResponse
 } from "../proto/server/v1/api_pb";
 import * as google_protobuf_timestamp_pb from "google-protobuf/google/protobuf/timestamp_pb";
 import {Utility} from "../utility";
@@ -172,13 +170,13 @@ export class TestTigrisService {
 			_callback: sendUnaryData<DescribeCollectionResponse>
 		): void {
 		},
-		/* eslint-enable @typescript-eslint/no-empty-function */
 
-		describeProject(
-			call: ServerUnaryCall<DescribeProjectRequest, DescribeProjectResponse>,
-			callback: sendUnaryData<DescribeProjectResponse>
+		/* eslint-enable @typescript-eslint/no-empty-function */
+		describeDatabase(
+			call: ServerUnaryCall<DescribeDatabaseRequest, DescribeDatabaseResponse>,
+			callback: sendUnaryData<DescribeDatabaseResponse>
 		): void {
-			const result: DescribeProjectResponse = new DescribeProjectResponse();
+			const result: DescribeDatabaseResponse = new DescribeDatabaseResponse();
 			const collectionsDescription: CollectionDescription[] = [];
 			for (
 				let index = 0;
@@ -193,7 +191,6 @@ export class TestTigrisService {
 				);
 			}
 			result
-				.setProject(call.request.getProject())
 				.setMetadata(new ProjectMetadata())
 				.setCollectionsList(collectionsDescription);
 			callback(undefined, result);
