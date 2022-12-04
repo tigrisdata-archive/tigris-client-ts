@@ -96,7 +96,6 @@ describe("rpc tests", () => {
 
 		const databaseDescriptionPromise = db1.describe();
 		databaseDescriptionPromise.then(value => {
-			expect(value.db).toBe("db3");
 			expect(value.collectionsDescription.length).toBe(5);
 			expect(value.collectionsDescription[0].collection).toBe("db3_coll_1");
 			expect(value.collectionsDescription[1].collection).toBe("db3_coll_2");
