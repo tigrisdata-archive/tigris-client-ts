@@ -14,7 +14,7 @@ import {
 	CreateOrUpdateCollectionRequest,
 	CreateOrUpdateCollectionResponse,
 	ProjectInfo,
-	ProjectMetadata,
+	DatabaseMetadata,
 	DeleteRequest,
 	DeleteResponse,
 	DescribeCollectionRequest,
@@ -46,7 +46,11 @@ import {
 	SearchResponse,
 	TransactionCtx,
 	UpdateRequest,
-	UpdateResponse, DescribeDatabaseRequest, DescribeDatabaseResponse
+	UpdateResponse,
+	DescribeDatabaseRequest,
+	DescribeDatabaseResponse,
+	CreateBranchRequest,
+	CreateBranchResponse, DeleteBranchRequest, DeleteBranchResponse
 } from "../proto/server/v1/api_pb";
 import * as google_protobuf_timestamp_pb from "google-protobuf/google/protobuf/timestamp_pb";
 import {Utility} from "../utility";
@@ -92,6 +96,18 @@ export class TestTigrisService {
 	}
 
 	public impl: ITigrisServer = {
+		createBranch(
+			call: ServerUnaryCall<CreateBranchRequest, CreateBranchResponse>,
+			callback: sendUnaryData<CreateBranchResponse>
+		): void {
+			// TODO implement
+		},
+		deleteBranch(
+			call: ServerUnaryCall<DeleteBranchRequest, DeleteBranchResponse>,
+			callback: sendUnaryData<DeleteBranchResponse>
+		): void {
+			// TODO implement
+		},
 		beginTransaction(
 			call: ServerUnaryCall<BeginTransactionRequest, BeginTransactionResponse>,
 			callback: sendUnaryData<BeginTransactionResponse>
@@ -191,7 +207,7 @@ export class TestTigrisService {
 				);
 			}
 			result
-				.setMetadata(new ProjectMetadata())
+				.setMetadata(new DatabaseMetadata())
 				.setCollectionsList(collectionsDescription);
 			callback(undefined, result);
 		},
@@ -286,7 +302,7 @@ export class TestTigrisService {
 			const databaseInfos: ProjectInfo[] = [];
 			for (let index = 0; index < TestTigrisService.PROJECTS.length; index++) {
 				databaseInfos.push(
-					new ProjectInfo().setProject(TestTigrisService.PROJECTS[index]).setMetadata(new ProjectMetadata())
+					new ProjectInfo().setProject(TestTigrisService.PROJECTS[index]).setMetadata(new DatabaseMetadata())
 				);
 			}
 
