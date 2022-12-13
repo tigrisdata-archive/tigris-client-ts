@@ -28,6 +28,7 @@ import { Utility } from "./utility";
 import { Metadata, ServiceError } from "@grpc/grpc-js";
 import { TigrisClientConfig } from "./tigris";
 import { Log } from "./utils/logger";
+import { DecoratedSchemaProcessor } from "./schema/decorated-schema-processor";
 
 /**
  * Tigris Database
@@ -40,17 +41,82 @@ export class DB {
 	private readonly _db: string;
 	private readonly grpcClient: TigrisClient;
 	private readonly config: TigrisClientConfig;
+	private readonly schemaProcessor: DecoratedSchemaProcessor;
 
 	constructor(db: string, grpcClient: TigrisClient, config: TigrisClientConfig) {
 		this._db = db;
 		this.grpcClient = grpcClient;
 		this.config = config;
+		this.schemaProcessor = DecoratedSchemaProcessor.Instance;
 	}
 
+	/**
+	 * Create a new collection if not exists. Else, apply schema changes, if any.
+	 *
+	 * @param cls - A Class representing schema fields using decorators
+	 *
+	 * @example
+	 *
+	 * ```
+	 * @TigrisCollection("todoItems")
+	 * class TodoItem implements TigrisCollectionType {
+	 *   @PrimaryKey(TigrisDataTypes.INT32, { order: 1 })
+	 *   id: number;
+	 *
+	 *   @Field()
+	 *   text: string;
+	 *
+	 *   @Field()
+	 *   completed: boolean;
+	 * }
+	 *
+	 * await db.createOrUpdateCollection<TodoItem>(TodoItem);
+	 * ```
+	 */
+	public createOrUpdateCollection<T extends TigrisCollectionType>(
+		cls: new () => TigrisCollectionType
+	): Promise<Collection<T>>;
+
+	/**
+	 * Create a new collection if not exists. Else, apply schema changes, if any.
+	 *
+	 * @param collectionName - Name of the Tigris Collection
+	 * @param schema - Collection's data model
+	 *
+	 * @example
+	 *
+	 * ```
+	 * const TodoItemSchema: TigrisSchema<TodoItem> = {
+	 *   id: {
+	 *     type: TigrisDataTypes.INT32,
+	 *     primary_key: { order: 1, autoGenerate: true }
+	 *   },
+	 *   text: { type: TigrisDataTypes.STRING },
+	 *   completed: { type: TigrisDataTypes.BOOLEAN }
+	 * };
+	 *
+	 * await db.createOrUpdateCollection<TodoItem>("todoItems", TodoItemSchema);
+	 * ```
+	 */
 	public createOrUpdateCollection<T extends TigrisCollectionType>(
 		collectionName: string,
 		schema: TigrisSchema<T>
-	): Promise<Collection<T>> {
+	): Promise<Collection<T>>;
+
+	public createOrUpdateCollection<T extends TigrisCollectionType>(
+		nameOrClass: string | TigrisCollectionType,
+		schema?: TigrisSchema<T>
+	) {
+		let collectionName: string;
+		if (typeof nameOrClass === "string") {
+			collectionName = nameOrClass as string;
+		} else {
+			const generatedColl = this.schemaProcessor.process(
+				nameOrClass as new () => TigrisCollectionType
+			);
+			collectionName = generatedColl.name;
+			schema = generatedColl.schema as TigrisSchema<T>;
+		}
 		return this.createOrUpdate(
 			collectionName,
 			schema,

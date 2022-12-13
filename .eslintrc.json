@@ -21,7 +21,7 @@
 		"@typescript-eslint/ban-types": [
 			"error",
 			{
-				"types": { "BigInt": false },
+				"types": { "BigInt": false, "Function": false, "Object": false },
 				"extendDefaults": true
 			}
 		],

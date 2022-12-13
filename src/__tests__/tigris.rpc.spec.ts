@@ -1,6 +1,6 @@
-import {Server, ServerCredentials} from "@grpc/grpc-js";
-import {TigrisService} from "../proto/server/v1/api_grpc_pb";
-import TestService, {TestTigrisService} from "./test-service";
+import { Server, ServerCredentials } from "@grpc/grpc-js";
+import { TigrisService } from "../proto/server/v1/api_grpc_pb";
+import TestService, { TestTigrisService } from "./test-service";
 import {
 	DeleteRequestOptions,
 	LogicalOperator,
@@ -11,12 +11,12 @@ import {
 	UpdateFieldsOperator,
 	UpdateRequestOptions
 } from "../types";
-import {Tigris} from "../tigris";
-import {Case, Collation, SearchRequest, SearchRequestOptions} from "../search/types";
-import {Utility} from "../utility";
-import {ObservabilityService} from "../proto/server/v1/observability_grpc_pb";
+import { Tigris } from "../tigris";
+import { Case, Collation, SearchRequest, SearchRequestOptions } from "../search/types";
+import { Utility } from "../utility";
+import { ObservabilityService } from "../proto/server/v1/observability_grpc_pb";
 import TestObservabilityService from "./test-observability-service";
-import {capture, spy } from "ts-mockito";
+import { capture, spy } from "ts-mockito";
 
 describe("rpc tests", () => {
 	let server: Server;
