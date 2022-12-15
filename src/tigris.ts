@@ -6,6 +6,7 @@ import { ChannelCredentials, Metadata, status } from "@grpc/grpc-js";
 import { CreateProjectRequest as ProtoCreateProjectRequest } from "./proto/server/v1/api_pb";
 import { GetInfoRequest as ProtoGetInfoRequest } from "./proto/server/v1/observability_pb";
 import { HealthCheckInput as ProtoHealthCheckInput } from "./proto/server/v1/health_pb";
+import { RealTime } from "./realtime";
 
 import path from "node:path";
 import appRootPath from "app-root-path";
@@ -241,6 +242,10 @@ export class Tigris {
 
 	public getDatabase(): DB {
 		return new DB(this._config.projectName, this.grpcClient, this._config);
+	}
+
+	public realtime(): RealTime {
+		return new RealTime(this._config);
 	}
 
 	public getServerMetadata(): Promise<ServerMetadata> {
