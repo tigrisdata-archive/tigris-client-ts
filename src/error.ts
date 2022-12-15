@@ -54,3 +54,48 @@ export class TigrisMoreThanOneSchemaDefined extends TigrisError {
 		return "TigrisMoreThanOneSchemaDefined";
 	}
 }
+
+export class ReflectionNotEnabled extends TigrisError {
+	constructor(object: Object, propertyName: string) {
+		super(
+			`Cannot infer property 'type' for ${object.constructor.name}#${propertyName} using Reflection.
+			Ensure that 'emitDecoratorMetadata' option is set to true in 'tsconfig.json'. Also, make sure
+			to import 'reflect-metadata' on top of the main entry file in application`
+		);
+	}
+
+	override get name(): string {
+		return "ReflectionNotEnabled";
+	}
+}
+
+export class CannotInferFieldTypeError extends TigrisError {
+	constructor(object: Object, propertyName: string) {
+		super(`Field type for ${object.constructor.name}#${propertyName} cannot be determined`);
+	}
+
+	override get name(): string {
+		return "CannotInferFieldTypeError";
+	}
+}
+
+export class IncompleteArrayTypeDefError extends TigrisError {
+	constructor(object: Object, propertyName: string) {
+		super(
+			`Missing "EmbeddedFieldOptions". Array's item type for ${object.constructor.name}#${propertyName} cannot be determined`
+		);
+	}
+	override get name(): string {
+		return "IncompleteArrayTypeDefError";
+	}
+}
+
+export class IncompletePrimaryKeyDefError extends TigrisError {
+	constructor(object: Object, propertyName: string) {
+		super(`Missing "PrimaryKeyOptions" for ${object.constructor.name}#${propertyName}`);
+	}
+
+	override get name(): string {
+		return "IncompletePrimaryKeyDefError";
+	}
+}

@@ -387,10 +387,14 @@ export enum TigrisDataTypes {
 	OBJECT = "object",
 }
 
+export interface TigrisFieldOptions {
+	maxLength?: number;
+}
+
 export type TigrisSchema<T extends TigrisCollectionType> = {
 	[K in keyof T]: {
 		type: TigrisDataTypes | TigrisSchema<unknown>;
-		primary_key?: TigrisPrimaryKey;
+		primary_key?: PrimaryKeyOptions;
 		items?: TigrisArrayItem;
 	};
 };
@@ -400,7 +404,7 @@ export type TigrisArrayItem = {
 	items?: TigrisArrayItem | TigrisDataTypes;
 };
 
-export type TigrisPrimaryKey = {
+export type PrimaryKeyOptions = {
 	order: number;
 	autoGenerate?: boolean;
 };
