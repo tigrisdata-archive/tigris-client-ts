@@ -7,10 +7,8 @@ import { CreateProjectRequest as ProtoCreateProjectRequest } from "./proto/serve
 import { GetInfoRequest as ProtoGetInfoRequest } from "./proto/server/v1/observability_pb";
 import { HealthCheckInput as ProtoHealthCheckInput } from "./proto/server/v1/health_pb";
 
-import path from "node:path";
-import appRootPath from "app-root-path";
 import * as dotenv from "dotenv";
-import { DatabaseOptions, ServerMetadata } from "./types";
+import { DatabaseOptions, ServerMetadata, TigrisCollectionType } from "./types";
 
 import {
 	GetAccessTokenRequest as ProtoGetAccessTokenRequest,
@@ -20,8 +18,10 @@ import {
 import { DB } from "./db";
 import { AuthClient } from "./proto/server/v1/auth_grpc_pb";
 import { Utility } from "./utility";
-import { loadTigrisManifest, DatabaseManifest } from "./utils/manifest-loader";
 import { Log } from "./utils/logger";
+import { DecoratorMetaStorage } from "./decorators/metadata/decorator-meta-storage";
+import { getDecoratorMetaStorage } from "./globals";
+import { CollectionMetadata } from "./decorators/metadata/collection-metadata";
 
 const AuthorizationHeaderName = "authorization";
 const AuthorizationBearer = "Bearer ";
@@ -128,6 +128,7 @@ export class Tigris {
 	private readonly observabilityClient: ObservabilityClient;
 	private readonly healthAPIClient: HealthAPIClient;
 	private readonly _config: TigrisClientConfig;
+	private readonly _metadataStorage: DecoratorMetaStorage;
 	private readonly _ping: () => void;
 	private readonly pingId: NodeJS.Timeout | number | string | undefined;
 
@@ -236,6 +237,7 @@ export class Tigris {
 				});
 			}
 		}
+		this._metadataStorage = getDecoratorMetaStorage();
 		Log.info(`Using Tigris at: ${config.serverUrl}`);
 	}
 
@@ -256,32 +258,84 @@ export class Tigris {
 	}
 
 	/**
-	 * Automatically provision Databases and Collections based on the directories
-	 * and {@link TigrisSchema} definitions in file system
-	 *
-	 * @param schemaPath - Directory location in file system. Recommended to
-	 * provide an absolute path, else loader will try to access application's root
-	 * path which may not be accurate.
-	 *
-	 * @param dbName - The name of the database to create the collections in.
+	 * Automatically create Project and create or update Collections.
+	 * Collection classes decorated with {@link TigrisCollection} decorator will be
+	 * created if not already existing. If Collection already exists, schema changes
+	 * will be applied, if any.
 	 */
-	public async registerSchemas(schemaPath: string) {
-		if (!path.isAbsolute(schemaPath)) {
-			schemaPath = path.join(appRootPath.toString(), schemaPath);
+	public async syncCollections();
+	/**
+	 * Automatically create Project and create or update Collections.
+	 * Collection classes decorated with {@link TigrisCollection} decorator will be
+	 * created if not already existing. If Collection already exists, schema changes
+	 * will be applied, if any.
+	 *
+	 * @param collectionNames - Array of collection names as strings to be created
+	 * or updated
+	 *
+	 * @example
+	 *
+	 * ```
+	 * @TigrisCollection("todoItems")
+	 * class TodoItem implements TigrisCollectionType {
+	 *   @PrimaryKey(TigrisDataTypes.INT32, { order: 1 })
+	 *   id: number;
+	 *
+	 *   @Field()
+	 *   text: string;
+	 * }
+	 *
+	 * await db.syncCollections(["todoItems"]);
+	 * ```
+	 */
+	public async syncCollections(collectionNames: Array<string>);
+	/**
+	 * Automatically create Project and create or update Collections.
+	 * Collection classes decorated with {@link TigrisCollection} decorator will be
+	 * created if not already existing. If Collection already exists, schema changes
+	 * will be applied, if any.
+	 *
+	 * @param collections - Array of Collection classes
+	 * @example
+	 * ```
+	 * @TigrisCollection("todoItems")
+	 * class TodoItem implements TigrisCollectionType {
+	 *   @PrimaryKey(TigrisDataTypes.INT32, { order: 1 })
+	 *   id: number;
+	 *
+	 *   @Field()
+	 *   text: string;
+	 * }
+	 *
+	 * await db.syncCollections([TodoItem]);
+	 * ```
+	 */
+	public async syncCollections(collections: Array<TigrisCollectionType>);
+	public async syncCollections(filter?: Array<TigrisCollectionType | string>) {
+		const projectName = this._config.projectName;
+		const tigrisDb = await this.createDatabaseIfNotExists(projectName);
+		const needUpdate: Array<CollectionMetadata> = new Array<CollectionMetadata>();
+
+		if (!filter) {
+			for (const coll of this._metadataStorage.getAllCollections()) {
+				needUpdate.push(coll);
+			}
+		} else {
+			for (const name of filter) {
+				const found =
+					typeof name === "string"
+						? this._metadataStorage.getCollectionByName(name)
+						: this._metadataStorage.getCollectionByTarget(name as Function);
+				if (!found) {
+					Log.error(`No such collection defined: '${name.toString()}'`);
+				} else {
+					needUpdate.push(found);
+				}
+			}
 		}
 
-		// create DB
-		const dbName = this._config.projectName;
-		const tigrisDb = await this.createDatabaseIfNotExists(dbName);
-		Log.event(`Created database: ${dbName}`);
-
-		const dbManifest: DatabaseManifest = loadTigrisManifest(schemaPath);
-		for (const coll of dbManifest.collections) {
-			// Create a collection
-			const collection = await tigrisDb.createOrUpdateCollection(coll.collectionName, coll.schema);
-			Log.event(
-				`Created collection: ${collection.collectionName} from schema: ${coll.schemaName} in db: ${dbName}`
-			);
+		for (const coll of needUpdate) {
+			await tigrisDb.createOrUpdateCollection(coll.target.prototype.constructor);
 		}
 	}
 

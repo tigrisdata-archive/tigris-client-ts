@@ -14,7 +14,15 @@ export class DecoratorMetaStorage {
 	readonly fields: Array<FieldMetadata> = new Array<FieldMetadata>();
 	readonly primaryKeys: Array<PrimaryKeyMetadata> = new Array<PrimaryKeyMetadata>();
 
-	filterCollectionByTarget(target: Function): CollectionMetadata {
+	getAllCollections(): IterableIterator<CollectionMetadata> {
+		return this.collections.values();
+	}
+
+	getCollectionByName(name: string): CollectionMetadata {
+		return this.collections.get(name);
+	}
+
+	getCollectionByTarget(target: Function): CollectionMetadata {
 		for (const collection of this.collections.values()) {
 			if (collection.target === target) {
 				return collection;
@@ -22,13 +30,13 @@ export class DecoratorMetaStorage {
 		}
 	}
 
-	filterFieldsByTarget(target: Function): FieldMetadata[] {
+	getFieldsByTarget(target: Function): Array<FieldMetadata> {
 		return this.fields.filter(function (field) {
 			return field.target === target;
 		});
 	}
 
-	filterPKsByTarget(target: Function): PrimaryKeyMetadata[] {
+	getPKsByTarget(target: Function): Array<PrimaryKeyMetadata> {
 		return this.primaryKeys.filter(function (pk) {
 			return pk.target === target;
 		});

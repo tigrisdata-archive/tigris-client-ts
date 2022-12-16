@@ -27,8 +27,8 @@ import { Session } from "./session";
 import { Utility } from "./utility";
 import { Metadata, ServiceError } from "@grpc/grpc-js";
 import { TigrisClientConfig } from "./tigris";
-import { Log } from "./utils/logger";
 import { DecoratedSchemaProcessor } from "./schema/decorated-schema-processor";
+import { Log } from "./utils/logger";
 
 /**
  * Tigris Database
@@ -131,13 +131,13 @@ export class DB {
 	): Promise<R> {
 		return new Promise<R>((resolve, reject) => {
 			const rawJSONSchema: string = Utility._toJSONSchema(name, schema);
-			Log.debug(rawJSONSchema);
 			const createOrUpdateCollectionRequest = new ProtoCreateOrUpdateCollectionRequest()
 				.setProject(this._db)
 				.setCollection(name)
 				.setOnlyCreate(false)
 				.setSchema(Utility.stringToUint8Array(rawJSONSchema));
 
+			Log.event(`Creating collection: '${name}' in project: '${this._db}'`);
 			this.grpcClient.createOrUpdateCollection(
 				createOrUpdateCollectionRequest,
 				// eslint-disable-next-line @typescript-eslint/no-unused-vars
