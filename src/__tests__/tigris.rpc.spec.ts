@@ -665,18 +665,6 @@ describe("rpc tests", () => {
 	});
 });
 
-@TigrisCollection("todos")
-class Todo implements TigrisCollectionType {
-	@PrimaryKey({order: 1})
-	id: string;
-}
-
-@TigrisCollection("items")
-class Item implements TigrisCollectionType {
-	@PrimaryKey({order: 1})
-	id: string;
-}
-
 @TigrisCollection("books")
 export class IBook implements TigrisCollectionType {
 	@PrimaryKey({order: 1})
