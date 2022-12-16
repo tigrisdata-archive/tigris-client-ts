@@ -656,7 +656,7 @@ describe("rpc tests", () => {
 	});
 
 	it("serverMetadata", () => {
-		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT});
+		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT, projectName: "db3"});
 		const serverMetadataPromise = tigris.getServerMetadata();
 		serverMetadataPromise.then(value => {
 			expect(value.serverVersion).toBe("1.0.0-test-service");

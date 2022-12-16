@@ -143,17 +143,20 @@ export class Tigris {
 		}
 		if (config.serverUrl === undefined) {
 			config.serverUrl = DEFAULT_URL;
-			if (!("TIGRIS_PROJECT" in process.env)) {
-				throw new Error("Unable to resolve TIGRIS_PROJECT environment variable");
-			} else {
-				config.projectName = process.env.TIGRIS_PROJECT;
-			}
 			if (process.env.TIGRIS_URI?.trim().length > 0) {
 				config.serverUrl = process.env.TIGRIS_URI;
 			}
 			if (process.env.TIGRIS_URL?.trim().length > 0) {
 				config.serverUrl = process.env.TIGRIS_URL;
 			}
+		}
+
+		if (config.projectName === undefined) {
+			if (!("TIGRIS_PROJECT" in process.env)) {
+				throw new Error("Unable to resolve TIGRIS_PROJECT environment variable");
+			}
+
+			config.projectName = process.env.TIGRIS_PROJECT;
 		}
 
 		if (config.serverUrl.startsWith("https://")) {
