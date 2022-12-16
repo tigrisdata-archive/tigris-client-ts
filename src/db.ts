@@ -29,6 +29,9 @@ import { Metadata, ServiceError } from "@grpc/grpc-js";
 import { TigrisClientConfig } from "./tigris";
 import { DecoratedSchemaProcessor } from "./schema/decorated-schema-processor";
 import { Log } from "./utils/logger";
+import { DecoratorMetaStorage } from "./decorators/metadata/decorator-meta-storage";
+import { getDecoratorMetaStorage } from "./globals";
+import { CollectionNotFoundError } from "./error";
 
 /**
  * Tigris Database
@@ -42,18 +45,20 @@ export class DB {
 	private readonly grpcClient: TigrisClient;
 	private readonly config: TigrisClientConfig;
 	private readonly schemaProcessor: DecoratedSchemaProcessor;
+	private readonly _metadataStorage: DecoratorMetaStorage;
 
 	constructor(db: string, grpcClient: TigrisClient, config: TigrisClientConfig) {
 		this._db = db;
 		this.grpcClient = grpcClient;
 		this.config = config;
 		this.schemaProcessor = DecoratedSchemaProcessor.Instance;
+		this._metadataStorage = getDecoratorMetaStorage();
 	}
 
 	/**
 	 * Create a new collection if not exists. Else, apply schema changes, if any.
 	 *
-	 * @param cls - A Class representing schema fields using decorators
+	 * @param cls - A Class decorated by {@link TigrisCollection}
 	 *
 	 * @example
 	 *
@@ -174,7 +179,23 @@ export class DB {
 		});
 	}
 
-	public dropCollection(collectionName: string): Promise<DropCollectionResponse> {
+	/**
+	 * Drops a {@link Collection}
+	 *
+	 * @param cls - A Class decorated by {@link TigrisCollection}
+	 */
+	public dropCollection(cls: new () => TigrisCollectionType): Promise<DropCollectionResponse>;
+	/**
+	 * Drops a {@link Collection}
+	 *
+	 * @param name - Collection name
+	 */
+	public dropCollection(name: string): Promise<DropCollectionResponse>;
+
+	public dropCollection(
+		nameOrClass: TigrisCollectionType | string
+	): Promise<DropCollectionResponse> {
+		const collectionName = this.resolveNameFromCollectionClass(nameOrClass);
 		return new Promise<DropCollectionResponse>((resolve, reject) => {
 			this.grpcClient.dropCollection(
 				new ProtoDropCollectionRequest().setProject(this.db).setCollection(collectionName),
@@ -227,8 +248,39 @@ export class DB {
 		});
 	}
 
-	public getCollection<T>(collectionName: string): Collection<T> {
+	/**
+	 * Gets a {@link Collection} object
+	 *
+	 * @param cls - A Class decorated by {@link TigrisCollection}
+	 */
+	public getCollection<T extends TigrisCollectionType>(
+		cls: new () => TigrisCollectionType
+	): Collection<T>;
+	/**
+	 * Gets a {@link Collection} object
+	 *
+	 * @param name - Collection name
+	 */
+	public getCollection<T extends TigrisCollectionType>(name: string): Collection<T>;
+	public getCollection<T extends TigrisCollectionType>(nameOrClass: T | string): Collection<T> {
+		const collectionName = this.resolveNameFromCollectionClass(nameOrClass);
 		return new Collection<T>(collectionName, this.db, this.grpcClient, this.config);
+	}
+
+	private resolveNameFromCollectionClass(nameOrClass: TigrisCollectionType | string) {
+		let collectionName: string;
+		if (typeof nameOrClass === "string") {
+			collectionName = nameOrClass;
+		} else {
+			const coll = this._metadataStorage.getCollectionByTarget(
+				nameOrClass as new () => TigrisCollectionType
+			);
+			if (!coll) {
+				throw new CollectionNotFoundError(nameOrClass.toString());
+			}
+			collectionName = coll.collectionName;
+		}
+		return collectionName;
 	}
 
 	public transact(fn: (tx: Session) => void): Promise<TransactionResponse> {

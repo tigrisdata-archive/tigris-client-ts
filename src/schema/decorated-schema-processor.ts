@@ -10,7 +10,7 @@ export type CollectionSchema<T extends TigrisCollectionType> = {
 /** @internal */
 export class DecoratedSchemaProcessor {
 	private static _instance: DecoratedSchemaProcessor;
-	readonly storage: DecoratorMetaStorage;
+	private readonly storage: DecoratorMetaStorage;
 
 	private constructor() {
 		this.storage = getDecoratorMetaStorage();

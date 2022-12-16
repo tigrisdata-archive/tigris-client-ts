@@ -1,6 +1,6 @@
 import * as proto from "google-protobuf";
 import { ClientReadableStream } from "@grpc/grpc-js";
-import { TigrisCursorInUseError } from "../error";
+import { CursorInUseError } from "../error";
 import { Readable } from "node:stream";
 
 /** @internal */
@@ -36,7 +36,7 @@ export abstract class AbstractCursor<T, TResp extends proto.Message> {
 	/** @internal */
 	private _assertNotInUse() {
 		if (this[tClosed]) {
-			throw new TigrisCursorInUseError();
+			throw new CursorInUseError();
 		}
 		this[tClosed] = true;
 	}
