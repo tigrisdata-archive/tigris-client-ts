@@ -21,7 +21,6 @@ import { Utility } from "./utility";
 import { Log } from "./utils/logger";
 import { DecoratorMetaStorage } from "./decorators/metadata/decorator-meta-storage";
 import { getDecoratorMetaStorage } from "./globals";
-import { CollectionMetadata } from "./decorators/metadata/collection-metadata";
 
 const AuthorizationHeaderName = "authorization";
 const AuthorizationBearer = "Bearer ";
@@ -265,38 +264,6 @@ export class Tigris {
 	 * Collection classes decorated with {@link TigrisCollection} decorator will be
 	 * created if not already existing. If Collection already exists, schema changes
 	 * will be applied, if any.
-	 */
-	public async registerSchemas();
-	/**
-	 * Automatically create Project and create or update Collections.
-	 * Collection classes decorated with {@link TigrisCollection} decorator will be
-	 * created if not already existing. If Collection already exists, schema changes
-	 * will be applied, if any.
-	 *
-	 * @param collectionNames - Array of collection names as strings to be created
-	 * or updated
-	 *
-	 * @example
-	 *
-	 * ```
-	 * @TigrisCollection("todoItems")
-	 * class TodoItem implements TigrisCollectionType {
-	 *   @PrimaryKey(TigrisDataTypes.INT32, { order: 1 })
-	 *   id: number;
-	 *
-	 *   @Field()
-	 *   text: string;
-	 * }
-	 *
-	 * await db.registerSchemas(["todoItems"]);
-	 * ```
-	 */
-	public async registerSchemas(collectionNames: Array<string>);
-	/**
-	 * Automatically create Project and create or update Collections.
-	 * Collection classes decorated with {@link TigrisCollection} decorator will be
-	 * created if not already existing. If Collection already exists, schema changes
-	 * will be applied, if any.
 	 *
 	 * @param collections - Array of Collection classes
 	 *
@@ -314,32 +281,17 @@ export class Tigris {
 	 * await db.registerSchemas([TodoItem]);
 	 * ```
 	 */
-	public async registerSchemas(collections: Array<TigrisCollectionType>);
-	public async registerSchemas(filter?: Array<TigrisCollectionType | string>) {
+	public async registerSchemas(collections: Array<TigrisCollectionType>) {
 		const projectName = this._config.projectName;
 		const tigrisDb = await this.createDatabaseIfNotExists(projectName);
-		const needUpdate: Array<CollectionMetadata> = new Array<CollectionMetadata>();
 
-		if (!filter) {
-			for (const coll of this._metadataStorage.getAllCollections()) {
-				needUpdate.push(coll);
+		for (const coll of collections) {
+			const found = this._metadataStorage.getCollectionByTarget(coll as Function);
+			if (!found) {
+				Log.error(`No such collection defined: '${coll.toString()}'`);
+			} else {
+				await tigrisDb.createOrUpdateCollection(found.target.prototype.constructor);
 			}
-		} else {
-			for (const name of filter) {
-				const found =
-					typeof name === "string"
-						? this._metadataStorage.getCollectionByName(name)
-						: this._metadataStorage.getCollectionByTarget(name as Function);
-				if (!found) {
-					Log.error(`No such collection defined: '${name.toString()}'`);
-				} else {
-					needUpdate.push(found);
-				}
-			}
-		}
-
-		for (const coll of needUpdate) {
-			await tigrisDb.createOrUpdateCollection(coll.target.prototype.constructor);
 		}
 	}
 
