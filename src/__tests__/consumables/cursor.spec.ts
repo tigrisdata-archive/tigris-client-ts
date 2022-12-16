@@ -3,7 +3,7 @@ import TestService, {TestTigrisService} from "../test-service";
 import {TigrisService} from "../../proto/server/v1/api_grpc_pb";
 import {IBook} from "../tigris.rpc.spec";
 import {Tigris} from "../../tigris";
-import {TigrisCursorInUseError} from "../../error";
+import {CursorInUseError} from "../../error";
 import {ObservabilityService} from "../../proto/server/v1/observability_grpc_pb";
 import TestObservabilityService from "../test-observability-service";
 import {DB} from "../../db";
@@ -76,7 +76,7 @@ describe("class FindCursor", () => {
 		const cursor = db.getCollection<IBook>("books").findMany();
 		// cursor is backed by is a generator fn, calling next() would retrieve item from stream
 		cursor[Symbol.asyncIterator]().next();
-		expect(() => cursor.toArray()).toThrow(TigrisCursorInUseError);
+		expect(() => cursor.toArray()).toThrow(CursorInUseError);
 	})
 
 	it("allows cursor to be re-used once reset", async () => {

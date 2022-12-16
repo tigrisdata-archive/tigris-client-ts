@@ -10,7 +10,7 @@ export type CollectionSchema<T extends TigrisCollectionType> = {
 /** @internal */
 export class DecoratedSchemaProcessor {
 	private static _instance: DecoratedSchemaProcessor;
-	readonly storage: DecoratorMetaStorage;
+	private readonly storage: DecoratorMetaStorage;
 
 	private constructor() {
 		this.storage = getDecoratorMetaStorage();
@@ -24,7 +24,7 @@ export class DecoratedSchemaProcessor {
 	}
 
 	process(cls: new () => TigrisCollectionType): CollectionSchema<typeof cls> {
-		const collection = this.storage.filterCollectionByTarget(cls);
+		const collection = this.storage.getCollectionByTarget(cls);
 		const schema = this.buildTigrisSchema(collection.target);
 		this.addPrimaryKeys(schema, collection.target);
 		return {
@@ -36,7 +36,7 @@ export class DecoratedSchemaProcessor {
 	private buildTigrisSchema(from: Function): TigrisSchema<unknown> {
 		const schema: TigrisSchema<unknown> = {};
 		// get all top level fields matching this target
-		for (const field of this.storage.filterFieldsByTarget(from)) {
+		for (const field of this.storage.getFieldsByTarget(from)) {
 			const key = field.name;
 			schema[key] = { type: field.type };
 			let arrayItems: Object, arrayDepth: number;
@@ -91,7 +91,7 @@ export class DecoratedSchemaProcessor {
 		targetSchema: TigrisSchema<T>,
 		collectionClass: Function
 	) {
-		for (const pk of this.storage.filterPKsByTarget(collectionClass)) {
+		for (const pk of this.storage.getPKsByTarget(collectionClass)) {
 			targetSchema[pk.name] = {
 				type: pk.type,
 				primary_key: {

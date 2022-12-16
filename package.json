@@ -106,7 +106,6 @@
 	},
 	"dependencies": {
 		"@grpc/grpc-js": "^1.6.10",
-		"app-root-path": "^3.1.0",
 		"chalk": "4.1.2",
 		"dotenv": "^16.0.3",
 		"google-protobuf": "^3.21.0",

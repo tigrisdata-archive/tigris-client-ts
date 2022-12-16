@@ -17,6 +17,9 @@ import { Utility } from "../utility";
 import { ObservabilityService } from "../proto/server/v1/observability_grpc_pb";
 import TestObservabilityService from "./test-observability-service";
 import { capture, spy } from "ts-mockito";
+import { TigrisCollection } from "../decorators/tigris-collection";
+import { PrimaryKey } from "../decorators/tigris-primary-key";
+import { Field } from "../decorators/tigris-field";
 
 describe("rpc tests", () => {
 	let server: Server;
@@ -261,7 +264,7 @@ describe("rpc tests", () => {
 	it("delete", () => {
 		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT, projectName: "db3"});
 		const db1 = tigris.getDatabase();
-		const deletionPromise = db1.getCollection<IBook>("books").deleteMany({
+		const deletionPromise = db1.getCollection<IBook>(IBook).deleteMany({
 			op: SelectorFilterOperator.EQ,
 			fields: {
 				id: 1
@@ -662,12 +665,18 @@ describe("rpc tests", () => {
 	});
 });
 
-export interface IBook extends TigrisCollectionType {
+@TigrisCollection("books")
+export class IBook implements TigrisCollectionType {
+	@PrimaryKey({order: 1})
 	id: number;
+	@Field()
 	title: string;
+	@Field()
 	author: string;
+	@Field({elements: TigrisDataTypes.STRING})
 	tags?: string[];
 }
+
 
 export interface IBook1 extends TigrisCollectionType {
 	id?: number;
