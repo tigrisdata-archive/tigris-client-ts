@@ -2,9 +2,12 @@ import { TigrisClientConfig } from "../tigris";
 // this needs to go in its own file
 import { WebSocket } from "ws";
 import { EventEmitter } from "node:events";
-import { FlowNode } from "typescript";
+import * as proto from "../proto/server/v1/realtime_pb";
+import { connectedMessage, messageEvent, publishMessage, realTimeMessage } from "./messages";
 
-type SubscribeCallback = (message: string) => void;
+type SubscribeCallback = (string) => void;
+type MessageEvent = proto.MessageEvent.AsObject;
+type MessageEventListener = (MessageEvent: MessageEvent) => void;
 
 export class RealTime {
 	// private _config: TigrisClientConfig;
@@ -13,56 +16,99 @@ export class RealTime {
 	constructor() {
 		this.transport = new Transport();
 		this.channelManager = new ChannelManager(this.transport);
+
 		// this._config = config;
 	}
 
-	async connect() {}
+	async connect() {
+		await this.transport.isConnected();
+	}
 
 	getChannel(name: string): Channel {
 		return this.channelManager.getOrCreate(name);
 	}
 
-	// closes websocket connection
 	close() {
 		this.channelManager.close();
 		this.transport.close();
 	}
 }
 
+interface Session {
+	sessionId: string;
+	socketId: string;
+}
+
+type ConnectionState = "failed" | "connecting" | "connected" | "uninitialized";
+
 class Transport {
-	private listeners: Map<string, SubscribeCallback[]>;
+	private listeners: Map<string, MessageEventListener[]>;
 	private ws: WebSocket;
+	private session: Session;
+	private _isConnected: Promise<void>;
+	private _connectionState: ConnectionState = "uninitialized";
 
 	constructor() {
 		this.listeners = new Map();
 		this.ws = new WebSocket("ws://127.0.0.1:9000");
+		this.ws.binaryType = "arraybuffer";
 
-		this.ws.on("message", (data) => {
-			let d = String(data);
-			let { channel, msgType, message } = JSON.parse(d);
-			console.log("t - recieved", channel, msgType, message);
+		let connectionResolved = () => {};
 
-			let listeners = this.listeners.get(channel);
+		this._isConnected = new Promise((resolve) => {
+			connectionResolved = resolve;
+		});
 
-			if (!listeners) {
-				return;
+		this.ws.on("message", (data: Uint8Array) => {
+			const msg = realTimeMessage(data);
+
+			switch (msg.eventType) {
+				case "connected":
+					this.session = connectedMessage(msg.event);
+
+					connectionResolved();
+					this._connectionState = "connected";
+
+					console.log("connected with", this.session);
+					return;
+
+				case "message":
+					let channelMsg = messageEvent(msg.event);
+					this.handleChannelMessage(channelMsg);
+					return;
+				default:
+					throw new Error(`unknown message type ${msg.eventType}`);
 			}
-
-			listeners.forEach((listener) => listener(message));
 		});
 	}
 
-	listen(channelName: string, listener: SubscribeCallback) {
+	connectionState(): ConnectionState {
+		return this._connectionState;
+	}
+
+	handleChannelMessage(msg: MessageEvent) {
+		const listeners = this.listeners.get(msg.channel);
+		msg.data = Buffer.from(msg.data as string, "base64").toString("utf8");
+
+		listeners.forEach((listener) => listener(msg));
+	}
+
+	isConnected(): Promise<void> {
+		return this._isConnected;
+	}
+
+	listen(channelName: string, listener: MessageEventListener) {
 		if (!this.listeners.has(channelName)) {
 			this.listeners.set(channelName, []);
 		}
 
-		let channelListeners = this.listeners.get(channelName);
+		const channelListeners = this.listeners.get(channelName);
 		channelListeners.push(listener);
 	}
 
-	publish(channel: string, msgType: string, message: string) {
-		this.ws.send(JSON.stringify({ channel, msgType, message }));
+	async publish(channel: string, name: string, message: string) {
+		const msg = publishMessage(channel, name, message);
+		this.ws.send(msg);
 	}
 
 	close() {
@@ -70,8 +116,7 @@ class Transport {
 	}
 }
 
-// for browser support we can use https://github.com/primus/eventemitter3
-class Channel extends EventEmitter {
+export class Channel extends EventEmitter {
 	private name: string;
 	private hasAttached: boolean;
 	private transport: Transport;
@@ -83,33 +128,38 @@ class Channel extends EventEmitter {
 		this.transport = transport;
 	}
 
-	subscribe(msgType: string, cb: SubscribeCallback) {
+	subscribe(msgName: string, cb: SubscribeCallback) {
 		if (!this.hasAttached) {
 			this.attach();
 		}
 
-		// TODO: make sure we do not see double if we detach and then attach
+		this.on(msgName, cb);
+	}
 
-		this.on(msgType, cb);
+	unsubscribe(msgName: string, cb: SubscribeCallback) {
+		this.off(msgName, cb);
+	}
+
+	unsubscribeAll(msgName: string) {
+		this.removeAllListeners(msgName);
 	}
 
 	attach() {
-		this.transport.listen(this.name, (msg) => this.notify(msg));
+		this.transport.listen(this.name, (msg: MessageEvent) => this.notify(msg));
 		this.hasAttached = true;
-		// this.transport.attach("");
 	}
 
 	detach() {
 		this.hasAttached = false;
 	}
 
-	publish(msgType: string, data: string) {
-		this.transport.publish(this.name, msgType, data);
+	async publish(msgName: string, data: string) {
+		await this.transport.publish(this.name, msgName, data);
 	}
 
-	notify(msg: string) {
+	notify(msg: MessageEvent) {
 		console.log("notify", msg);
-		this.emit("greeting", msg);
+		this.emit(msg.name, msg.data);
 	}
 }
 
@@ -132,16 +182,13 @@ class ChannelManager {
 
 	close() {
 		this.channels.forEach((channel) => channel.detach());
+		this.channels.clear();
 	}
 }
 
 /*
     Notes:
 
-    * Might need an async func to connect to server
-        * `async realtime() -> Promise<RealTime>
     * Browser vs nodejs websocket
-    * 
-
-
+	* Fix message body encoding
 */

@@ -244,9 +244,9 @@ export class Tigris {
 		return new DB(this._config.projectName, this.grpcClient, this._config);
 	}
 
-	public realtime(): RealTime {
-		return new RealTime(this._config);
-	}
+	// public realtime(): RealTime {
+	// 	return new RealTime(this._config);
+	// }
 
 	public getServerMetadata(): Promise<ServerMetadata> {
 		return new Promise<ServerMetadata>((resolve, reject) => {

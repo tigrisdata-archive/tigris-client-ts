@@ -61,8 +61,8 @@
 	},
 	"scripts": {
 		"clean": "rm -rf ./src/proto/* && rm -rf dist && rm -rf node_modules",
-		"update_api": "git submodule update --init --recursive && git submodule update --remote --recursive --rebase && git submodule foreach --recursive git reset --hard origin/main",
-		"init_api": "git submodule update --init --recursive",
+		"update_api": "git submodule update --init --recursive && git submodule update --remote --recursive --rebase && git submodule foreach --recursive git reset --hard origin/realtime",
+		"init_api": "git submodule update --init --recursive && git submodule update --remote --recursive --rebase",
 		"protoc": "./scripts/protoc.sh",
 		"lint": "node ./node_modules/eslint/bin/eslint src/ --ext .ts",
 		"lint-fix": "npx eslint --ext .ts --fix src/",
