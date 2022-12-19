@@ -1,23 +1,28 @@
 import { TigrisClientConfig } from "../tigris";
 // this needs to go in its own file
-import { WebSocket } from "ws";
 import { EventEmitter } from "node:events";
-import * as proto from "../proto/server/v1/realtime_pb";
-import { connectedMessage, messageEvent, publishMessage, realTimeMessage } from "./messages";
+import { Transport } from "./transport";
+import { MessageEvent } from "./messages";
 
 type SubscribeCallback = (string) => void;
-type MessageEvent = proto.MessageEvent.AsObject;
-type MessageEventListener = (MessageEvent: MessageEvent) => void;
+
+export interface RealTimeConfig {
+	/*
+	 * An id used to identify this client when using the presence feature.
+	 * If the client id is not set, an error will be thrown when using any presence features
+	 */
+	clientId?: string;
+}
 
 export class RealTime {
-	// private _config: TigrisClientConfig;
+	private _config: RealTimeConfig;
 	private channelManager: ChannelManager;
 	private transport: Transport;
-	constructor() {
+	constructor(config: RealTimeConfig = {}) {
 		this.transport = new Transport();
 		this.channelManager = new ChannelManager(this.transport);
 
-		// this._config = config;
+		this._config = config;
 	}
 
 	async connect() {
@@ -34,85 +39,9 @@ export class RealTime {
 	}
 }
 
-interface Session {
-	sessionId: string;
-	socketId: string;
-}
-
-type ConnectionState = "failed" | "connecting" | "connected" | "uninitialized";
-
-class Transport {
-	private listeners: Map<string, MessageEventListener[]>;
-	private ws: WebSocket;
-	private session: Session;
-	private _isConnected: Promise<void>;
-	private _connectionState: ConnectionState = "uninitialized";
-
+class Presence extends EventEmitter {
 	constructor() {
-		this.listeners = new Map();
-		this.ws = new WebSocket("ws://127.0.0.1:9000");
-		this.ws.binaryType = "arraybuffer";
-
-		let connectionResolved = () => {};
-
-		this._isConnected = new Promise((resolve) => {
-			connectionResolved = resolve;
-		});
-
-		this.ws.on("message", (data: Uint8Array) => {
-			const msg = realTimeMessage(data);
-
-			switch (msg.eventType) {
-				case "connected":
-					this.session = connectedMessage(msg.event);
-
-					connectionResolved();
-					this._connectionState = "connected";
-
-					console.log("connected with", this.session);
-					return;
-
-				case "message":
-					let channelMsg = messageEvent(msg.event);
-					this.handleChannelMessage(channelMsg);
-					return;
-				default:
-					throw new Error(`unknown message type ${msg.eventType}`);
-			}
-		});
-	}
-
-	connectionState(): ConnectionState {
-		return this._connectionState;
-	}
-
-	handleChannelMessage(msg: MessageEvent) {
-		const listeners = this.listeners.get(msg.channel);
-		msg.data = Buffer.from(msg.data as string, "base64").toString("utf8");
-
-		listeners.forEach((listener) => listener(msg));
-	}
-
-	isConnected(): Promise<void> {
-		return this._isConnected;
-	}
-
-	listen(channelName: string, listener: MessageEventListener) {
-		if (!this.listeners.has(channelName)) {
-			this.listeners.set(channelName, []);
-		}
-
-		const channelListeners = this.listeners.get(channelName);
-		channelListeners.push(listener);
-	}
-
-	async publish(channel: string, name: string, message: string) {
-		const msg = publishMessage(channel, name, message);
-		this.ws.send(msg);
-	}
-
-	close() {
-		this.ws.close();
+		super();
 	}
 }
 

@@ -1,5 +1,7 @@
 import * as proto from "../proto/server/v1/realtime_pb";
 
+export type MessageEvent = proto.MessageEvent.AsObject;
+
 export function connectedMessage(event: Uint8Array | string): proto.ConnectedMessage.AsObject {
 	return proto.ConnectedMessage.deserializeBinary(event as Uint8Array).toObject();
 }
@@ -15,6 +17,10 @@ export function publishMessage(channel: string, name: string, message: string) {
 		.setData(Buffer.from(message).toString("base64"));
 
 	return createRTMessage("message", msg.serializeBinary());
+}
+
+export function heartbeatMessage() {
+	return createRTMessage("heartbeat", new Uint8Array());
 }
 
 export function createRTMessage(eventType: string, event: Uint8Array) {

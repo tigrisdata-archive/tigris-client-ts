@@ -1,11 +1,10 @@
 import { RealTime, Channel } from "..";
 import { WsTestServer } from "./test-server";
 
-const sleep = (time: number) => {
-	return new Promise((resolve) => {
-		setTimeout(resolve, time);
-	});
-};
+// TODO:
+// 2. Subscribe recovery - last heard number
+// 3. presence
+// 4. logging
 
 describe("realtime message send and receive", () => {
 	let server: WsTestServer;
@@ -28,6 +27,8 @@ describe("realtime message send and receive", () => {
 
 				channel1.subscribe("greeting", (message) => {
 					expect(message).toEqual("hello world");
+					expect(server.history().pop().eventType).toEqual("message");
+
 					done();
 				});
 
@@ -54,7 +55,7 @@ describe("realtime message send and receive", () => {
 					reject("ch2 should not see message");
 				});
 
-				await channel1.publish("ch1", "hello world");
+				await waitForDelivery(channel1, "ch1", "hello world");
 			});
 		} finally {
 			realtime.close();
@@ -70,10 +71,10 @@ describe("realtime message send and receive", () => {
 		let cb = (_) => (messageCount += 1);
 
 		channel1.subscribe("ch1", cb);
-		await checkForDelivery(channel1, "ch1", "msg1");
+		await waitForDelivery(channel1, "ch1", "msg1");
 
 		channel1.unsubscribe("ch1", cb);
-		await checkForDelivery(channel1, "ch1", "msg2");
+		await waitForDelivery(channel1, "ch1", "msg2");
 
 		try {
 			expect(messageCount).toEqual(1);
@@ -93,11 +94,11 @@ describe("realtime message send and receive", () => {
 		channel1.subscribe("ch1", (_) => (messageCount += 1));
 		channel1.subscribe("ch1", (_) => (messageCount += 1));
 
-		await checkForDelivery(channel1, "ch1", "msg1");
+		await waitForDelivery(channel1, "ch1", "msg1");
 
 		channel1.unsubscribeAll("ch1");
 
-		await checkForDelivery(channel1, "ch1", "msg2");
+		await waitForDelivery(channel1, "ch1", "msg2");
 
 		try {
 			expect(messageCount).toEqual(4);
@@ -105,9 +106,22 @@ describe("realtime message send and receive", () => {
 			realtime.close();
 		}
 	});
+
+	it("sends heartbeat if no other message sent", async () => {
+		const realtime = new RealTime();
+		try {
+			await realtime.connect();
+			await sleep(1500);
+			let msg = server.history().pop();
+
+			expect(msg.eventType).toEqual("heartbeat");
+		} finally {
+			realtime.close();
+		}
+	});
 });
 
-async function checkForDelivery(channel: Channel, msgType: string, message: string) {
+async function waitForDelivery(channel: Channel, msgType: string, message: string) {
 	await new Promise<void>(async (resolve) => {
 		channel.subscribe(msgType, () => {
 			resolve();
@@ -116,3 +130,9 @@ async function checkForDelivery(channel: Channel, msgType: string, message: stri
 		await channel.publish(msgType, message);
 	});
 }
+
+const sleep = (time: number) => {
+	return new Promise((resolve) => {
+		setTimeout(resolve, time);
+	});
+};

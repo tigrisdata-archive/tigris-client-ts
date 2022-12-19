@@ -17,8 +17,11 @@ function getSessionId() {
 export class WsTestServer {
 	private wss: WebSocketServer;
 
+	private _history: proto.RealTimeMessage.AsObject[];
+
 	constructor(port) {
 		this.wss = new WebSocketServer({ port });
+		this._history = [];
 	}
 
 	start() {
@@ -32,21 +35,22 @@ export class WsTestServer {
 				.setEventType("connected")
 				.setEvent(connected.serializeBinary());
 
-			console.log("boom", connected.toObject());
 			ws.send(msg.serializeBinary());
 
-			ws.on("message", function (data: Uint8Array) {
+			ws.on("message", (data: Uint8Array) => {
 				console.log("received: %s", data);
-				let a = proto.RealTimeMessage.deserializeBinary(data).toObject();
-				let b = proto.MessageEvent.deserializeBinary(a.event as Uint8Array).toObject();
-				console.log(b.data);
-				//@ts-ignore
-				let z = Buffer.from(b.data, "base64").toString("utf-8");
-				console.log("z", z);
+				let msg = proto.RealTimeMessage.deserializeBinary(data).toObject();
+				this._history.push(msg);
 
-				ws.send(data);
+				if (msg.eventType === "message") {
+					ws.send(data);
+				}
 			});
 		});
+	}
+
+	history() {
+		return this._history;
 	}
 
 	async close(): Promise<void> {
