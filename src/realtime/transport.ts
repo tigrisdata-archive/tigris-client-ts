@@ -7,6 +7,7 @@ import {
 	MessageEvent,
 } from "./messages";
 import { WebSocket } from "ws";
+import * as proto from "../proto/server/v1/realtime_pb";
 
 type MessageEventListener = (MessageEvent: MessageEvent) => void;
 interface TransportConfig {
@@ -49,7 +50,7 @@ export class Transport {
 			const msg = realTimeMessage(data);
 
 			switch (msg.eventType) {
-				case "connected":
+				case proto.EventType.CONNECTED:
 					this.session = connectedMessage(msg.event);
 
 					connectionResolved();
@@ -58,7 +59,7 @@ export class Transport {
 					console.log("connected with", this.session);
 					return;
 
-				case "message":
+				case proto.EventType.MESSAGE:
 					let channelMsg = messageEvent(msg.event);
 					this.handleChannelMessage(channelMsg);
 					return;
@@ -109,6 +110,11 @@ export class Transport {
 	async publish(channel: string, name: string, message: string) {
 		const msg = publishMessage(channel, name, message);
 		this.send(msg);
+	}
+
+	// Returns the connection session socket id
+	socketId(): string | undefined {
+		return this.session?.sessionId;
 	}
 
 	close() {

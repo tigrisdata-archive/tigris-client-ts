@@ -16,14 +16,14 @@ export function publishMessage(channel: string, name: string, message: string) {
 		.setName(name)
 		.setData(Buffer.from(message).toString("base64"));
 
-	return createRTMessage("message", msg.serializeBinary());
+	return createRTMessage(proto.EventType.MESSAGE, msg.serializeBinary());
 }
 
 export function heartbeatMessage() {
-	return createRTMessage("heartbeat", new Uint8Array());
+	return createRTMessage(proto.EventType.HEARTBEAT, new Uint8Array());
 }
 
-export function createRTMessage(eventType: string, event: Uint8Array) {
+export function createRTMessage(eventType: proto.EventType, event: Uint8Array) {
 	return new proto.RealTimeMessage().setEventType(eventType).setEvent(event).serializeBinary();
 }
 

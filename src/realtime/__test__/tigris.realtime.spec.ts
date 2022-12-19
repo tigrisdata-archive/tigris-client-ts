@@ -1,8 +1,10 @@
 import { RealTime, Channel } from "..";
 import { WsTestServer } from "./test-server";
+import * as proto from "../../proto/server/v1/realtime_pb";
 
 // TODO:
 // 2. Subscribe recovery - last heard number
+// * unsubscribe on server side
 // 3. presence
 // 4. logging
 
@@ -27,7 +29,7 @@ describe("realtime message send and receive", () => {
 
 				channel1.subscribe("greeting", (message) => {
 					expect(message).toEqual("hello world");
-					expect(server.history().pop().eventType).toEqual("message");
+					expect(server.history().pop().eventType).toEqual(proto.EventType.MESSAGE);
 
 					done();
 				});
@@ -114,7 +116,39 @@ describe("realtime message send and receive", () => {
 			await sleep(1500);
 			let msg = server.history().pop();
 
-			expect(msg.eventType).toEqual("heartbeat");
+			expect(msg.eventType).toEqual(proto.EventType.HEARTBEAT);
+		} finally {
+			realtime.close();
+		}
+	});
+
+	it.skip("recovers from disconnect", async () => {
+		const messages = [];
+		const realtime = new RealTime();
+		const rt2 = new RealTime();
+		try {
+			await realtime.connect();
+			await rt2.connect();
+
+			const ch1 = realtime.getChannel("one");
+			const otherCh1 = rt2.getChannel("one");
+
+			ch1.subscribe("main", (msg) => {
+				messages.push(msg);
+			});
+
+			otherCh1.attach();
+
+			await waitForDelivery(otherCh1, "main", "msg1");
+
+			// server.closeConnection(realtime.socketId());
+
+			await waitForDelivery(otherCh1, "main", "msg2");
+
+			await sleep(100);
+
+			expect(messages.length).toEqual(2);
+			expect(messages[1]).toEqual("msg2");
 		} finally {
 			realtime.close();
 		}

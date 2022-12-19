@@ -37,6 +37,10 @@ export class RealTime {
 		this.channelManager.close();
 		this.transport.close();
 	}
+
+	socketId() {
+		return this.transport.socketId();
+	}
 }
 
 class Presence extends EventEmitter {
