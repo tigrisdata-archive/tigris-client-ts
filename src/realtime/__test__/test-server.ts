@@ -48,8 +48,9 @@ export class WsTestServer {
 			ws.send(msg.serializeBinary());
 
 			ws.on("message", (data: Uint8Array) => {
-				console.log("received: %s", data);
 				let msg = proto.RealTimeMessage.deserializeBinary(data).toObject();
+				console.log("received: ", msg);
+
 				this._history.push(msg);
 
 				if (msg.eventType === proto.EventType.MESSAGE) {

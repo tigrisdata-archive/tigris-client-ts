@@ -3,10 +3,12 @@ import { WsTestServer } from "./test-server";
 import * as proto from "../../proto/server/v1/realtime_pb";
 
 // TODO:
-// 2. Subscribe recovery - last heard number
-// * unsubscribe on server side
+// 1. Subscribe recovery - last heard number
+// 2 unsubscribe on server side
 // 3. presence
 // 4. logging
+// 5. browser support
+// 6. msg data encoding issue
 
 describe("realtime message send and receive", () => {
 	let server: WsTestServer;
@@ -140,17 +142,16 @@ describe("realtime message send and receive", () => {
 			otherCh1.attach();
 
 			await waitForDelivery(otherCh1, "main", "msg1");
-
-			// server.closeConnection(realtime.socketId());
-
+			server.closeConnection(realtime.socketId());
 			await waitForDelivery(otherCh1, "main", "msg2");
 
-			await sleep(100);
+			await sleep(1001);
 
 			expect(messages.length).toEqual(2);
 			expect(messages[1]).toEqual("msg2");
 		} finally {
 			realtime.close();
+			rt2.close();
 		}
 	});
 });

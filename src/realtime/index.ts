@@ -118,10 +118,3 @@ class ChannelManager {
 		this.channels.clear();
 	}
 }
-
-/*
-    Notes:
-
-    * Browser vs nodejs websocket
-	* Fix message body encoding
-*/
