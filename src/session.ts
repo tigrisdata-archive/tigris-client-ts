@@ -42,7 +42,7 @@ export class Session {
 
 	public commit(): Promise<CommitTransactionResponse> {
 		return new Promise<CommitTransactionResponse>((resolve, reject) => {
-			const request = new ProtoCommitTransactionRequest().setDb(this.db);
+			const request = new ProtoCommitTransactionRequest().setProject(this.db);
 			this.grpcClient.commitTransaction(request, Utility.txToMetadata(this), (error, response) => {
 				if (error) {
 					reject(error);
@@ -55,7 +55,7 @@ export class Session {
 
 	public rollback(): Promise<RollbackTransactionResponse> {
 		return new Promise<RollbackTransactionResponse>((resolve, reject) => {
-			const request = new ProtoRollbackTransactionRequest().setDb(this.db);
+			const request = new ProtoRollbackTransactionRequest().setProject(this.db);
 			this.grpcClient.rollbackTransaction(
 				request,
 				Utility.txToMetadata(this),

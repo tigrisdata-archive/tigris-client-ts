@@ -4,7 +4,6 @@ import {
 	CollectionInfo,
 	CollectionMetadata,
 	CollectionOptions,
-	CollectionType,
 	CommitTransactionResponse,
 	DatabaseDescription,
 	DatabaseMetadata,
@@ -27,9 +26,12 @@ import { Collection } from "./collection";
 import { Session } from "./session";
 import { Utility } from "./utility";
 import { Metadata, ServiceError } from "@grpc/grpc-js";
-import { Topic } from "./topic";
 import { TigrisClientConfig } from "./tigris";
+import { DecoratedSchemaProcessor } from "./schema/decorated-schema-processor";
 import { Log } from "./utils/logger";
+import { DecoratorMetaStorage } from "./decorators/metadata/decorator-meta-storage";
+import { getDecoratorMetaStorage } from "./globals";
+import { CollectionNotFoundError } from "./error";
 
 /**
  * Tigris Database
@@ -42,52 +44,105 @@ export class DB {
 	private readonly _db: string;
 	private readonly grpcClient: TigrisClient;
 	private readonly config: TigrisClientConfig;
+	private readonly schemaProcessor: DecoratedSchemaProcessor;
+	private readonly _metadataStorage: DecoratorMetaStorage;
 
 	constructor(db: string, grpcClient: TigrisClient, config: TigrisClientConfig) {
 		this._db = db;
 		this.grpcClient = grpcClient;
 		this.config = config;
+		this.schemaProcessor = DecoratedSchemaProcessor.Instance;
+		this._metadataStorage = getDecoratorMetaStorage();
 	}
 
+	/**
+	 * Create a new collection if not exists. Else, apply schema changes, if any.
+	 *
+	 * @param cls - A Class decorated by {@link TigrisCollection}
+	 *
+	 * @example
+	 *
+	 * ```
+	 * @TigrisCollection("todoItems")
+	 * class TodoItem implements TigrisCollectionType {
+	 *   @PrimaryKey(TigrisDataTypes.INT32, { order: 1 })
+	 *   id: number;
+	 *
+	 *   @Field()
+	 *   text: string;
+	 *
+	 *   @Field()
+	 *   completed: boolean;
+	 * }
+	 *
+	 * await db.createOrUpdateCollection<TodoItem>(TodoItem);
+	 * ```
+	 */
+	public createOrUpdateCollection<T extends TigrisCollectionType>(
+		cls: new () => TigrisCollectionType
+	): Promise<Collection<T>>;
+
+	/**
+	 * Create a new collection if not exists. Else, apply schema changes, if any.
+	 *
+	 * @param collectionName - Name of the Tigris Collection
+	 * @param schema - Collection's data model
+	 *
+	 * @example
+	 *
+	 * ```
+	 * const TodoItemSchema: TigrisSchema<TodoItem> = {
+	 *   id: {
+	 *     type: TigrisDataTypes.INT32,
+	 *     primary_key: { order: 1, autoGenerate: true }
+	 *   },
+	 *   text: { type: TigrisDataTypes.STRING },
+	 *   completed: { type: TigrisDataTypes.BOOLEAN }
+	 * };
+	 *
+	 * await db.createOrUpdateCollection<TodoItem>("todoItems", TodoItemSchema);
+	 * ```
+	 */
 	public createOrUpdateCollection<T extends TigrisCollectionType>(
 		collectionName: string,
 		schema: TigrisSchema<T>
-	): Promise<Collection<T>> {
+	): Promise<Collection<T>>;
+
+	public createOrUpdateCollection<T extends TigrisCollectionType>(
+		nameOrClass: string | TigrisCollectionType,
+		schema?: TigrisSchema<T>
+	) {
+		let collectionName: string;
+		if (typeof nameOrClass === "string") {
+			collectionName = nameOrClass as string;
+		} else {
+			const generatedColl = this.schemaProcessor.process(
+				nameOrClass as new () => TigrisCollectionType
+			);
+			collectionName = generatedColl.name;
+			schema = generatedColl.schema as TigrisSchema<T>;
+		}
 		return this.createOrUpdate(
 			collectionName,
-			CollectionType.DOCUMENTS,
 			schema,
 			() => new Collection(collectionName, this._db, this.grpcClient, this.config)
 		);
 	}
 
-	public createOrUpdateTopic<T extends TigrisCollectionType>(
-		topicName: string,
-		schema: TigrisSchema<T>
-	): Promise<Topic<T>> {
-		return this.createOrUpdate(
-			topicName,
-			CollectionType.MESSAGES,
-			schema,
-			() => new Topic(topicName, this._db, this.grpcClient, this.config)
-		);
-	}
-
 	private createOrUpdate<T extends TigrisCollectionType, R>(
 		name: string,
-		type: CollectionType,
 		schema: TigrisSchema<T>,
 		resolver: () => R
 	): Promise<R> {
 		return new Promise<R>((resolve, reject) => {
-			const rawJSONSchema: string = Utility._toJSONSchema(name, type, schema);
-			Log.debug(rawJSONSchema);
+			const rawJSONSchema: string = Utility._toJSONSchema(name, schema);
 			const createOrUpdateCollectionRequest = new ProtoCreateOrUpdateCollectionRequest()
-				.setDb(this._db)
+				.setProject(this._db)
 				.setCollection(name)
 				.setOnlyCreate(false)
 				.setSchema(Utility.stringToUint8Array(rawJSONSchema));
 
+			Log.event(`Creating collection: '${name}' in project: '${this._db}'`);
 			this.grpcClient.createOrUpdateCollection(
 				createOrUpdateCollectionRequest,
 				// eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -104,7 +159,7 @@ export class DB {
 
 	public listCollections(options?: CollectionOptions): Promise<Array<CollectionInfo>> {
 		return new Promise<Array<CollectionInfo>>((resolve, reject) => {
-			const request = new ProtoListCollectionsRequest().setDb(this.db);
+			const request = new ProtoListCollectionsRequest().setProject(this.db);
 			if (typeof options !== "undefined") {
 				return request.setOptions(new ProtoCollectionOptions());
 			}
@@ -124,10 +179,26 @@ export class DB {
 		});
 	}
 
-	public dropCollection(collectionName: string): Promise<DropCollectionResponse> {
+	/**
+	 * Drops a {@link Collection}
+	 *
+	 * @param cls - A Class decorated by {@link TigrisCollection}
+	 */
+	public dropCollection(cls: new () => TigrisCollectionType): Promise<DropCollectionResponse>;
+	/**
+	 * Drops a {@link Collection}
+	 *
+	 * @param name - Collection name
+	 */
+	public dropCollection(name: string): Promise<DropCollectionResponse>;
+
+	public dropCollection(
+		nameOrClass: TigrisCollectionType | string
+	): Promise<DropCollectionResponse> {
+		const collectionName = this.resolveNameFromCollectionClass(nameOrClass);
 		return new Promise<DropCollectionResponse>((resolve, reject) => {
 			this.grpcClient.dropCollection(
-				new ProtoDropCollectionRequest().setDb(this.db).setCollection(collectionName),
+				new ProtoDropCollectionRequest().setProject(this.db).setCollection(collectionName),
 				(error, response) => {
 					if (error) {
 						reject(error);
@@ -139,10 +210,23 @@ export class DB {
 		});
 	}
 
+	public dropAllCollections(): Promise<void> {
+		return new Promise<void>((resolve, reject) => {
+			this.listCollections()
+				.then((value: Array<CollectionInfo>) => {
+					for (const collectionInfo of value) {
+						this.dropCollection(collectionInfo.name);
+					}
+					resolve();
+				})
+				.catch((error) => reject(error));
+		});
+	}
+
 	public describe(): Promise<DatabaseDescription> {
 		return new Promise<DatabaseDescription>((resolve, reject) => {
 			this.grpcClient.describeDatabase(
-				new ProtoDescribeDatabaseRequest().setDb(this.db),
+				new ProtoDescribeDatabaseRequest().setProject(this.db),
 				(error, response) => {
 					if (error) {
 						reject(error);
@@ -157,25 +241,46 @@ export class DB {
 								)
 							);
 						}
-						resolve(
-							new DatabaseDescription(
-								response.getDb(),
-								new DatabaseMetadata(),
-								collectionsDescription
-							)
-						);
+						resolve(new DatabaseDescription(new DatabaseMetadata(), collectionsDescription));
 					}
 				}
 			);
 		});
 	}
 
-	public getCollection<T>(collectionName: string): Collection<T> {
+	/**
+	 * Gets a {@link Collection} object
+	 *
+	 * @param cls - A Class decorated by {@link TigrisCollection}
+	 */
+	public getCollection<T extends TigrisCollectionType>(
+		cls: new () => TigrisCollectionType
+	): Collection<T>;
+	/**
+	 * Gets a {@link Collection} object
+	 *
+	 * @param name - Collection name
+	 */
+	public getCollection<T extends TigrisCollectionType>(name: string): Collection<T>;
+	public getCollection<T extends TigrisCollectionType>(nameOrClass: T | string): Collection<T> {
+		const collectionName = this.resolveNameFromCollectionClass(nameOrClass);
 		return new Collection<T>(collectionName, this.db, this.grpcClient, this.config);
 	}
 
-	public getTopic<T>(topicName: string): Topic<T> {
-		return new Topic<T>(topicName, this.db, this.grpcClient, this.config);
+	private resolveNameFromCollectionClass(nameOrClass: TigrisCollectionType | string) {
+		let collectionName: string;
+		if (typeof nameOrClass === "string") {
+			collectionName = nameOrClass;
+		} else {
+			const coll = this._metadataStorage.getCollectionByTarget(
+				nameOrClass as new () => TigrisCollectionType
+			);
+			if (!coll) {
+				throw new CollectionNotFoundError(nameOrClass.toString());
+			}
+			collectionName = coll.collectionName;
+		}
+		return collectionName;
 	}
 
 	public transact(fn: (tx: Session) => void): Promise<TransactionResponse> {
@@ -205,7 +310,7 @@ export class DB {
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	public beginTransaction(_options?: TransactionOptions): Promise<Session> {
 		return new Promise<Session>((resolve, reject) => {
-			const beginTxRequest = new ProtoBeginTransactionRequest().setDb(this._db);
+			const beginTxRequest = new ProtoBeginTransactionRequest().setProject(this._db);
 			const cookie: Metadata = new Metadata();
 			const call = this.grpcClient.makeUnaryRequest(
 				BeginTransactionMethodName,

@@ -19,7 +19,6 @@ import {
 	ReadRequestOptions,
 	SelectorFilterOperator,
 	SimpleUpdateField,
-	StreamEvent,
 	TigrisCollectionType,
 	UpdateFields,
 	UpdateRequestOptions,
@@ -29,34 +28,6 @@ import { Utility } from "./utility";
 import { SearchRequest, SearchRequestOptions, SearchResult } from "./search/types";
 import { TigrisClientConfig } from "./tigris";
 import { Cursor, ReadCursorInitializer } from "./consumables/cursor";
-
-/**
- * Callback to receive events from server
- */
-export interface EventsCallback<T> {
-	/**
-	 * Receives a message from server. Can be called many times but is never called after
-	 * {@link onError} or {@link onEnd} are called.
-	 *
-	 * @param event
-	 */
-	onNext(event: StreamEvent<T>): void;
-
-	/**
-	 * Receives a notification of successful stream completion.
-	 *
-	 * <p>May only be called once and if called it must be the last method called. In particular,
-	 * if an exception is thrown by an implementation of {@link onEnd} no further calls to any
-	 * method are allowed.
-	 */
-	onEnd(): void;
-
-	/**
-	 * Receives terminating error from the stream.
-	 * @param error
-	 */
-	onError(error: Error): void;
-}
 
 interface ICollection {
 	readonly collectionName: string;
@@ -101,7 +72,7 @@ export abstract class ReadOnlyCollection<T extends TigrisCollectionType> impleme
 		}
 
 		const readRequest = new ProtoReadRequest()
-			.setDb(this.db)
+			.setProject(this.db)
 			.setCollection(this.collectionName)
 			.setFilter(Utility.stringToUint8Array(Utility.filterToString(filter)));
 
@@ -213,7 +184,7 @@ export abstract class ReadOnlyCollection<T extends TigrisCollectionType> impleme
 
 /**
  * The **Collection** class represents Tigris collection allowing insert/find/update/delete/search
- * and events operations.
+ * operations.
  */
 export class Collection<T extends TigrisCollectionType> extends ReadOnlyCollection<T> {
 	constructor(
@@ -223,6 +194,24 @@ export class Collection<T extends TigrisCollectionType> extends ReadOnlyCollecti
 		config: TigrisClientConfig
 	) {
 		super(collectionName, db, grpcClient, config);
+	}
+
+	private setDocsMetadata(docs: Array<T>, keys: Array<Uint8Array>): Array<T> {
+		let docIndex = 0;
+		const clonedDocs: T[] = Object.assign([], docs);
+
+		for (const value of keys) {
+			const keyValueJsonObj: object = Utility.jsonStringToObj(
+				Utility.uint8ArrayToString(value),
+				this.config
+			);
+			for (const fieldName of Object.keys(keyValueJsonObj)) {
+				Reflect.set(clonedDocs[docIndex], fieldName, keyValueJsonObj[fieldName]);
+			}
+			docIndex++;
+		}
+
+		return clonedDocs;
 	}
 
 	/**
@@ -239,7 +228,7 @@ export class Collection<T extends TigrisCollectionType> extends ReadOnlyCollecti
 			}
 
 			const protoRequest = new ProtoInsertRequest()
-				.setDb(this.db)
+				.setProject(this.db)
 				.setCollection(this.collectionName)
 				.setDocumentsList(docsArray);
 
@@ -250,19 +239,7 @@ export class Collection<T extends TigrisCollectionType> extends ReadOnlyCollecti
 					if (error !== undefined && error !== null) {
 						reject(error);
 					} else {
-						let docIndex = 0;
-						const clonedDocs: T[] = Object.assign([], docs);
-
-						for (const value of response.getKeysList_asU8()) {
-							const keyValueJsonObj: object = Utility.jsonStringToObj(
-								Utility.uint8ArrayToString(value),
-								this.config
-							);
-							for (const fieldName of Object.keys(keyValueJsonObj)) {
-								Reflect.set(clonedDocs[docIndex], fieldName, keyValueJsonObj[fieldName]);
-								docIndex++;
-							}
-						}
+						const clonedDocs = this.setDocsMetadata(docs, response.getKeysList_asU8());
 						resolve(clonedDocs);
 					}
 				}
@@ -303,7 +280,7 @@ export class Collection<T extends TigrisCollectionType> extends ReadOnlyCollecti
 				docsArray.push(new TextEncoder().encode(Utility.objToJsonString(doc)));
 			}
 			const protoRequest = new ProtoReplaceRequest()
-				.setDb(this.db)
+				.setProject(this.db)
 				.setCollection(this.collectionName)
 				.setDocumentsList(docsArray);
 
@@ -314,18 +291,7 @@ export class Collection<T extends TigrisCollectionType> extends ReadOnlyCollecti
 					if (error !== undefined && error !== null) {
 						reject(error);
 					} else {
-						let docIndex = 0;
-						const clonedDocs: T[] = Object.assign([], docs);
-						for (const value of response.getKeysList_asU8()) {
-							const keyValueJsonObj: object = Utility.jsonStringToObj(
-								Utility.uint8ArrayToString(value),
-								this.config
-							);
-							for (const fieldName of Object.keys(keyValueJsonObj)) {
-								Reflect.set(clonedDocs[docIndex], fieldName, keyValueJsonObj[fieldName]);
-								docIndex++;
-							}
-						}
+						const clonedDocs = this.setDocsMetadata(docs, response.getKeysList_asU8());
 						resolve(clonedDocs);
 					}
 				}
@@ -366,7 +332,7 @@ export class Collection<T extends TigrisCollectionType> extends ReadOnlyCollecti
 				reject(new Error("No filter specified"));
 			}
 			const deleteRequest = new ProtoDeleteRequest()
-				.setDb(this.db)
+				.setProject(this.db)
 				.setCollection(this.collectionName)
 				.setFilter(Utility.stringToUint8Array(Utility.filterToString(filter)));
 
@@ -425,7 +391,7 @@ export class Collection<T extends TigrisCollectionType> extends ReadOnlyCollecti
 	): Promise<UpdateResponse> {
 		return new Promise<UpdateResponse>((resolve, reject) => {
 			const updateRequest = new ProtoUpdateRequest()
-				.setDb(this.db)
+				.setProject(this.db)
 				.setCollection(this.collectionName)
 				.setFilter(Utility.stringToUint8Array(Utility.filterToString(filter)))
 				.setFields(Utility.stringToUint8Array(Utility.updateFieldsString(fields)));

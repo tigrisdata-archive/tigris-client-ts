@@ -1,4 +1,4 @@
-import {CollectionType, TigrisCollectionType, TigrisDataTypes, TigrisSchema,} from "../types";
+import { TigrisCollectionType, TigrisDataTypes, TigrisSchema,} from "../types";
 import {Utility} from "../utility";
 
 describe("schema tests", () => {
@@ -34,7 +34,7 @@ describe("schema tests", () => {
 				type: TigrisDataTypes.BYTE_STRING
 			}
 		};
-		expect(Utility._toJSONSchema("basicCollection", CollectionType.DOCUMENTS, schema))
+		expect(Utility._toJSONSchema("basicCollection", schema))
 			.toBe(Utility._readTestDataFile("basicCollection.json"));
 	});
 
@@ -54,7 +54,7 @@ describe("schema tests", () => {
 				type: TigrisDataTypes.OBJECT
 			}
 		};
-		expect(Utility._toJSONSchema("basicCollectionWithObjectType", CollectionType.DOCUMENTS, schema))
+		expect(Utility._toJSONSchema("basicCollectionWithObjectType",  schema))
 			.toBe(Utility._readTestDataFile("basicCollectionWithObjectType.json"));
 	});
 
@@ -92,7 +92,7 @@ describe("schema tests", () => {
 				type: TigrisDataTypes.BYTE_STRING
 			}
 		};
-		expect(Utility._toJSONSchema("multiplePKeys", CollectionType.DOCUMENTS, schema))
+		expect(Utility._toJSONSchema("multiplePKeys",  schema))
 			.toBe(Utility._readTestDataFile("multiplePKeys.json"));
 	});
 
@@ -119,7 +119,7 @@ describe("schema tests", () => {
 				type: addressSchema
 			}
 		};
-		expect(Utility._toJSONSchema("nestedCollection", CollectionType.DOCUMENTS, schema))
+		expect(Utility._toJSONSchema("nestedCollection",  schema))
 			.toBe(Utility._readTestDataFile("nestedCollection.json"));
 	});
 
@@ -138,7 +138,7 @@ describe("schema tests", () => {
 				}
 			}
 		};
-		expect(Utility._toJSONSchema("collectionWithPrimitiveArrays", CollectionType.DOCUMENTS, schema))
+		expect(Utility._toJSONSchema("collectionWithPrimitiveArrays",  schema))
 			.toBe(Utility._readTestDataFile("collectionWithPrimitiveArrays.json"));
 	});
 
@@ -168,7 +168,7 @@ describe("schema tests", () => {
 				}
 			}
 		};
-		expect(Utility._toJSONSchema("collectionWithObjectArrays", CollectionType.DOCUMENTS, schema))
+		expect(Utility._toJSONSchema("collectionWithObjectArrays",  schema))
 			.toBe(Utility._readTestDataFile("collectionWithObjectArrays.json"));
 	});
 
@@ -235,7 +235,7 @@ describe("schema tests", () => {
 				}
 			}
 		};
-		expect(Utility._toJSONSchema("multiLevelPrimitiveArray", CollectionType.DOCUMENTS, schema))
+		expect(Utility._toJSONSchema("multiLevelPrimitiveArray",  schema))
 			.toBe(Utility._readTestDataFile("multiLevelPrimitiveArray.json"));
 	});
 
@@ -313,7 +313,7 @@ describe("schema tests", () => {
 				}
 			}
 		};
-		expect(Utility._toJSONSchema("multiLevelObjectArray", CollectionType.DOCUMENTS, schema))
+		expect(Utility._toJSONSchema("multiLevelObjectArray",  schema))
 			.toBe(Utility._readTestDataFile("multiLevelObjectArray.json"));
 	});
 });

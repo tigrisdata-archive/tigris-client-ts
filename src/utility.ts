@@ -3,7 +3,6 @@ import json_bigint from "json-bigint";
 import { Session } from "./session";
 
 import {
-	CollectionType,
 	DeleteRequestOptions,
 	LogicalFilter,
 	LogicalOperator,
@@ -16,7 +15,6 @@ import {
 	TigrisCollectionType,
 	TigrisDataTypes,
 	TigrisSchema,
-	TigrisTopicSchema,
 	UpdateFields,
 	UpdateFieldsOperator,
 	UpdateRequestOptions,
@@ -239,11 +237,7 @@ export const Utility = {
 		return toReturn;
 	},
 
-	_toJSONSchema<T>(
-		collectionName: string,
-		collectionType: CollectionType,
-		schema: TigrisSchema<T> | TigrisTopicSchema<T>
-	): string {
+	_toJSONSchema<T>(collectionName: string, schema: TigrisSchema<T>): string {
 		const root = {};
 		const pkeyMap = {};
 		const keyMap = {};
@@ -251,12 +245,7 @@ export const Utility = {
 		root["additionalProperties"] = false;
 		root["type"] = "object";
 		root["properties"] = this._getSchemaProperties(schema, pkeyMap, keyMap);
-		root["collection_type"] = collectionType;
-		if (collectionType === "documents") {
-			Utility._postProcessDocumentSchema(root, pkeyMap);
-		} else if (collectionType === "messages") {
-			Utility._postProcessMessageSchema(root, keyMap);
-		}
+		Utility._postProcessDocumentSchema(root, pkeyMap);
 		return Utility.objToJsonString(root);
 	},
 	/*
@@ -295,11 +284,7 @@ export const Utility = {
 		return result;
 	},
 
-	_getSchemaProperties<T>(
-		schema: TigrisSchema<T> | TigrisTopicSchema<T>,
-		pkeyMap: object,
-		keyMap: object
-	): object {
+	_getSchemaProperties<T>(schema: TigrisSchema<T>, pkeyMap: object, keyMap: object): object {
 		const properties = {};
 
 		for (const property of Object.keys(schema)) {
@@ -520,7 +505,7 @@ export const Utility = {
 		options?: SearchRequestOptions
 	): ProtoSearchRequest {
 		const searchRequest = new ProtoSearchRequest()
-			.setDb(dbName)
+			.setProject(dbName)
 			.setCollection(collectionName)
 			.setQ(request.q ?? MATCH_ALL_QUERY_STRING);
 

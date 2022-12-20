@@ -3,25 +3,12 @@ import { ObservabilityClient } from "./proto/server/v1/observability_grpc_pb";
 import { HealthAPIClient } from "./proto/server/v1/health_grpc_pb";
 import * as grpc from "@grpc/grpc-js";
 import { ChannelCredentials, Metadata, status } from "@grpc/grpc-js";
-import {
-	CreateDatabaseRequest as ProtoCreateDatabaseRequest,
-	DatabaseOptions as ProtoDatabaseOptions,
-	DropDatabaseRequest as ProtoDropDatabaseRequest,
-	ListDatabasesRequest as ProtoListDatabasesRequest,
-} from "./proto/server/v1/api_pb";
+import { CreateProjectRequest as ProtoCreateProjectRequest } from "./proto/server/v1/api_pb";
 import { GetInfoRequest as ProtoGetInfoRequest } from "./proto/server/v1/observability_pb";
 import { HealthCheckInput as ProtoHealthCheckInput } from "./proto/server/v1/health_pb";
 
-import path from "node:path";
-import appRootPath from "app-root-path";
 import * as dotenv from "dotenv";
-import {
-	DatabaseInfo,
-	DatabaseMetadata,
-	DatabaseOptions,
-	DropDatabaseResponse,
-	ServerMetadata,
-} from "./types";
+import { DatabaseOptions, ServerMetadata, TigrisCollectionType } from "./types";
 
 import {
 	GetAccessTokenRequest as ProtoGetAccessTokenRequest,
@@ -31,14 +18,17 @@ import {
 import { DB } from "./db";
 import { AuthClient } from "./proto/server/v1/auth_grpc_pb";
 import { Utility } from "./utility";
-import { loadTigrisManifest, TigrisManifest } from "./utils/manifest-loader";
 import { Log } from "./utils/logger";
+import { DecoratorMetaStorage } from "./decorators/metadata/decorator-meta-storage";
+import { getDecoratorMetaStorage } from "./globals";
+import { CollectionMetadata } from "./decorators/metadata/collection-metadata";
 
 const AuthorizationHeaderName = "authorization";
 const AuthorizationBearer = "Bearer ";
 
 export interface TigrisClientConfig {
 	serverUrl?: string;
+	projectName?: string;
 	/**
 	 * Use clientId/clientSecret to authenticate production services.
 	 * Obtains at console.preview.tigrisdata.cloud in `Applications Keys` section
@@ -138,6 +128,7 @@ export class Tigris {
 	private readonly observabilityClient: ObservabilityClient;
 	private readonly healthAPIClient: HealthAPIClient;
 	private readonly _config: TigrisClientConfig;
+	private readonly _metadataStorage: DecoratorMetaStorage;
 	private readonly _ping: () => void;
 	private readonly pingId: NodeJS.Timeout | number | string | undefined;
 
@@ -152,13 +143,20 @@ export class Tigris {
 		}
 		if (config.serverUrl === undefined) {
 			config.serverUrl = DEFAULT_URL;
-
-			if ("TIGRIS_URI" in process.env) {
+			if (process.env.TIGRIS_URI?.trim().length > 0) {
 				config.serverUrl = process.env.TIGRIS_URI;
 			}
-			if ("TIGRIS_URL" in process.env) {
+			if (process.env.TIGRIS_URL?.trim().length > 0) {
 				config.serverUrl = process.env.TIGRIS_URL;
 			}
+		}
+
+		if (config.projectName === undefined) {
+			if (!("TIGRIS_PROJECT" in process.env)) {
+				throw new Error("Unable to resolve TIGRIS_PROJECT environment variable");
+			}
+
+			config.projectName = process.env.TIGRIS_PROJECT;
 		}
 
 		if (config.serverUrl.startsWith("https://")) {
@@ -242,67 +240,12 @@ export class Tigris {
 				});
 			}
 		}
+		this._metadataStorage = getDecoratorMetaStorage();
 		Log.info(`Using Tigris at: ${config.serverUrl}`);
 	}
 
-	/**
-	 * Lists the databases
-	 * @return {Promise<Array<DatabaseInfo>>} a promise of an array of
-	 * DatabaseInfo
-	 */
-	public listDatabases(): Promise<Array<DatabaseInfo>> {
-		return new Promise<Array<DatabaseInfo>>((resolve, reject) => {
-			this.grpcClient.listDatabases(new ProtoListDatabasesRequest(), (error, response) => {
-				if (error) {
-					reject(error);
-				} else {
-					const result = response
-						.getDatabasesList()
-						.map(
-							(protoDatabaseInfo) =>
-								new DatabaseInfo(protoDatabaseInfo.getDb(), new DatabaseMetadata())
-						);
-					resolve(result);
-				}
-			});
-		});
-	}
-
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	public createDatabaseIfNotExists(db: string, _options?: DatabaseOptions): Promise<DB> {
-		return new Promise<DB>((resolve, reject) => {
-			this.grpcClient.createDatabase(
-				new ProtoCreateDatabaseRequest().setDb(db).setOptions(new ProtoDatabaseOptions()),
-				// eslint-disable-next-line @typescript-eslint/no-unused-vars
-				(error, _response) => {
-					if (error && error.code != status.ALREADY_EXISTS) {
-						reject(error);
-					} else {
-						resolve(new DB(db, this.grpcClient, this._config));
-					}
-				}
-			);
-		});
-	}
-
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	public dropDatabase(db: string, _options?: DatabaseOptions): Promise<DropDatabaseResponse> {
-		return new Promise<DropDatabaseResponse>((resolve, reject) => {
-			this.grpcClient.dropDatabase(
-				new ProtoDropDatabaseRequest().setDb(db).setOptions(new ProtoDatabaseOptions()),
-				(error, response) => {
-					if (error) {
-						reject(error);
-					} else {
-						resolve(new DropDatabaseResponse(response.getStatus(), response.getMessage()));
-					}
-				}
-			);
-		});
-	}
-
-	public getDatabase(db: string): DB {
-		return new DB(db, this.grpcClient, this._config);
+	public getDatabase(): DB {
+		return new DB(this._config.projectName, this.grpcClient, this._config);
 	}
 
 	public getServerMetadata(): Promise<ServerMetadata> {
@@ -318,34 +261,85 @@ export class Tigris {
 	}
 
 	/**
-	 * Automatically provision Databases and Collections based on the directories
-	 * and {@link TigrisSchema} definitions in file system
-	 *
-	 * @param schemaPath - Directory location in file system. Recommended to
-	 * provide an absolute path, else loader will try to access application's root
-	 * path which may not be accurate.
+	 * Automatically create Project and create or update Collections.
+	 * Collection classes decorated with {@link TigrisCollection} decorator will be
+	 * created if not already existing. If Collection already exists, schema changes
+	 * will be applied, if any.
 	 */
-	public async registerSchemas(schemaPath: string) {
-		if (!path.isAbsolute(schemaPath)) {
-			schemaPath = path.join(appRootPath.toString(), schemaPath);
-		}
-		const manifest: TigrisManifest = loadTigrisManifest(schemaPath);
+	public async registerSchemas();
+	/**
+	 * Automatically create Project and create or update Collections.
+	 * Collection classes decorated with {@link TigrisCollection} decorator will be
+	 * created if not already existing. If Collection already exists, schema changes
+	 * will be applied, if any.
+	 *
+	 * @param collectionNames - Array of collection names as strings to be created
+	 * or updated
+	 *
+	 * @example
+	 *
+	 * ```
+	 * @TigrisCollection("todoItems")
+	 * class TodoItem implements TigrisCollectionType {
+	 *   @PrimaryKey(TigrisDataTypes.INT32, { order: 1 })
+	 *   id: number;
+	 *
+	 *   @Field()
+	 *   text: string;
+	 * }
+	 *
+	 * await db.registerSchemas(["todoItems"]);
+	 * ```
+	 */
+	public async registerSchemas(collectionNames: Array<string>);
+	/**
+	 * Automatically create Project and create or update Collections.
+	 * Collection classes decorated with {@link TigrisCollection} decorator will be
+	 * created if not already existing. If Collection already exists, schema changes
+	 * will be applied, if any.
+	 *
+	 * @param collections - Array of Collection classes
+	 *
+	 * @example
+	 * ```
+	 * @TigrisCollection("todoItems")
+	 * class TodoItem implements TigrisCollectionType {
+	 *   @PrimaryKey(TigrisDataTypes.INT32, { order: 1 })
+	 *   id: number;
+	 *
+	 *   @Field()
+	 *   text: string;
+	 * }
+	 *
+	 * await db.registerSchemas([TodoItem]);
+	 * ```
+	 */
+	public async registerSchemas(collections: Array<TigrisCollectionType>);
+	public async registerSchemas(filter?: Array<TigrisCollectionType | string>) {
+		const projectName = this._config.projectName;
+		const tigrisDb = await this.createDatabaseIfNotExists(projectName);
+		const needUpdate: Array<CollectionMetadata> = new Array<CollectionMetadata>();
 
-		for (const dbManifest of manifest) {
-			// create DB
-			const tigrisDb = await this.createDatabaseIfNotExists(dbManifest.dbName);
-			Log.event(`Created database: ${dbManifest.dbName}`);
-
-			for (const coll of dbManifest.collections) {
-				// Create a collection
-				const collection = await tigrisDb.createOrUpdateCollection(
-					coll.collectionName,
-					coll.schema
-				);
-				Log.event(
-					`Created collection: ${collection.collectionName} from schema: ${coll.schemaName} in db: ${dbManifest.dbName}`
-				);
+		if (!filter) {
+			for (const coll of this._metadataStorage.getAllCollections()) {
+				needUpdate.push(coll);
 			}
+		} else {
+			for (const name of filter) {
+				const found =
+					typeof name === "string"
+						? this._metadataStorage.getCollectionByName(name)
+						: this._metadataStorage.getCollectionByTarget(name as Function);
+				if (!found) {
+					Log.error(`No such collection defined: '${name.toString()}'`);
+				} else {
+					needUpdate.push(found);
+				}
+			}
+		}
+
+		for (const coll of needUpdate) {
+			await tigrisDb.createOrUpdateCollection(coll.target.prototype.constructor);
 		}
 	}
 
@@ -353,5 +347,22 @@ export class Tigris {
 		if (this.pingId !== undefined) {
 			clearInterval(this.pingId);
 		}
+	}
+
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	private createDatabaseIfNotExists(db: string, _options?: DatabaseOptions): Promise<DB> {
+		return new Promise<DB>((resolve, reject) => {
+			this.grpcClient.createProject(
+				new ProtoCreateProjectRequest().setProject(db),
+				// eslint-disable-next-line @typescript-eslint/no-unused-vars
+				(error, _response) => {
+					if (error && error.code != status.ALREADY_EXISTS) {
+						reject(error);
+					} else {
+						resolve(new DB(db, this.grpcClient, this._config));
+					}
+				}
+			);
+		});
 	}
 }

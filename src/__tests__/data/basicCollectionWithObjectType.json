@@ -15,7 +15,6 @@
     	"type": "object"
     }
   },
-  "collection_type": "documents",
   "primary_key": [
     "id"
   ]

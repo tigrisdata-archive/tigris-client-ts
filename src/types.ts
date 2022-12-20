@@ -81,22 +81,12 @@ export class DropCollectionResponse {
 }
 
 export class DatabaseDescription {
-	private readonly _db: string;
 	private readonly _metadata: DatabaseMetadata;
 	private readonly _collectionsDescription: Array<CollectionDescription>;
 
-	constructor(
-		db: string,
-		metadata: DatabaseMetadata,
-		collectionsDescription: Array<CollectionDescription>
-	) {
-		this._db = db;
+	constructor(metadata: DatabaseMetadata, collectionsDescription: Array<CollectionDescription>) {
 		this._metadata = metadata;
 		this._collectionsDescription = collectionsDescription;
-	}
-
-	get db(): string {
-		return this._db;
 	}
 
 	get metadata(): DatabaseMetadata {
@@ -301,42 +291,6 @@ export class ReadRequestOptions {
 
 export class TransactionOptions {}
 
-export class StreamEvent<T> {
-	private readonly _txId: string;
-	private readonly _collection: string;
-	private readonly _op: string;
-	private readonly _data: T;
-	private readonly _last: boolean;
-
-	constructor(txId: string, collection: string, op: string, data: T, last: boolean) {
-		this._txId = txId;
-		this._collection = collection;
-		this._op = op;
-		this._data = data;
-		this._last = last;
-	}
-
-	get txId(): string {
-		return this._txId;
-	}
-
-	get collection(): string {
-		return this._collection;
-	}
-
-	get op(): string {
-		return this._op;
-	}
-
-	get data(): T {
-		return this._data;
-	}
-
-	get last(): boolean {
-		return this._last;
-	}
-}
-
 export class CommitTransactionResponse extends TigrisResponse {
 	constructor(status: string) {
 		super(status);
@@ -355,38 +309,6 @@ export class TransactionResponse extends TigrisResponse {
 	}
 }
 
-export class PublishOptions {
-	private _partition: number;
-
-	constructor(partition: number) {
-		this._partition = partition;
-	}
-
-	get partition(): number {
-		return this._partition;
-	}
-
-	set partition(value: number) {
-		this._partition = value;
-	}
-}
-
-export class SubscribeOptions {
-	private _partitions: Array<number>;
-
-	constructor(partitions: Array<number>) {
-		this._partitions = partitions;
-	}
-
-	get partitions(): Array<number> {
-		return this._partitions;
-	}
-
-	set partitions(value: Array<number>) {
-		this._partitions = value;
-	}
-}
-
 export class ServerMetadata {
 	private readonly _serverVersion: string;
 
@@ -402,15 +324,6 @@ export class ServerMetadata {
 // Marker interface
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface TigrisCollectionType {}
-
-// Marker interface
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface TigrisTopicType extends TigrisCollectionType {}
-
-export enum CollectionType {
-	DOCUMENTS = "documents",
-	MESSAGES = "messages",
-}
 
 export enum LogicalOperator {
 	AND = "$and",
@@ -474,18 +387,14 @@ export enum TigrisDataTypes {
 	OBJECT = "object",
 }
 
+export interface TigrisFieldOptions {
+	maxLength?: number;
+}
+
 export type TigrisSchema<T extends TigrisCollectionType> = {
 	[K in keyof T]: {
 		type: TigrisDataTypes | TigrisSchema<unknown>;
-		primary_key?: TigrisPrimaryKey;
-		items?: TigrisArrayItem;
-	};
-};
-
-export type TigrisTopicSchema<T extends TigrisTopicType> = {
-	[K in keyof T]: {
-		type: TigrisDataTypes | TigrisTopicSchema<unknown>;
-		key?: TigrisPartitionKey;
+		primary_key?: PrimaryKeyOptions;
 		items?: TigrisArrayItem;
 	};
 };
@@ -495,7 +404,7 @@ export type TigrisArrayItem = {
 	items?: TigrisArrayItem | TigrisDataTypes;
 };
 
-export type TigrisPrimaryKey = {
+export type PrimaryKeyOptions = {
 	order: number;
 	autoGenerate?: boolean;
 };
