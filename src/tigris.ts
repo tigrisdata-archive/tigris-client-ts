@@ -2,13 +2,12 @@ import { TigrisClient } from "./proto/server/v1/api_grpc_pb";
 import { ObservabilityClient } from "./proto/server/v1/observability_grpc_pb";
 import { HealthAPIClient } from "./proto/server/v1/health_grpc_pb";
 import * as grpc from "@grpc/grpc-js";
-import { ChannelCredentials, Metadata, status } from "@grpc/grpc-js";
-import { CreateProjectRequest as ProtoCreateProjectRequest } from "./proto/server/v1/api_pb";
+import { ChannelCredentials, Metadata } from "@grpc/grpc-js";
 import { GetInfoRequest as ProtoGetInfoRequest } from "./proto/server/v1/observability_pb";
 import { HealthCheckInput as ProtoHealthCheckInput } from "./proto/server/v1/health_pb";
 
 import * as dotenv from "dotenv";
-import { DatabaseOptions, ServerMetadata, TigrisCollectionType } from "./types";
+import { ServerMetadata, TigrisCollectionType } from "./types";
 
 import {
 	GetAccessTokenRequest as ProtoGetAccessTokenRequest,
@@ -282,8 +281,7 @@ export class Tigris {
 	 * ```
 	 */
 	public async registerSchemas(collections: Array<TigrisCollectionType>) {
-		const projectName = this._config.projectName;
-		const tigrisDb = await this.createDatabaseIfNotExists(projectName);
+		const tigrisDb = await this.getDatabase();
 
 		for (const coll of collections) {
 			const found = this._metadataStorage.getCollectionByTarget(coll as Function);
@@ -299,22 +297,5 @@ export class Tigris {
 		if (this.pingId !== undefined) {
 			clearInterval(this.pingId);
 		}
-	}
-
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	private createDatabaseIfNotExists(db: string, _options?: DatabaseOptions): Promise<DB> {
-		return new Promise<DB>((resolve, reject) => {
-			this.grpcClient.createProject(
-				new ProtoCreateProjectRequest().setProject(db),
-				// eslint-disable-next-line @typescript-eslint/no-unused-vars
-				(error, _response) => {
-					if (error && error.code != status.ALREADY_EXISTS) {
-						reject(error);
-					} else {
-						resolve(new DB(db, this.grpcClient, this._config));
-					}
-				}
-			);
-		});
 	}
 }
