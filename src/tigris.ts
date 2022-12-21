@@ -2,13 +2,12 @@ import { TigrisClient } from "./proto/server/v1/api_grpc_pb";
 import { ObservabilityClient } from "./proto/server/v1/observability_grpc_pb";
 import { HealthAPIClient } from "./proto/server/v1/health_grpc_pb";
 import * as grpc from "@grpc/grpc-js";
-import { ChannelCredentials, Metadata, status } from "@grpc/grpc-js";
-import { CreateProjectRequest as ProtoCreateProjectRequest } from "./proto/server/v1/api_pb";
+import { ChannelCredentials, Metadata } from "@grpc/grpc-js";
 import { GetInfoRequest as ProtoGetInfoRequest } from "./proto/server/v1/observability_pb";
 import { HealthCheckInput as ProtoHealthCheckInput } from "./proto/server/v1/health_pb";
 
 import * as dotenv from "dotenv";
-import { DatabaseOptions, ServerMetadata, TigrisCollectionType } from "./types";
+import { ServerMetadata, TigrisCollectionType } from "./types";
 
 import {
 	GetAccessTokenRequest as ProtoGetAccessTokenRequest,
@@ -21,7 +20,6 @@ import { Utility } from "./utility";
 import { Log } from "./utils/logger";
 import { DecoratorMetaStorage } from "./decorators/metadata/decorator-meta-storage";
 import { getDecoratorMetaStorage } from "./globals";
-import { CollectionMetadata } from "./decorators/metadata/collection-metadata";
 
 const AuthorizationHeaderName = "authorization";
 const AuthorizationBearer = "Bearer ";
@@ -265,38 +263,6 @@ export class Tigris {
 	 * Collection classes decorated with {@link TigrisCollection} decorator will be
 	 * created if not already existing. If Collection already exists, schema changes
 	 * will be applied, if any.
-	 */
-	public async registerSchemas();
-	/**
-	 * Automatically create Project and create or update Collections.
-	 * Collection classes decorated with {@link TigrisCollection} decorator will be
-	 * created if not already existing. If Collection already exists, schema changes
-	 * will be applied, if any.
-	 *
-	 * @param collectionNames - Array of collection names as strings to be created
-	 * or updated
-	 *
-	 * @example
-	 *
-	 * ```
-	 * @TigrisCollection("todoItems")
-	 * class TodoItem implements TigrisCollectionType {
-	 *   @PrimaryKey(TigrisDataTypes.INT32, { order: 1 })
-	 *   id: number;
-	 *
-	 *   @Field()
-	 *   text: string;
-	 * }
-	 *
-	 * await db.registerSchemas(["todoItems"]);
-	 * ```
-	 */
-	public async registerSchemas(collectionNames: Array<string>);
-	/**
-	 * Automatically create Project and create or update Collections.
-	 * Collection classes decorated with {@link TigrisCollection} decorator will be
-	 * created if not already existing. If Collection already exists, schema changes
-	 * will be applied, if any.
 	 *
 	 * @param collections - Array of Collection classes
 	 *
@@ -314,32 +280,16 @@ export class Tigris {
 	 * await db.registerSchemas([TodoItem]);
 	 * ```
 	 */
-	public async registerSchemas(collections: Array<TigrisCollectionType>);
-	public async registerSchemas(filter?: Array<TigrisCollectionType | string>) {
-		const projectName = this._config.projectName;
-		const tigrisDb = await this.createDatabaseIfNotExists(projectName);
-		const needUpdate: Array<CollectionMetadata> = new Array<CollectionMetadata>();
+	public async registerSchemas(collections: Array<TigrisCollectionType>) {
+		const tigrisDb = await this.getDatabase();
 
-		if (!filter) {
-			for (const coll of this._metadataStorage.getAllCollections()) {
-				needUpdate.push(coll);
+		for (const coll of collections) {
+			const found = this._metadataStorage.getCollectionByTarget(coll as Function);
+			if (!found) {
+				Log.error(`No such collection defined: '${coll.toString()}'`);
+			} else {
+				await tigrisDb.createOrUpdateCollection(found.target.prototype.constructor);
 			}
-		} else {
-			for (const name of filter) {
-				const found =
-					typeof name === "string"
-						? this._metadataStorage.getCollectionByName(name)
-						: this._metadataStorage.getCollectionByTarget(name as Function);
-				if (!found) {
-					Log.error(`No such collection defined: '${name.toString()}'`);
-				} else {
-					needUpdate.push(found);
-				}
-			}
-		}
-
-		for (const coll of needUpdate) {
-			await tigrisDb.createOrUpdateCollection(coll.target.prototype.constructor);
 		}
 	}
 
@@ -347,22 +297,5 @@ export class Tigris {
 		if (this.pingId !== undefined) {
 			clearInterval(this.pingId);
 		}
-	}
-
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	private createDatabaseIfNotExists(db: string, _options?: DatabaseOptions): Promise<DB> {
-		return new Promise<DB>((resolve, reject) => {
-			this.grpcClient.createProject(
-				new ProtoCreateProjectRequest().setProject(db),
-				// eslint-disable-next-line @typescript-eslint/no-unused-vars
-				(error, _response) => {
-					if (error && error.code != status.ALREADY_EXISTS) {
-						reject(error);
-					} else {
-						resolve(new DB(db, this.grpcClient, this._config));
-					}
-				}
-			);
-		});
 	}
 }
