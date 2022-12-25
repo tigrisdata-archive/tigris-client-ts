@@ -5,8 +5,12 @@ import {
 	SelectorFilter,
 	SelectorFilterOperator,
 	TigrisCollectionType,
+	TigrisDataTypes
 } from "../types";
-import {Utility} from "../utility";
+import { Utility } from "../utility";
+import { TigrisCollection } from "../decorators/tigris-collection";
+import { PrimaryKey } from "../decorators/tigris-primary-key";
+import { Field } from "../decorators/tigris-field";
 
 describe("filters tests", () => {
 	it("simpleSelectorFilterTest", () => {
@@ -30,6 +34,26 @@ describe("filters tests", () => {
 		expect(Utility.filterToString(filter3)).toBe("{\"isActive\":true}");
 
 	});
+
+	it ("serializes Date object to string", () => {
+		const dateFilter: SelectorFilter<IUser1> = {
+			op: SelectorFilterOperator.GT,
+			fields: {
+				createdAt: "1980-01-01T18:29:28.000Z"
+			}
+		}
+		expect(Utility.filterToString(dateFilter)).toBe("{\"createdAt\":{\"$gt\":\"1980-01-01T18:29:28.000Z\"}}");
+	})
+
+	it ("persists date string as it is", () => {
+		const dateFilter: SelectorFilter<IUser1> = {
+			op: SelectorFilterOperator.LT,
+			fields: {
+				updatedAt: new Date("1980-01-01")
+			}
+		}
+		expect(Utility.filterToString(dateFilter)).toBe("{\"updatedAt\":{\"$lt\":\"1980-01-01T00:00:00.000Z\"}}");
+	})
 
 	it("simplerSelectorWithinLogicalFilterTest", () => {
 		const filter1: LogicalFilter<IUser> = {
@@ -305,11 +329,20 @@ export interface IUser extends TigrisCollectionType {
 	balance: number;
 }
 
-export interface IUser1 extends TigrisCollectionType {
-	id: BigInt;
+@TigrisCollection("user1")
+export class IUser1 implements TigrisCollectionType {
+	@PrimaryKey({order: 1})
+	id: bigint;
+	@Field()
 	name: string;
+	@Field()
 	balance: number;
+	@Field()
 	isActive: boolean;
+	@Field(TigrisDataTypes.DATE_TIME)
+	createdAt: string;
+	@Field()
+	updatedAt: Date
 }
 
 export interface IUser2 extends TigrisCollectionType {

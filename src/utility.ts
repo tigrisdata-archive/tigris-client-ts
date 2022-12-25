@@ -223,12 +223,16 @@ export const Utility = {
 			if (!ob.hasOwnProperty(key)) continue;
 
 			if (typeof ob[key] == "object" && ob[key] !== null) {
-				const flatObject = Utility._flattenObj(ob[key]);
-				for (const x in flatObject) {
-					// eslint-disable-next-line no-prototype-builtins
-					if (!flatObject.hasOwnProperty(x)) continue;
-
-					toReturn[key + "." + x] = flatObject[x];
+				const value = ob[key];
+				if (value.constructor.name === "Date") {
+					toReturn[key] = (value as Date).toJSON();
+				} else {
+					const flatObject = Utility._flattenObj(value);
+					for (const x in flatObject) {
+						// eslint-disable-next-line no-prototype-builtins
+						if (!flatObject.hasOwnProperty(x)) continue;
+						toReturn[key + "." + x] = flatObject[x];
+					}
 				}
 			} else {
 				toReturn[key] = ob[key];

@@ -30,8 +30,8 @@ export class User implements TigrisCollectionType {
 	@PrimaryKey({order: 1})
 	id: number;
 
-	@Field(TigrisDataTypes.DATE_TIME)
-	created: string;
+	@Field()
+	created: Date;
 
 	@Field({elements: Identity})
 	identities: Array<Identity>;
