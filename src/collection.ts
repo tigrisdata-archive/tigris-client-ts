@@ -28,6 +28,7 @@ import { Utility } from "./utility";
 import { SearchRequest, SearchRequestOptions, SearchResult } from "./search/types";
 import { TigrisClientConfig } from "./tigris";
 import { Cursor, ReadCursorInitializer } from "./consumables/cursor";
+import { SearchIterator, SearchIteratorInitializer } from "./consumables/search-iterator";
 
 interface ICollection {
 	readonly collectionName: string;
@@ -131,28 +132,40 @@ export abstract class ReadOnlyCollection<T extends TigrisCollectionType> impleme
 	 * results using filters with advanced features like faceting and ordering.
 	 *
 	 * @param request - Search query to execute
-	 * @param options - Optional settings for search
+	 * @returns {@link SearchIterator} - To iterate over pages of {@link SearchResult}
+	 *
+	 * @example
+	 * ```
+	 * const iterator = db.getCollection<Book>(Book).search(request);
+	 *
+	 * for await (const resultPage of iterator) {
+	 *   console.log(resultPage.hits);
+	 *   console.log(resultPage.facets);
+	 * }
+	 * ```
 	 */
-	search(request: SearchRequest<T>, options?: SearchRequestOptions): Promise<SearchResult<T>> {
-		return new Promise<SearchResult<T>>((resolve, reject) => {
-			const searchRequest = Utility.createProtoSearchRequest(
-				this.db,
-				this.collectionName,
-				request,
-				// note: explicit page number is required to signal manual pagination
-				Utility.createSearchRequestOptions(options)
-			);
-			const stream: grpc.ClientReadableStream<ProtoSearchResponse> =
-				this.grpcClient.search(searchRequest);
+	search(request: SearchRequest<T>): SearchIterator<T>;
 
-			stream.on("data", (searchResponse: ProtoSearchResponse) => {
-				const searchResult: SearchResult<T> = SearchResult.from(searchResponse, this.config);
-				resolve(searchResult);
-			});
-			stream.on("error", (error) => reject(error));
-			stream.on("end", () => resolve(SearchResult.empty));
-		});
-	}
+	/**
+	 * Search for documents in a collection. Easily perform sophisticated queries and refine
+	 * results using filters with advanced features like faceting and ordering.
+	 *
+	 * @param request - Search query to execute
+	 * @param page - Page number to retrieve. Page number `1` fetches the first page of search results.
+	 * @returns - Single page of results wrapped in a Promise
+	 *
+	 * @example To retrieve page number 5 of matched documents
+	 * ```
+	 * const resultPromise = db.getCollection<Book>(Book).search(request, 5);
+	 *
+	 * resultPromise
+	 * 		.then((res: SearchResult<Book>) => console.log(res.hits))
+	 * 		.catch( // catch the error)
+	 * 		.finally( // finally do something);
+	 *
+	 * ```
+	 */
+	search(request: SearchRequest<T>, page: number): Promise<SearchResult<T>>;
 
 	/**
 	 * Search for documents in a collection. Easily perform sophisticated queries and refine
@@ -160,25 +173,85 @@ export abstract class ReadOnlyCollection<T extends TigrisCollectionType> impleme
 	 *
 	 * @param request - Search query to execute
 	 * @param options - Optional settings for search
+	 * @returns {@link SearchIterator} - To iterate over pages of {@link SearchResult}
+	 *
+	 * @example
+	 * ```
+	 * const iterator = db.getCollection<Book>(Book).search(request, options);
+	 *
+	 * for await (const resultPage of iterator) {
+	 *   console.log(resultPage.hits);
+	 *   console.log(resultPage.facets);
+	 * }
+	 * ```
 	 */
-	async *searchStream(
+	search(request: SearchRequest<T>, options: SearchRequestOptions): SearchIterator<T>;
+
+	/**
+	 * Search for documents in a collection. Easily perform sophisticated queries and refine
+	 * results using filters with advanced features like faceting and ordering.
+	 *
+	 * @param request - Search query to execute
+	 * @param options - Optional settings for search
+	 * @param page - Page number to retrieve. Page number `1` fetches the first page of search results.
+	 * @returns - Single page of results wrapped in a Promise
+	 *
+	 * @example To retrieve page number 5 of matched documents
+	 * ```
+	 * const resultPromise = db.getCollection<Book>(Book).search(request, options, 5);
+	 *
+	 * resultPromise
+	 * 		.then((res: SearchResult<Book>) => console.log(res.hits))
+	 * 		.catch( // catch the error)
+	 * 		.finally( // finally do something);
+	 *
+	 * ```
+	 */
+	search(
 		request: SearchRequest<T>,
-		options?: SearchRequestOptions
-	): AsyncIterableIterator<SearchResult<T>> {
+		options: SearchRequestOptions,
+		page: number
+	): Promise<SearchResult<T>>;
+
+	search(
+		request: SearchRequest<T>,
+		pageOrOptions?: SearchRequestOptions | number,
+		page?: number
+	): SearchIterator<T> | Promise<SearchResult<T>> {
+		let options: SearchRequestOptions;
+		if (typeof pageOrOptions !== "undefined") {
+			if (typeof pageOrOptions === "number") {
+				page = pageOrOptions as number;
+			} else {
+				options = pageOrOptions as SearchRequestOptions;
+			}
+		}
+
 		const searchRequest = Utility.createProtoSearchRequest(
 			this.db,
 			this.collectionName,
 			request,
-			options
+			options,
+			page
 		);
-		const stream: grpc.ClientReadableStream<ProtoSearchResponse> =
-			this.grpcClient.search(searchRequest);
 
-		for await (const searchResponse of stream) {
-			const searchResult: SearchResult<T> = SearchResult.from(searchResponse, this.config);
-			yield searchResult;
+		// return a iterator if no explicit page number is specified
+		if (typeof page === "undefined") {
+			const initializer = new SearchIteratorInitializer(this.grpcClient, searchRequest);
+			return new SearchIterator<T>(initializer, this.config);
+		} else {
+			return new Promise<SearchResult<T>>((resolve, reject) => {
+				const stream: grpc.ClientReadableStream<ProtoSearchResponse> =
+					this.grpcClient.search(searchRequest);
+
+				stream.on("data", (searchResponse: ProtoSearchResponse) => {
+					const searchResult: SearchResult<T> = SearchResult.from(searchResponse, this.config);
+					resolve(searchResult);
+				});
+				stream.on("error", (error) => reject(error));
+				stream.on("end", () => resolve(SearchResult.empty));
+			});
 		}
-		return;
 	}
 }
 

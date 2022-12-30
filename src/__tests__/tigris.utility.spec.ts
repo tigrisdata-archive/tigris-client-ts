@@ -1,4 +1,4 @@
-import {Utility} from "../utility";
+import { Utility } from "../utility";
 import {
 	Case,
 	FacetFieldOptions,
@@ -26,26 +26,6 @@ describe("utility tests", () => {
 		const generatedOptions = Utility.createFacetQueryOptions();
 		expect(generatedOptions.size).toBe(10);
 		expect(generatedOptions.type).toBe(FacetQueryFieldType.VALUE);
-	});
-
-	describe("createSearchRequestOptions",() => {
-		it("generates default with empty options", () => {
-			const generated: SearchRequestOptions = Utility.createSearchRequestOptions();
-			expect(generated.page).toBe(1);
-			expect(generated.perPage).toBe(20);
-		});
-
-		it("fills missing options", () => {
-			const actual: SearchRequestOptions = {
-				page: 2, collation: {
-					case: Case.CaseInsensitive
-				}
-			};
-			const generated: SearchRequestOptions = Utility.createSearchRequestOptions(actual);
-			expect(generated.page).toBe(actual.page);
-			expect(generated.perPage).toBe(20);
-			expect(generated.collation).toBe(actual.collation);
-		});
 	});
 
 	it("backfills missing facet query options", () => {
