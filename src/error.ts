@@ -33,7 +33,8 @@ export class ReflectionNotEnabled extends TigrisError {
 		super(
 			`Cannot infer property "type" for ${object.constructor.name}#${propertyName} using Reflection.
 			Ensure that "experimentalDecorators" and "emitDecoratorMetadata" options are set to true in
-			"tsconfig.json" and "reflect-metadata" npm package is added to dependencies in "package.json"`
+			"tsconfig.json" and "reflect-metadata" npm package is added to dependencies in "package.json".
+			Alternatively, specify the property's "field type" manually.`
 		);
 	}
 

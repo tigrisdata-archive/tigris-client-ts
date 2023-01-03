@@ -106,7 +106,7 @@ export function Field(
 					Reflect && Reflect.getMetadata
 						? Reflect.getMetadata("design:type", target, propertyName)
 						: undefined;
-				propertyType = ReflectedTypeToTigrisType.get(reflectedType.name);
+				propertyType = getTigrisTypeFromReflectedType(reflectedType.name);
 			} catch {
 				throw new ReflectionNotEnabled(target, propertyName);
 			}
@@ -144,15 +144,27 @@ export function Field(
 	};
 }
 
-const ReflectedTypeToTigrisType: Map<string, TigrisDataTypes> = new Map([
-	["String", TigrisDataTypes.STRING],
-	["Boolean", TigrisDataTypes.BOOLEAN],
-	["Object", TigrisDataTypes.OBJECT],
-	["Array", TigrisDataTypes.ARRAY],
-	["Set", TigrisDataTypes.ARRAY],
-	["Number", TigrisDataTypes.NUMBER],
-	["BigInt", TigrisDataTypes.NUMBER_BIGINT],
-]);
+function getTigrisTypeFromReflectedType(reflectedType: string): TigrisDataTypes | undefined {
+	switch (reflectedType) {
+		case "String":
+			return TigrisDataTypes.STRING;
+		case "Boolean":
+			return TigrisDataTypes.BOOLEAN;
+		case "Object":
+			return TigrisDataTypes.OBJECT;
+		case "Array":
+		case "Set":
+			return TigrisDataTypes.ARRAY;
+		case "Number":
+			return TigrisDataTypes.NUMBER;
+		case "BigInt":
+			return TigrisDataTypes.NUMBER_BIGINT;
+		case "Date":
+			return TigrisDataTypes.DATE_TIME;
+		default:
+			return undefined;
+	}
+}
 
 function isEmbeddedOption(
 	options: TigrisFieldOptions | EmbeddedFieldOptions
