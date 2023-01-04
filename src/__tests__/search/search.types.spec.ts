@@ -85,7 +85,12 @@ describe("SearchResponse parsing", () => {
 		expect(parsed.hits).toHaveLength(0);
 		expect(parsed.facets).toBeDefined();
 		expect(parsed.facets.size).toBe(0);
-		expect(parsed.meta).toBeUndefined();
+		expect(parsed.meta).toBeDefined();
+		expect(parsed.meta.found).toBe(0);
+		expect(parsed.meta.totalPages).toBe(1);
+		expect(parsed.meta.page).toBeDefined();
+		expect(parsed.meta.page.current).toBe(1);
+		expect(parsed.meta.page.size).toBe(20);
 	});
 
 	it("generates default meta values with empty meta", () => {

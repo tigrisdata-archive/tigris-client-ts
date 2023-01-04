@@ -21,7 +21,6 @@ import {
 } from "./types";
 import * as fs from "node:fs";
 import {
-	Case,
 	FacetFieldsQuery,
 	FacetQueryFieldType,
 	FacetQueryOptions,
@@ -473,11 +472,6 @@ export const Utility = {
 		return { ...defaults, ...options };
 	},
 
-	createSearchRequestOptions(options?: Partial<SearchRequestOptions>): SearchRequestOptions {
-		const defaults = { page: 1, perPage: 20, collation: { case: Case.CaseInsensitive } };
-		return { ...defaults, ...options };
-	},
-
 	facetQueryToString(facets: FacetFieldsQuery): string {
 		if (Array.isArray(facets)) {
 			const optionsMap = {};
@@ -506,7 +500,8 @@ export const Utility = {
 		dbName: string,
 		collectionName: string,
 		request: SearchRequest<T>,
-		options?: SearchRequestOptions
+		options?: SearchRequestOptions,
+		page?: number
 	): ProtoSearchRequest {
 		const searchRequest = new ProtoSearchRequest()
 			.setProject(dbName)
@@ -539,16 +534,16 @@ export const Utility = {
 			searchRequest.setExcludeFieldsList(request.excludeFields);
 		}
 
-		if (options !== undefined) {
-			if (options.page !== undefined) {
-				searchRequest.setPage(options.page);
-			}
-			if (options.perPage !== undefined) {
-				searchRequest.setPageSize(options.perPage);
-			}
-			if (options.collation !== undefined) {
-				searchRequest.setCollation(new ProtoCollation().setCase(options.collation.case));
-			}
+		if (request.hitsPerPage !== undefined) {
+			searchRequest.setPageSize(request.hitsPerPage);
+		}
+
+		if (options !== undefined && options.collation !== undefined) {
+			searchRequest.setCollation(new ProtoCollation().setCase(options.collation.case));
+		}
+
+		if (page !== undefined) {
+			searchRequest.setPage(page);
 		}
 
 		return searchRequest;

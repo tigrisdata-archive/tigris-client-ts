@@ -15,7 +15,7 @@ const tReady = Symbol("ready");
 /** @internal */
 const tClosed = Symbol("closed");
 
-export abstract class AbstractCursor<T, TResp extends proto.Message> {
+export abstract class IterableStream<T, TResp extends proto.Message> {
 	/** @internal */
 	[tStream]: ClientReadableStream<TResp>;
 	/** @internal */

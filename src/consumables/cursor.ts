@@ -1,4 +1,4 @@
-import { AbstractCursor, Initializer } from "./abstract-cursor";
+import { IterableStream, Initializer } from "./iterable-stream";
 import { ReadRequest, ReadResponse } from "../proto/server/v1/api_pb";
 import { TigrisClient } from "../proto/server/v1/api_grpc_pb";
 import { Session } from "../session";
@@ -26,7 +26,7 @@ export class ReadCursorInitializer implements Initializer<ReadResponse> {
 /**
  * Cursor to supplement find() queries
  */
-export class Cursor<T> extends AbstractCursor<T, ReadResponse> {
+export class Cursor<T> extends IterableStream<T, ReadResponse> {
 	/** @internal */
 	private readonly _config: TigrisClientConfig;
 
@@ -36,7 +36,7 @@ export class Cursor<T> extends AbstractCursor<T, ReadResponse> {
 	}
 
 	/** @override */
-	_transform(message: ReadResponse): T {
+	protected _transform(message: ReadResponse): T {
 		return Utility.jsonStringToObj<T>(Utility._base64Decode(message.getData_asB64()), this._config);
 	}
 }
