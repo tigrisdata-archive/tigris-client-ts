@@ -9,7 +9,7 @@ import {
 	TigrisDataTypes,
 	TigrisSchema,
 	UpdateFieldsOperator,
-	UpdateRequestOptions
+	UpdateRequestOptions,
 } from "../types";
 import { Tigris } from "../tigris";
 import {
@@ -17,7 +17,7 @@ import {
 	Collation,
 	SearchRequest,
 	SearchRequestOptions,
-	SearchResult
+	SearchResult,
 } from "../search/types";
 import { Utility } from "../utility";
 import { ObservabilityService } from "../proto/server/v1/observability_grpc_pb";
@@ -50,7 +50,6 @@ describe("rpc tests", () => {
 			}
 		);
 		done();
-
 	});
 
 	beforeEach(() => {
@@ -73,7 +72,7 @@ describe("rpc tests", () => {
 		const db1 = tigris.getDatabase();
 
 		const listCollectionPromise = db1.listCollections();
-		listCollectionPromise.then(value => {
+		listCollectionPromise.then((value) => {
 			expect(value.length).toBe(5);
 			expect(value[0].name).toBe("db1_coll_1");
 			expect(value[1].name).toBe("db1_coll_2");
@@ -89,7 +88,7 @@ describe("rpc tests", () => {
 		const db1 = tigris.getDatabase();
 
 		const listCollectionPromise = db1.listCollections();
-		listCollectionPromise.then(value => {
+		listCollectionPromise.then((value) => {
 			expect(value.length).toBe(5);
 			expect(value[0].name).toBe("db3_coll_1");
 			expect(value[1].name).toBe("db3_coll_2");
@@ -105,7 +104,7 @@ describe("rpc tests", () => {
 		const db1 = tigris.getDatabase();
 
 		const databaseDescriptionPromise = db1.describe();
-		databaseDescriptionPromise.then(value => {
+		databaseDescriptionPromise.then((value) => {
 			expect(value.collectionsDescription.length).toBe(5);
 			expect(value.collectionsDescription[0].collection).toBe("db3_coll_1");
 			expect(value.collectionsDescription[1].collection).toBe("db3_coll_2");
@@ -121,7 +120,7 @@ describe("rpc tests", () => {
 		const db1 = tigris.getDatabase();
 
 		const dropCollectionPromise = db1.dropCollection("db3_coll_2");
-		dropCollectionPromise.then(value => {
+		dropCollectionPromise.then((value) => {
 			expect(value.status).toBe("dropped");
 			expect(value.message).toBe("db3_coll_2 dropped successfully");
 		});
@@ -142,9 +141,9 @@ describe("rpc tests", () => {
 			author: "author name",
 			id: 0,
 			tags: ["science"],
-			title: "science book"
+			title: "science book",
 		});
-		insertionPromise.then(insertedBook => {
+		insertionPromise.then((insertedBook) => {
 			expect(insertedBook.id).toBe(1);
 		});
 		return insertionPromise;
@@ -158,10 +157,10 @@ describe("rpc tests", () => {
 			title: "science book",
 			metadata: {
 				publish_date: new Date(),
-				num_pages: 100
-			}
+				num_pages: 100,
+			},
 		});
-		insertionPromise.then(insertedBook => {
+		insertionPromise.then((insertedBook) => {
 			expect(insertedBook.id).toBe(1);
 		});
 		return insertionPromise;
@@ -176,10 +175,10 @@ describe("rpc tests", () => {
 			title: "science book",
 			metadata: {
 				publish_date: new Date(),
-				num_pages: 100
-			}
+				num_pages: 100,
+			},
 		});
-		insertionPromise.then(insertedBook => {
+		insertionPromise.then((insertedBook) => {
 			expect(insertedBook.id).toBe(1);
 			expect(insertedBook.id2).toBe(11);
 		});
@@ -196,8 +195,8 @@ describe("rpc tests", () => {
 				title: "science book",
 				metadata: {
 					publish_date: new Date(),
-					num_pages: 100
-				}
+					num_pages: 100,
+				},
 			},
 			{
 				id: 0,
@@ -205,11 +204,11 @@ describe("rpc tests", () => {
 				title: "science book",
 				metadata: {
 					publish_date: new Date(),
-					num_pages: 100
-				}
-			}
+					num_pages: 100,
+				},
+			},
 		]);
-		insertionPromise.then(insertedBook => {
+		insertionPromise.then((insertedBook) => {
 			expect(insertedBook.length).toBe(2);
 			expect(insertedBook[0].id).toBe(1);
 			expect(insertedBook[0].id2).toBe(11);
@@ -228,9 +227,9 @@ describe("rpc tests", () => {
 		const insertionPromise = db1.getCollection<IBook1>("books-with-optional-field").insertOne({
 			author: "" + randomNumber,
 			tags: ["science"],
-			title: "science book"
+			title: "science book",
 		});
-		insertionPromise.then(insertedBook => {
+		insertionPromise.then((insertedBook) => {
 			expect(insertedBook.id).toBe(randomNumber);
 		});
 		return insertionPromise;
@@ -243,9 +242,9 @@ describe("rpc tests", () => {
 			author: "author name",
 			id: 0,
 			tags: ["science"],
-			title: "science book"
+			title: "science book",
 		});
-		insertOrReplacePromise.then(insertedOrReplacedBook => {
+		insertOrReplacePromise.then((insertedOrReplacedBook) => {
 			expect(insertedOrReplacedBook.id).toBe(1);
 		});
 		return insertOrReplacePromise;
@@ -257,12 +256,14 @@ describe("rpc tests", () => {
 		const randomNumber: number = Math.floor(Math.random() * 100);
 		// pass the random number in author field. mock server reads author and sets as the
 		// primaryKey field.
-		const insertOrReplacePromise = db1.getCollection<IBook1>("books-with-optional-field").insertOrReplaceOne({
-			author: "" + randomNumber,
-			tags: ["science"],
-			title: "science book"
-		});
-		insertOrReplacePromise.then(insertedOrReplacedBook => {
+		const insertOrReplacePromise = db1
+			.getCollection<IBook1>("books-with-optional-field")
+			.insertOrReplaceOne({
+				author: "" + randomNumber,
+				tags: ["science"],
+				title: "science book",
+			});
+		insertOrReplacePromise.then((insertedOrReplacedBook) => {
 			expect(insertedOrReplacedBook.id).toBe(randomNumber);
 		});
 		return insertOrReplacePromise;
@@ -274,11 +275,11 @@ describe("rpc tests", () => {
 		const deletionPromise = db1.getCollection<IBook>(IBook).deleteMany({
 			op: SelectorFilterOperator.EQ,
 			fields: {
-				id: 1
-			}
+				id: 1,
+			},
 		});
-		deletionPromise.then(value => {
-			expect(value.status).toBe("deleted: {\"id\":1}");
+		deletionPromise.then((value) => {
+			expect(value.status).toBe('deleted: {"id":1}');
 		});
 		return deletionPromise;
 	});
@@ -314,17 +315,18 @@ describe("rpc tests", () => {
 			{
 				op: SelectorFilterOperator.EQ,
 				fields: {
-					id: 1
-				}
+					id: 1,
+				},
 			},
 			{
 				op: UpdateFieldsOperator.SET,
 				fields: {
-					title: "New Title"
-				}
-			});
-		updatePromise.then(value => {
-			expect(value.status).toBe("updated: {\"id\":1}, {\"$set\":{\"title\":\"New Title\"}}");
+					title: "New Title",
+				},
+			}
+		);
+		updatePromise.then((value) => {
+			expect(value.status).toBe('updated: {"id":1}, {"$set":{"title":"New Title"}}');
 			expect(value.modifiedCount).toBe(1);
 		});
 		return updatePromise;
@@ -340,8 +342,15 @@ describe("rpc tests", () => {
 		const expectedUpdateFields = { title: "one" };
 		const options = new UpdateRequestOptions(5, expectedCollation);
 
-		const updatePromise = collection.updateOne(expectedFilter, expectedUpdateFields, undefined, options);
-		const [capturedFilter, capturedFields, capturedTx, capturedOptions] = capture(spyCollection.updateMany).last();
+		const updatePromise = collection.updateOne(
+			expectedFilter,
+			expectedUpdateFields,
+			undefined,
+			options
+		);
+		const [capturedFilter, capturedFields, capturedTx, capturedOptions] = capture(
+			spyCollection.updateMany
+		).last();
 
 		// filter passed as it is
 		expect(capturedFilter).toBe(expectedFilter);
@@ -363,10 +372,10 @@ describe("rpc tests", () => {
 		const readOnePromise = db1.getCollection<IBook>("books").findOne({
 			op: SelectorFilterOperator.EQ,
 			fields: {
-				id: 1
-			}
+				id: 1,
+			},
 		});
-		readOnePromise.then(value => {
+		readOnePromise.then((value) => {
 			const book: IBook = <IBook>value;
 			expect(book.id).toBe(1);
 			expect(book.title).toBe("A Passage to India");
@@ -382,8 +391,8 @@ describe("rpc tests", () => {
 		const readOnePromise = db1.getCollection<IBook>("books").findOne({
 			op: SelectorFilterOperator.EQ,
 			fields: {
-				id: 2
-			}
+				id: 2,
+			},
 		});
 		readOnePromise.then((value) => {
 			expect(value).toBe(undefined);
@@ -400,18 +409,18 @@ describe("rpc tests", () => {
 				{
 					op: SelectorFilterOperator.EQ,
 					fields: {
-						id: 3
-					}
+						id: 3,
+					},
 				},
 				{
 					op: SelectorFilterOperator.EQ,
 					fields: {
-						title: "In Search of Lost Time"
-					}
-				}
-			]
+						title: "In Search of Lost Time",
+					},
+				},
+			],
 		});
-		readOnePromise.then(value => {
+		readOnePromise.then((value) => {
 			const book: IBook = <IBook>value;
 			expect(book.id).toBe(3);
 			expect(book.title).toBe("In Search of Lost Time");
@@ -429,8 +438,8 @@ describe("rpc tests", () => {
 			const cursor = db.getCollection<IBook>("books").findMany({
 				op: SelectorFilterOperator.EQ,
 				fields: {
-					author: "Marcel Proust"
-				}
+					author: "Marcel Proust",
+				},
 			});
 
 			let bookCounter = 0;
@@ -445,7 +454,7 @@ describe("rpc tests", () => {
 			const cursor = db.getCollection<IBook>("books").findMany();
 			const booksPromise = cursor.toArray();
 
-			booksPromise.then(books => expect(books.length).toBe(4));
+			booksPromise.then((books) => expect(books.length).toBe(4));
 			return booksPromise;
 		});
 
@@ -465,8 +474,8 @@ describe("rpc tests", () => {
 			const cursor = db.getCollection<IBook>("books").findMany({
 				op: SelectorFilterOperator.EQ,
 				fields: {
-					id: -1
-				}
+					id: -1,
+				},
 			});
 
 			try {
@@ -491,8 +500,8 @@ describe("rpc tests", () => {
 				const request: SearchRequest<IBook> = {
 					q: "philosophy",
 					facets: {
-						tags: Utility.createFacetQueryOptions()
-					}
+						tags: Utility.createFacetQueryOptions(),
+					},
 				};
 
 				const maybePromise = db.getCollection<IBook>("books").search(request, pageNumber);
@@ -507,8 +516,8 @@ describe("rpc tests", () => {
 			});
 
 			it("returns promise using request options", () => {
-				const options: SearchRequestOptions = { collation: {case: Case.CaseInsensitive} };
-				const request: SearchRequest<IBook> = { q: "philosophy"};
+				const options: SearchRequestOptions = { collation: { case: Case.CaseInsensitive } };
+				const request: SearchRequest<IBook> = { q: "philosophy" };
 
 				const maybePromise = db.getCollection<IBook>("books").search(request, options, pageNumber);
 				expect(maybePromise).toBeInstanceOf(Promise);
@@ -526,8 +535,8 @@ describe("rpc tests", () => {
 				const request: SearchRequest<IBook> = {
 					q: "philosophy",
 					facets: {
-						tags: Utility.createFacetQueryOptions()
-					}
+						tags: Utility.createFacetQueryOptions(),
+					},
 				};
 				let bookCounter = 0;
 
@@ -543,9 +552,9 @@ describe("rpc tests", () => {
 				expect(bookCounter).toBe(TestTigrisService.BOOKS_B64_BY_ID.size);
 			});
 
-			it("returns iterator using request options",async () => {
-				const request: SearchRequest<IBook> = { q: "philosophy"};
-				const options: SearchRequestOptions = { collation: {case: Case.CaseInsensitive}};
+			it("returns iterator using request options", async () => {
+				const request: SearchRequest<IBook> = { q: "philosophy" };
+				const options: SearchRequestOptions = { collation: { case: Case.CaseInsensitive } };
 				let bookCounter = 0;
 
 				const maybeIterator = db.getCollection<IBook>("books").search(request, options);
@@ -565,7 +574,7 @@ describe("rpc tests", () => {
 		const tigris = new Tigris({ serverUrl: "localhost:" + SERVER_PORT, projectName: "db3" });
 		const db3 = tigris.getDatabase();
 		const beginTxPromise = db3.beginTransaction();
-		beginTxPromise.then(value => {
+		beginTxPromise.then((value) => {
 			expect(value.id).toBe("id-test");
 			expect(value.origin).toBe("origin-test");
 		});
@@ -576,9 +585,9 @@ describe("rpc tests", () => {
 		const tigris = new Tigris({ serverUrl: "localhost:" + SERVER_PORT, projectName: "db3" });
 		const db3 = tigris.getDatabase();
 		const beginTxPromise = db3.beginTransaction();
-		beginTxPromise.then(session => {
+		beginTxPromise.then((session) => {
 			const commitTxResponse = session.commit();
-			commitTxResponse.then(value => {
+			commitTxResponse.then((value) => {
 				expect(value.status).toBe("committed-test");
 				done();
 			});
@@ -589,9 +598,9 @@ describe("rpc tests", () => {
 		const tigris = new Tigris({ serverUrl: "localhost:" + SERVER_PORT, projectName: "db3" });
 		const db3 = tigris.getDatabase();
 		const beginTxPromise = db3.beginTransaction();
-		beginTxPromise.then(session => {
+		beginTxPromise.then((session) => {
 			const rollbackTransactionResponsePromise = session.rollback();
-			rollbackTransactionResponsePromise.then(value => {
+			rollbackTransactionResponsePromise.then((value) => {
 				expect(value.status).toBe("rollback-test");
 				done();
 			});
@@ -602,45 +611,62 @@ describe("rpc tests", () => {
 		const tigris = new Tigris({ serverUrl: "localhost:" + SERVER_PORT, projectName: "test-tx" });
 		const txDB = tigris.getDatabase();
 		const books = txDB.getCollection<IBook>("books");
-		txDB.transact(tx => {
-			books.insertOne(
-				{
-					id: 1,
-					author: "Alice",
-					title: "Some book title"
-				},
-				tx
-				// eslint-disable-next-line @typescript-eslint/no-unused-vars
-			).then(_value => {
-				books.findOne({
-					op: SelectorFilterOperator.EQ,
-					fields: {
-						id: 1
-					}
-				}, undefined, tx).then(() => {
-					books.updateMany({
-							op: SelectorFilterOperator.EQ,
-							fields: {
-								id: 1
-							}
-						},
-						{
-							op: UpdateFieldsOperator.SET,
-							fields: {
-								"author":
-									"Dr. Author"
-							}
-							// eslint-disable-next-line @typescript-eslint/no-unused-vars
-						}, tx).then(() => {
-						books.deleteMany({
-							op: SelectorFilterOperator.EQ,
-							fields: {
-								id: 1
-							}
-						}, tx).then(() => done());
-					});
+		txDB.transact((tx) => {
+			books
+				.insertOne(
+					{
+						id: 1,
+						author: "Alice",
+						title: "Some book title",
+					},
+					tx
+					// eslint-disable-next-line @typescript-eslint/no-unused-vars
+				)
+				.then((_value) => {
+					books
+						.findOne(
+							{
+								op: SelectorFilterOperator.EQ,
+								fields: {
+									id: 1,
+								},
+							},
+							undefined,
+							tx
+						)
+						.then(() => {
+							books
+								.updateMany(
+									{
+										op: SelectorFilterOperator.EQ,
+										fields: {
+											id: 1,
+										},
+									},
+									{
+										op: UpdateFieldsOperator.SET,
+										fields: {
+											author: "Dr. Author",
+										},
+										// eslint-disable-next-line @typescript-eslint/no-unused-vars
+									},
+									tx
+								)
+								.then(() => {
+									books
+										.deleteMany(
+											{
+												op: SelectorFilterOperator.EQ,
+												fields: {
+													id: 1,
+												},
+											},
+											tx
+										)
+										.then(() => done());
+								});
+						});
 				});
-			});
 		});
 	});
 
@@ -652,23 +678,23 @@ describe("rpc tests", () => {
 				type: TigrisDataTypes.INT64,
 				primary_key: {
 					order: 1,
-					autoGenerate: true
-				}
+					autoGenerate: true,
+				},
 			},
 			author: {
-				type: TigrisDataTypes.STRING
+				type: TigrisDataTypes.STRING,
 			},
 			title: {
-				type: TigrisDataTypes.STRING
+				type: TigrisDataTypes.STRING,
 			},
 			tags: {
 				type: TigrisDataTypes.ARRAY,
 				items: {
-					type: TigrisDataTypes.STRING
-				}
-			}
+					type: TigrisDataTypes.STRING,
+				},
+			},
 		};
-		return db3.createOrUpdateCollection("books", bookSchema).then(value => {
+		return db3.createOrUpdateCollection("books", bookSchema).then((value) => {
 			expect(value).toBeDefined();
 		});
 	});
@@ -676,7 +702,7 @@ describe("rpc tests", () => {
 	it("serverMetadata", () => {
 		const tigris = new Tigris({ serverUrl: "localhost:" + SERVER_PORT, projectName: "db3" });
 		const serverMetadataPromise = tigris.getServerMetadata();
-		serverMetadataPromise.then(value => {
+		serverMetadataPromise.then((value) => {
 			expect(value.serverVersion).toBe("1.0.0-test-service");
 		});
 		return serverMetadataPromise;
@@ -694,7 +720,6 @@ export class IBook implements TigrisCollectionType {
 	@Field({ elements: TigrisDataTypes.STRING })
 	tags?: string[];
 }
-
 
 export interface IBook1 extends TigrisCollectionType {
 	id?: number;

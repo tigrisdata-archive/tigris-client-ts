@@ -8,32 +8,35 @@ import {
 	SearchMetadata as ProtoSearchMetadata,
 	SearchResponse as ProtoSearchResponse,
 } from "../../proto/server/v1/api_pb";
-import {SearchResult} from "../../search/types";
-import {TestTigrisService} from "../test-service";
-import {IBook} from "../tigris.rpc.spec";
+import { SearchResult } from "../../search/types";
+import { TestTigrisService } from "../test-service";
+import { IBook } from "../tigris.rpc.spec";
 import * as google_protobuf_timestamp_pb from "google-protobuf/google/protobuf/timestamp_pb";
 
 describe("SearchResponse parsing", () => {
 	it("generates search hits appropriately", () => {
-		const expectedTimeInSeconds = Math.floor(Date.now()/1000);
-		const expectedHits:  ProtoSearchHit[] = [...TestTigrisService.BOOKS_B64_BY_ID].map(
+		const expectedTimeInSeconds = Math.floor(Date.now() / 1000);
+		const expectedHits: ProtoSearchHit[] = [...TestTigrisService.BOOKS_B64_BY_ID].map(
 			// eslint-disable-next-line @typescript-eslint/no-unused-vars
-			([_id, value]) => new ProtoSearchHit()
-				.setData(value)
-				.setMetadata(new ProtoSearchHitMeta().setUpdatedAt(
-					new google_protobuf_timestamp_pb.Timestamp().setSeconds(expectedTimeInSeconds)
-				))
+			([_id, value]) =>
+				new ProtoSearchHit()
+					.setData(value)
+					.setMetadata(
+						new ProtoSearchHitMeta().setUpdatedAt(
+							new google_protobuf_timestamp_pb.Timestamp().setSeconds(expectedTimeInSeconds)
+						)
+					)
 		);
 		const input: ProtoSearchResponse = new ProtoSearchResponse();
 		input.setHitsList(expectedHits);
 		const parsed: SearchResult<IBook> = SearchResult.from(input, {
-			serverUrl: "test"
+			serverUrl: "test",
 		});
 
 		expect(parsed.hits).toHaveLength(expectedHits.length);
-		const receivedIds: string[] = parsed.hits.map(h => h.document.id.toString());
+		const receivedIds: string[] = parsed.hits.map((h) => h.document.id.toString());
 		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		for (const [id] of TestTigrisService.BOOKS_B64_BY_ID)  {
+		for (const [id] of TestTigrisService.BOOKS_B64_BY_ID) {
 			expect(receivedIds).toContain(id);
 		}
 		for (const hit of parsed.hits) {
@@ -45,10 +48,11 @@ describe("SearchResponse parsing", () => {
 
 	it("generates facets appropriately", () => {
 		const input: ProtoSearchResponse = new ProtoSearchResponse();
-		const searchFacet = new ProtoSearchFacet().setCountsList(
-			[new ProtoFacetCount().setCount(2).setValue("Marcel Proust")]);
+		const searchFacet = new ProtoSearchFacet().setCountsList([
+			new ProtoFacetCount().setCount(2).setValue("Marcel Proust"),
+		]);
 		input.getFacetsMap().set("author", searchFacet);
-		const parsed: SearchResult<unknown> = SearchResult.from(input, {serverUrl: "test"});
+		const parsed: SearchResult<unknown> = SearchResult.from(input, { serverUrl: "test" });
 
 		expect(parsed.facets.size).toBe(1);
 		expect(parsed.facets.get("author")).toBeDefined();
@@ -65,7 +69,7 @@ describe("SearchResponse parsing", () => {
 		const input: ProtoSearchResponse = new ProtoSearchResponse();
 		const searchFacet = new ProtoSearchFacet().setStats(new ProtoFacetStats().setAvg(4.5));
 		input.getFacetsMap().set("author", searchFacet);
-		const parsed: SearchResult<unknown> = SearchResult.from(input, {serverUrl: "test"});
+		const parsed: SearchResult<unknown> = SearchResult.from(input, { serverUrl: "test" });
 
 		const facetDistribution = parsed.facets.get("author");
 		expect(facetDistribution.stats).toBeDefined();
@@ -78,7 +82,7 @@ describe("SearchResponse parsing", () => {
 
 	it("generates empty result with empty response", () => {
 		const input: ProtoSearchResponse = new ProtoSearchResponse();
-		const parsed: SearchResult<unknown> = SearchResult.from(input, {serverUrl: "test"});
+		const parsed: SearchResult<unknown> = SearchResult.from(input, { serverUrl: "test" });
 
 		expect(parsed).toBeDefined();
 		expect(parsed.hits).toBeDefined();
@@ -96,7 +100,7 @@ describe("SearchResponse parsing", () => {
 	it("generates default meta values with empty meta", () => {
 		const input: ProtoSearchResponse = new ProtoSearchResponse();
 		input.setMeta(new ProtoSearchMetadata());
-		const parsed: SearchResult<unknown> = SearchResult.from(input, {serverUrl: "test"});
+		const parsed: SearchResult<unknown> = SearchResult.from(input, { serverUrl: "test" });
 
 		expect(parsed.meta).toBeDefined();
 		expect(parsed.meta.found).toBe(0);
@@ -107,22 +111,21 @@ describe("SearchResponse parsing", () => {
 	it("generates no page values with empty page", () => {
 		const input: ProtoSearchResponse = new ProtoSearchResponse();
 		input.setMeta(new ProtoSearchMetadata().setFound(5));
-		const parsed: SearchResult<unknown> = SearchResult.from(input, {serverUrl: "test"});
+		const parsed: SearchResult<unknown> = SearchResult.from(input, { serverUrl: "test" });
 
 		expect(parsed.meta.found).toBe(5);
 		expect(parsed.meta.totalPages).toBe(0);
 		expect(parsed.meta.page).toBeUndefined();
 	});
 
-	it ("generates meta appropriately with complete response", () => {
+	it("generates meta appropriately with complete response", () => {
 		const input: ProtoSearchResponse = new ProtoSearchResponse();
 		const page: ProtoPage = new ProtoPage().setSize(3).setCurrent(2);
 		input.setMeta(new ProtoSearchMetadata().setPage(page).setTotalPages(100));
-		const parsed: SearchResult<unknown> = SearchResult.from(input, {serverUrl: "test"});
+		const parsed: SearchResult<unknown> = SearchResult.from(input, { serverUrl: "test" });
 
 		expect(parsed.meta.page.size).toBe(3);
 		expect(parsed.meta.page.current).toBe(2);
 		expect(parsed.meta.totalPages).toBe(100);
 	});
-
 });

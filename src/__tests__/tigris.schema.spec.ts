@@ -1,41 +1,41 @@
-import { TigrisCollectionType, TigrisDataTypes, TigrisSchema,} from "../types";
-import {Utility} from "../utility";
+import { TigrisCollectionType, TigrisDataTypes, TigrisSchema } from "../types";
+import { Utility } from "../utility";
 
 describe("schema tests", () => {
-
 	it("basicCollection", () => {
 		const schema: TigrisSchema<BasicCollection> = {
 			id: {
 				type: TigrisDataTypes.INT32,
 				primary_key: {
 					order: 1,
-					autoGenerate: true
-				}
+					autoGenerate: true,
+				},
 			},
 			active: {
-				type: TigrisDataTypes.BOOLEAN
+				type: TigrisDataTypes.BOOLEAN,
 			},
 			name: {
-				type: TigrisDataTypes.STRING
+				type: TigrisDataTypes.STRING,
 			},
 			uuid: {
-				type: TigrisDataTypes.UUID
+				type: TigrisDataTypes.UUID,
 			},
 			int32Number: {
-				type: TigrisDataTypes.INT32
+				type: TigrisDataTypes.INT32,
 			},
 			int64Number: {
-				type: TigrisDataTypes.INT64
+				type: TigrisDataTypes.INT64,
 			},
 			date: {
-				type: TigrisDataTypes.DATE_TIME
+				type: TigrisDataTypes.DATE_TIME,
 			},
 			bytes: {
-				type: TigrisDataTypes.BYTE_STRING
-			}
+				type: TigrisDataTypes.BYTE_STRING,
+			},
 		};
-		expect(Utility._toJSONSchema("basicCollection", schema))
-			.toBe(Utility._readTestDataFile("basicCollection.json"));
+		expect(Utility._toJSONSchema("basicCollection", schema)).toBe(
+			Utility._readTestDataFile("basicCollection.json")
+		);
 	});
 
 	it("basicCollectionWithObjectType", () => {
@@ -44,18 +44,19 @@ describe("schema tests", () => {
 				type: TigrisDataTypes.INT64,
 				primary_key: {
 					order: 1,
-					autoGenerate: true
-				}
+					autoGenerate: true,
+				},
 			},
 			name: {
-				type: TigrisDataTypes.STRING
+				type: TigrisDataTypes.STRING,
 			},
 			metadata: {
-				type: TigrisDataTypes.OBJECT
-			}
+				type: TigrisDataTypes.OBJECT,
+			},
 		};
-		expect(Utility._toJSONSchema("basicCollectionWithObjectType",  schema))
-			.toBe(Utility._readTestDataFile("basicCollectionWithObjectType.json"));
+		expect(Utility._toJSONSchema("basicCollectionWithObjectType", schema)).toBe(
+			Utility._readTestDataFile("basicCollectionWithObjectType.json")
+		);
 	});
 
 	it("multiplePKeys", () => {
@@ -64,112 +65,116 @@ describe("schema tests", () => {
 				type: TigrisDataTypes.INT64,
 				primary_key: {
 					order: 2, // intentionally the order is skewed to test
-				}
+				},
 			},
 			active: {
-				type: TigrisDataTypes.BOOLEAN
+				type: TigrisDataTypes.BOOLEAN,
 			},
 			name: {
-				type: TigrisDataTypes.STRING
+				type: TigrisDataTypes.STRING,
 			},
 			uuid: {
 				type: TigrisDataTypes.UUID,
 				primary_key: {
 					order: 1,
-					autoGenerate: true
-				}
+					autoGenerate: true,
+				},
 			},
 			int32Number: {
-				type: TigrisDataTypes.INT32
+				type: TigrisDataTypes.INT32,
 			},
 			int64Number: {
-				type: TigrisDataTypes.INT64
+				type: TigrisDataTypes.INT64,
 			},
 			date: {
-				type: TigrisDataTypes.DATE_TIME
+				type: TigrisDataTypes.DATE_TIME,
 			},
 			bytes: {
-				type: TigrisDataTypes.BYTE_STRING
-			}
+				type: TigrisDataTypes.BYTE_STRING,
+			},
 		};
-		expect(Utility._toJSONSchema("multiplePKeys",  schema))
-			.toBe(Utility._readTestDataFile("multiplePKeys.json"));
+		expect(Utility._toJSONSchema("multiplePKeys", schema)).toBe(
+			Utility._readTestDataFile("multiplePKeys.json")
+		);
 	});
 
 	it("nestedCollection", () => {
 		const addressSchema: TigrisSchema<Address> = {
 			city: {
-				type: TigrisDataTypes.STRING
+				type: TigrisDataTypes.STRING,
 			},
 			state: {
-				type: TigrisDataTypes.STRING
+				type: TigrisDataTypes.STRING,
 			},
 			zipcode: {
-				type: TigrisDataTypes.NUMBER
-			}
+				type: TigrisDataTypes.NUMBER,
+			},
 		};
 		const schema: TigrisSchema<NestedCollection> = {
 			id: {
-				type: TigrisDataTypes.NUMBER
+				type: TigrisDataTypes.NUMBER,
 			},
 			name: {
-				type: TigrisDataTypes.STRING
+				type: TigrisDataTypes.STRING,
 			},
 			address: {
-				type: addressSchema
-			}
+				type: addressSchema,
+			},
 		};
-		expect(Utility._toJSONSchema("nestedCollection",  schema))
-			.toBe(Utility._readTestDataFile("nestedCollection.json"));
+		expect(Utility._toJSONSchema("nestedCollection", schema)).toBe(
+			Utility._readTestDataFile("nestedCollection.json")
+		);
 	});
 
 	it("collectionWithPrimitiveArrays", () => {
 		const schema: TigrisSchema<CollectionWithPrimitiveArrays> = {
 			id: {
-				type: TigrisDataTypes.NUMBER
+				type: TigrisDataTypes.NUMBER,
 			},
 			name: {
-				type: TigrisDataTypes.STRING
+				type: TigrisDataTypes.STRING,
 			},
 			tags: {
 				type: TigrisDataTypes.ARRAY,
 				items: {
-					type: TigrisDataTypes.STRING
-				}
-			}
+					type: TigrisDataTypes.STRING,
+				},
+			},
 		};
-		expect(Utility._toJSONSchema("collectionWithPrimitiveArrays",  schema))
-			.toBe(Utility._readTestDataFile("collectionWithPrimitiveArrays.json"));
+		expect(Utility._toJSONSchema("collectionWithPrimitiveArrays", schema)).toBe(
+			Utility._readTestDataFile("collectionWithPrimitiveArrays.json")
+		);
 	});
 
 	it("collectionWithObjectArrays", () => {
 		const addressSchema: TigrisSchema<Address> = {
 			city: {
-				type: TigrisDataTypes.STRING
+				type: TigrisDataTypes.STRING,
 			},
 			state: {
-				type: TigrisDataTypes.STRING
+				type: TigrisDataTypes.STRING,
 			},
 			zipcode: {
-				type: TigrisDataTypes.NUMBER
-			}
+				type: TigrisDataTypes.NUMBER,
+			},
 		};
 		const schema: TigrisSchema<CollectionWithObjectArrays> = {
 			id: {
-				type: TigrisDataTypes.NUMBER
+				type: TigrisDataTypes.NUMBER,
 			},
 			name: {
-				type: TigrisDataTypes.STRING
+				type: TigrisDataTypes.STRING,
 			},
 			knownAddresses: {
 				type: TigrisDataTypes.ARRAY,
 				items: {
-					type: addressSchema
-				}
-			}
+					type: addressSchema,
+				},
+			},
 		};
-		expect(Utility._toJSONSchema("collectionWithObjectArrays",  schema))
-			.toBe(Utility._readTestDataFile("collectionWithObjectArrays.json"));
+		expect(Utility._toJSONSchema("collectionWithObjectArrays", schema)).toBe(
+			Utility._readTestDataFile("collectionWithObjectArrays.json")
+		);
 	});
 
 	it("multiLevelPrimitiveArray", () => {
@@ -177,17 +182,17 @@ describe("schema tests", () => {
 			oneDArray: {
 				type: TigrisDataTypes.ARRAY,
 				items: {
-					type: TigrisDataTypes.STRING
-				}
+					type: TigrisDataTypes.STRING,
+				},
 			},
 			twoDArray: {
 				type: TigrisDataTypes.ARRAY,
 				items: {
 					type: TigrisDataTypes.ARRAY,
 					items: {
-						type: TigrisDataTypes.STRING
-					}
-				}
+						type: TigrisDataTypes.STRING,
+					},
+				},
 			},
 			threeDArray: {
 				type: TigrisDataTypes.ARRAY,
@@ -196,10 +201,10 @@ describe("schema tests", () => {
 					items: {
 						type: TigrisDataTypes.ARRAY,
 						items: {
-							type: TigrisDataTypes.STRING
-						}
-					}
-				}
+							type: TigrisDataTypes.STRING,
+						},
+					},
+				},
 			},
 			fourDArray: {
 				type: TigrisDataTypes.ARRAY,
@@ -210,11 +215,11 @@ describe("schema tests", () => {
 						items: {
 							type: TigrisDataTypes.ARRAY,
 							items: {
-								type: TigrisDataTypes.STRING
-							}
-						}
-					}
-				}
+								type: TigrisDataTypes.STRING,
+							},
+						},
+					},
+				},
 			},
 			fiveDArray: {
 				type: TigrisDataTypes.ARRAY,
@@ -227,45 +232,46 @@ describe("schema tests", () => {
 							items: {
 								type: TigrisDataTypes.ARRAY,
 								items: {
-									type: TigrisDataTypes.STRING
-								}
-							}
-						}
-					}
-				}
-			}
+									type: TigrisDataTypes.STRING,
+								},
+							},
+						},
+					},
+				},
+			},
 		};
-		expect(Utility._toJSONSchema("multiLevelPrimitiveArray",  schema))
-			.toBe(Utility._readTestDataFile("multiLevelPrimitiveArray.json"));
+		expect(Utility._toJSONSchema("multiLevelPrimitiveArray", schema)).toBe(
+			Utility._readTestDataFile("multiLevelPrimitiveArray.json")
+		);
 	});
 
 	it("multiLevelObjectArray", () => {
 		const addressSchema: TigrisSchema<Address> = {
 			city: {
-				type: TigrisDataTypes.STRING
+				type: TigrisDataTypes.STRING,
 			},
 			state: {
-				type: TigrisDataTypes.STRING
+				type: TigrisDataTypes.STRING,
 			},
 			zipcode: {
-				type: TigrisDataTypes.NUMBER
-			}
+				type: TigrisDataTypes.NUMBER,
+			},
 		};
 		const schema: TigrisSchema<MultiLevelObjectArray> = {
 			oneDArray: {
 				type: TigrisDataTypes.ARRAY,
 				items: {
-					type: addressSchema
-				}
+					type: addressSchema,
+				},
 			},
 			twoDArray: {
 				type: TigrisDataTypes.ARRAY,
 				items: {
 					type: TigrisDataTypes.ARRAY,
 					items: {
-						type: addressSchema
-					}
-				}
+						type: addressSchema,
+					},
+				},
 			},
 			threeDArray: {
 				type: TigrisDataTypes.ARRAY,
@@ -274,10 +280,10 @@ describe("schema tests", () => {
 					items: {
 						type: TigrisDataTypes.ARRAY,
 						items: {
-							type: addressSchema
-						}
-					}
-				}
+							type: addressSchema,
+						},
+					},
+				},
 			},
 			fourDArray: {
 				type: TigrisDataTypes.ARRAY,
@@ -288,11 +294,11 @@ describe("schema tests", () => {
 						items: {
 							type: TigrisDataTypes.ARRAY,
 							items: {
-								type: addressSchema
-							}
-						}
-					}
-				}
+								type: addressSchema,
+							},
+						},
+					},
+				},
 			},
 			fiveDArray: {
 				type: TigrisDataTypes.ARRAY,
@@ -305,16 +311,17 @@ describe("schema tests", () => {
 							items: {
 								type: TigrisDataTypes.ARRAY,
 								items: {
-									type: addressSchema
-								}
-							}
-						}
-					}
-				}
-			}
+									type: addressSchema,
+								},
+							},
+						},
+					},
+				},
+			},
 		};
-		expect(Utility._toJSONSchema("multiLevelObjectArray",  schema))
-			.toBe(Utility._readTestDataFile("multiLevelObjectArray.json"));
+		expect(Utility._toJSONSchema("multiLevelObjectArray", schema)).toBe(
+			Utility._readTestDataFile("multiLevelObjectArray.json")
+		);
 	});
 });
 
@@ -338,7 +345,7 @@ interface BasicCollectionWithObject extends TigrisCollectionType {
 interface NestedCollection extends TigrisCollectionType {
 	id: number;
 	name: string;
-	address: Address
+	address: Address;
 }
 
 interface CollectionWithPrimitiveArrays extends TigrisCollectionType {
