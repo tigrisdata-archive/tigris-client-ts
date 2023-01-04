@@ -1,8 +1,7 @@
-import {SimpleUpdateField, UpdateFields, UpdateFieldsOperator} from "../types";
-import {Utility} from "../utility";
+import { SimpleUpdateField, UpdateFields, UpdateFieldsOperator } from "../types";
+import { Utility } from "../utility";
 
 describe("updateFields tests", () => {
-
 	it("updateFields", () => {
 		const updateFields: UpdateFields = {
 			op: UpdateFieldsOperator.SET,
@@ -10,9 +9,11 @@ describe("updateFields tests", () => {
 				title: "New Title",
 				price: 499,
 				active: true,
-			}
+			},
 		};
-		expect(Utility.updateFieldsString(updateFields)).toBe("{\"$set\":{\"title\":\"New Title\",\"price\":499,\"active\":true}}");
+		expect(Utility.updateFieldsString(updateFields)).toBe(
+			'{"$set":{"title":"New Title","price":499,"active":true}}'
+		);
 	});
 
 	it("simpleUpdateField", () => {
@@ -21,6 +22,8 @@ describe("updateFields tests", () => {
 			price: 499,
 			active: true,
 		};
-		expect(Utility.updateFieldsString(updateFields)).toBe("{\"$set\":{\"title\":\"New Title\",\"price\":499,\"active\":true}}");
+		expect(Utility.updateFieldsString(updateFields)).toBe(
+			'{"$set":{"title":"New Title","price":499,"active":true}}'
+		);
 	});
 });

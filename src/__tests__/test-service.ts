@@ -1,6 +1,6 @@
-import {ITigrisServer, TigrisService} from "../proto/server/v1/api_grpc_pb";
-import {sendUnaryData, ServerUnaryCall, ServerWritableStream} from "@grpc/grpc-js";
-import {v4 as uuidv4} from "uuid";
+import { ITigrisServer, TigrisService } from "../proto/server/v1/api_grpc_pb";
+import { sendUnaryData, ServerUnaryCall, ServerWritableStream } from "@grpc/grpc-js";
+import { v4 as uuidv4 } from "uuid";
 import {
 	BeginTransactionRequest,
 	BeginTransactionResponse,
@@ -50,10 +50,12 @@ import {
 	DescribeDatabaseRequest,
 	DescribeDatabaseResponse,
 	CreateBranchRequest,
-	CreateBranchResponse, DeleteBranchRequest, DeleteBranchResponse
+	CreateBranchResponse,
+	DeleteBranchRequest,
+	DeleteBranchResponse,
 } from "../proto/server/v1/api_pb";
 import * as google_protobuf_timestamp_pb from "google-protobuf/google/protobuf/timestamp_pb";
-import {Utility} from "../utility";
+import { Utility } from "../utility";
 
 export class TestTigrisService {
 	private static PROJECTS: string[] = [];
@@ -62,22 +64,28 @@ export class TestTigrisService {
 	private static txOrigin: string;
 	public static readonly BOOKS_B64_BY_ID: ReadonlyMap<string, string> = new Map([
 		// base64 of {"id":1,"title":"A Passage to India","author":"E.M. Forster","tags":["Novel","India"]}
-		["1", "eyJpZCI6MSwidGl0bGUiOiJBIFBhc3NhZ2UgdG8gSW5kaWEiLCJhdXRob3IiOiJFLk0uIEZvcnN0ZXIiLCJ0YWdzIjpbIk5vdmVsIiwiSW5kaWEiXX0="],
+		[
+			"1",
+			"eyJpZCI6MSwidGl0bGUiOiJBIFBhc3NhZ2UgdG8gSW5kaWEiLCJhdXRob3IiOiJFLk0uIEZvcnN0ZXIiLCJ0YWdzIjpbIk5vdmVsIiwiSW5kaWEiXX0=",
+		],
 		// base64 of {"id":3,"title":"In Search of Lost Time","author":"Marcel Proust","tags":["Novel","Childhood"]}
-		["3", "eyJpZCI6MywidGl0bGUiOiJJbiBTZWFyY2ggb2YgTG9zdCBUaW1lIiwiYXV0aG9yIjoiTWFyY2VsIFByb3VzdCIsInRhZ3MiOlsiTm92ZWwiLCJDaGlsZGhvb2QiXX0="],
+		[
+			"3",
+			"eyJpZCI6MywidGl0bGUiOiJJbiBTZWFyY2ggb2YgTG9zdCBUaW1lIiwiYXV0aG9yIjoiTWFyY2VsIFByb3VzdCIsInRhZ3MiOlsiTm92ZWwiLCJDaGlsZGhvb2QiXX0=",
+		],
 		// base64 of {"id":4,"title":"Swann's Way","author":"Marcel Proust"}
 		["4", "eyJpZCI6NCwidGl0bGUiOiJTd2FubidzIFdheSIsImF1dGhvciI6Ik1hcmNlbCBQcm91c3QifQ=="],
 		// base64 of {"id":5,"title":"Time Regained","author":"Marcel Proust"}
 		["5", "eyJpZCI6NSwidGl0bGUiOiJUaW1lIFJlZ2FpbmVkIiwiYXV0aG9yIjoiTWFyY2VsIFByb3VzdCJ9"],
 		// base64 of {"id":6,"title":"The Prisoner","author":"Marcel Proust"}
-		["6", "eyJpZCI6NiwidGl0bGUiOiJUaGUgUHJpc29uZXIiLCJhdXRob3IiOiJNYXJjZWwgUHJvdXN0In0="]
+		["6", "eyJpZCI6NiwidGl0bGUiOiJUaGUgUHJpc29uZXIiLCJhdXRob3IiOiJNYXJjZWwgUHJvdXN0In0="],
 	]);
 
 	public static readonly ALERTS_B64_BY_ID: ReadonlyMap<number, string> = new Map([
 		// base64 of {"id":1,"text":"test"}
 		[1, "eyJpZCI6MSwidGV4dCI6InRlc3QifQ=="],
 		// base64 of {"id":2,"text":"test message 25"}
-		[2, "eyJpZCI6MiwidGV4dCI6InRlc3QgbWVzc2FnZSAyNSJ9"]
+		[2, "eyJpZCI6MiwidGV4dCI6InRlc3QgbWVzc2FnZSAyNSJ9"],
 	]);
 
 	static reset() {
@@ -96,7 +104,76 @@ export class TestTigrisService {
 	}
 
 	public impl: {
-		deleteBranch(call: ServerUnaryCall<DeleteBranchRequest, DeleteBranchResponse>, callback: sendUnaryData<DeleteBranchResponse>): void; read(call: ServerWritableStream<ReadRequest, ReadResponse>): void; describeDatabase(call: ServerUnaryCall<DescribeDatabaseRequest, DescribeDatabaseResponse>, callback: sendUnaryData<DescribeDatabaseResponse>): void; replace(call: ServerUnaryCall<ReplaceRequest, ReplaceResponse>, callback: sendUnaryData<ReplaceResponse>): void; rollbackTransaction(call: ServerUnaryCall<RollbackTransactionRequest, RollbackTransactionResponse>, callback: sendUnaryData<RollbackTransactionResponse>): void; insert(call: ServerUnaryCall<InsertRequest, InsertResponse>, callback: sendUnaryData<InsertResponse>): void; update(call: ServerUnaryCall<UpdateRequest, UpdateResponse>, callback: sendUnaryData<UpdateResponse>): void; createProject(call: ServerUnaryCall<CreateProjectRequest, CreateProjectResponse>, callback: sendUnaryData<CreateProjectResponse>): void; listProjects(call: ServerUnaryCall<ListProjectsRequest, ListProjectsResponse>, callback: sendUnaryData<ListProjectsResponse>): void; delete(call: ServerUnaryCall<DeleteRequest, DeleteResponse>, callback: sendUnaryData<DeleteResponse>): void; describeCollection(_call: ServerUnaryCall<DescribeCollectionRequest, DescribeCollectionResponse>, _callback: sendUnaryData<DescribeCollectionResponse>): void; search(call: ServerWritableStream<SearchRequest, SearchResponse>): void; createOrUpdateCollection(call: ServerUnaryCall<CreateOrUpdateCollectionRequest, CreateOrUpdateCollectionResponse>, callback: sendUnaryData<CreateOrUpdateCollectionResponse>): void; beginTransaction(call: ServerUnaryCall<BeginTransactionRequest, BeginTransactionResponse>, callback: sendUnaryData<BeginTransactionResponse>): void; commitTransaction(call: ServerUnaryCall<CommitTransactionRequest, CommitTransactionResponse>, callback: sendUnaryData<CommitTransactionResponse>): void; dropCollection(call: ServerUnaryCall<DropCollectionRequest, DropCollectionResponse>, callback: sendUnaryData<DropCollectionResponse>): void; deleteProject(call: ServerUnaryCall<DeleteProjectRequest, DeleteProjectResponse>, callback: sendUnaryData<DeleteProjectResponse>): void; createBranch(call: ServerUnaryCall<CreateBranchRequest, CreateBranchResponse>, callback: sendUnaryData<CreateBranchResponse>): void; listCollections(call: ServerUnaryCall<ListCollectionsRequest, ListCollectionsResponse>, callback: sendUnaryData<ListCollectionsResponse>): void
+		deleteBranch(
+			call: ServerUnaryCall<DeleteBranchRequest, DeleteBranchResponse>,
+			callback: sendUnaryData<DeleteBranchResponse>
+		): void;
+		read(call: ServerWritableStream<ReadRequest, ReadResponse>): void;
+		describeDatabase(
+			call: ServerUnaryCall<DescribeDatabaseRequest, DescribeDatabaseResponse>,
+			callback: sendUnaryData<DescribeDatabaseResponse>
+		): void;
+		replace(
+			call: ServerUnaryCall<ReplaceRequest, ReplaceResponse>,
+			callback: sendUnaryData<ReplaceResponse>
+		): void;
+		rollbackTransaction(
+			call: ServerUnaryCall<RollbackTransactionRequest, RollbackTransactionResponse>,
+			callback: sendUnaryData<RollbackTransactionResponse>
+		): void;
+		insert(
+			call: ServerUnaryCall<InsertRequest, InsertResponse>,
+			callback: sendUnaryData<InsertResponse>
+		): void;
+		update(
+			call: ServerUnaryCall<UpdateRequest, UpdateResponse>,
+			callback: sendUnaryData<UpdateResponse>
+		): void;
+		createProject(
+			call: ServerUnaryCall<CreateProjectRequest, CreateProjectResponse>,
+			callback: sendUnaryData<CreateProjectResponse>
+		): void;
+		listProjects(
+			call: ServerUnaryCall<ListProjectsRequest, ListProjectsResponse>,
+			callback: sendUnaryData<ListProjectsResponse>
+		): void;
+		delete(
+			call: ServerUnaryCall<DeleteRequest, DeleteResponse>,
+			callback: sendUnaryData<DeleteResponse>
+		): void;
+		describeCollection(
+			_call: ServerUnaryCall<DescribeCollectionRequest, DescribeCollectionResponse>,
+			_callback: sendUnaryData<DescribeCollectionResponse>
+		): void;
+		search(call: ServerWritableStream<SearchRequest, SearchResponse>): void;
+		createOrUpdateCollection(
+			call: ServerUnaryCall<CreateOrUpdateCollectionRequest, CreateOrUpdateCollectionResponse>,
+			callback: sendUnaryData<CreateOrUpdateCollectionResponse>
+		): void;
+		beginTransaction(
+			call: ServerUnaryCall<BeginTransactionRequest, BeginTransactionResponse>,
+			callback: sendUnaryData<BeginTransactionResponse>
+		): void;
+		commitTransaction(
+			call: ServerUnaryCall<CommitTransactionRequest, CommitTransactionResponse>,
+			callback: sendUnaryData<CommitTransactionResponse>
+		): void;
+		dropCollection(
+			call: ServerUnaryCall<DropCollectionRequest, DropCollectionResponse>,
+			callback: sendUnaryData<DropCollectionResponse>
+		): void;
+		deleteProject(
+			call: ServerUnaryCall<DeleteProjectRequest, DeleteProjectResponse>,
+			callback: sendUnaryData<DeleteProjectResponse>
+		): void;
+		createBranch(
+			call: ServerUnaryCall<CreateBranchRequest, CreateBranchResponse>,
+			callback: sendUnaryData<CreateBranchResponse>
+		): void;
+		listCollections(
+			call: ServerUnaryCall<ListCollectionsRequest, ListCollectionsResponse>,
+			callback: sendUnaryData<ListCollectionsResponse>
+		): void;
 	} = {
 		createBranch(
 			call: ServerUnaryCall<CreateBranchRequest, CreateBranchResponse>,
@@ -186,8 +263,7 @@ export class TestTigrisService {
 			_call: ServerUnaryCall<DescribeCollectionRequest, DescribeCollectionResponse>,
 			// eslint-disable-next-line @typescript-eslint/no-unused-vars
 			_callback: sendUnaryData<DescribeCollectionResponse>
-		): void {
-		},
+		): void {},
 
 		/* eslint-enable @typescript-eslint/no-empty-function */
 		describeDatabase(
@@ -208,9 +284,7 @@ export class TestTigrisService {
 						.setSchema("schema" + index)
 				);
 			}
-			result
-				.setMetadata(new DatabaseMetadata())
-				.setCollectionsList(collectionsDescription);
+			result.setMetadata(new DatabaseMetadata()).setCollectionsList(collectionsDescription);
 			callback(undefined, result);
 		},
 
@@ -256,18 +330,20 @@ export class TestTigrisService {
 			const keyList: Array<string> = [];
 			for (let i = 1; i <= call.request.getDocumentsList().length; i++) {
 				if (call.request.getCollection() === "books-with-optional-field") {
-					const extractedKeyFromAuthor: number = JSON.parse(Utility._base64Decode(call.request.getDocumentsList_asB64()[i - 1]))["author"];
-					keyList.push(Utility._base64Encode("{\"id\":" + extractedKeyFromAuthor + "}"));
+					const extractedKeyFromAuthor: number = JSON.parse(
+						Utility._base64Decode(call.request.getDocumentsList_asB64()[i - 1])
+					)["author"];
+					keyList.push(Utility._base64Encode('{"id":' + extractedKeyFromAuthor + "}"));
 				} else if (call.request.getCollection() === "books-multi-pk") {
-					keyList.push(Utility._base64Encode("{\"id\":" + i + ", \"id2\":" + i+1 + "}"));
+					keyList.push(Utility._base64Encode('{"id":' + i + ', "id2":' + i + 1 + "}"));
 				} else {
-					keyList.push(Utility._base64Encode("{\"id\":" + i + "}"));
+					keyList.push(Utility._base64Encode('{"id":' + i + "}"));
 				}
 			}
 			reply.setKeysList(keyList);
 			reply.setStatus(
 				"inserted: " +
-				JSON.stringify(new TextDecoder().decode(call.request.getDocumentsList_asU8()[0]))
+					JSON.stringify(new TextDecoder().decode(call.request.getDocumentsList_asU8()[0]))
 			);
 			reply.setMetadata(
 				new ResponseMetadata()
@@ -304,7 +380,9 @@ export class TestTigrisService {
 			const databaseInfos: ProjectInfo[] = [];
 			for (let index = 0; index < TestTigrisService.PROJECTS.length; index++) {
 				databaseInfos.push(
-					new ProjectInfo().setProject(TestTigrisService.PROJECTS[index]).setMetadata(new DatabaseMetadata())
+					new ProjectInfo()
+						.setProject(TestTigrisService.PROJECTS[index])
+						.setMetadata(new DatabaseMetadata())
 				);
 			}
 
@@ -345,9 +423,7 @@ export class TestTigrisService {
 				filter["id"] == 1
 			) {
 				// base64 of book id "1"
-				call.write(
-					new ReadResponse().setData(TestTigrisService.BOOKS_B64_BY_ID.get("1"))
-				);
+				call.write(new ReadResponse().setData(TestTigrisService.BOOKS_B64_BY_ID.get("1")));
 				call.end();
 			} else if (
 				call.request.getOptions() != undefined &&
@@ -363,13 +439,11 @@ export class TestTigrisService {
 			) {
 				// case with logicalFilter passed in
 				// base64 of book id "3"
-				call.write(
-					new ReadResponse().setData(TestTigrisService.BOOKS_B64_BY_ID.get("3"))
-				);
+				call.write(new ReadResponse().setData(TestTigrisService.BOOKS_B64_BY_ID.get("3")));
 				call.end();
 			} else if (filter["id"] === -1) {
 				// throw an error
-				call.emit("error", {message: "unknown record requested"});
+				call.emit("error", { message: "unknown record requested" });
 				call.end();
 			} else {
 				// returns 4 books
@@ -403,14 +477,17 @@ export class TestTigrisService {
 				call.write(new SearchResponse().setMeta(searchMeta.setPage(searchPage)));
 
 				// with facets, meta and page
-				const searchFacet = new SearchFacet().setCountsList(
-					[new FacetCount().setCount(2).setValue("Marcel Proust")]);
+				const searchFacet = new SearchFacet().setCountsList([
+					new FacetCount().setCount(2).setValue("Marcel Proust"),
+				]);
 				const resp = new SearchResponse().setMeta(searchMeta.setPage(searchPage));
 				resp.getFacetsMap().set("author", searchFacet);
 				call.write(resp);
 
 				// with first hit, meta and page
-				const searchHitMeta = new SearchHitMeta().setUpdatedAt(new google_protobuf_timestamp_pb.Timestamp());
+				const searchHitMeta = new SearchHitMeta().setUpdatedAt(
+					new google_protobuf_timestamp_pb.Timestamp()
+				);
 				const searchHit = new SearchHit().setMetadata(searchHitMeta);
 
 				// write all search hits to stream 1 by 1
@@ -442,16 +519,18 @@ export class TestTigrisService {
 			const keyList: Array<string> = [];
 			for (let i = 1; i <= call.request.getDocumentsList().length; i++) {
 				if (call.request.getCollection() === "books-with-optional-field") {
-					const extractedKeyFromAuthor: number = JSON.parse(Utility._base64Decode(call.request.getDocumentsList_asB64()[i - 1]))["author"];
-					keyList.push(Utility._base64Encode("{\"id\":" + extractedKeyFromAuthor + "}"));
+					const extractedKeyFromAuthor: number = JSON.parse(
+						Utility._base64Decode(call.request.getDocumentsList_asB64()[i - 1])
+					)["author"];
+					keyList.push(Utility._base64Encode('{"id":' + extractedKeyFromAuthor + "}"));
 				} else {
-					keyList.push(Utility._base64Encode("{\"id\":" + i + "}"));
+					keyList.push(Utility._base64Encode('{"id":' + i + "}"));
 				}
 			}
 			reply.setKeysList(keyList);
 			reply.setStatus(
 				"insertedOrReplaced: " +
-				JSON.stringify(new TextDecoder().decode(call.request.getDocumentsList_asU8()[0]))
+					JSON.stringify(new TextDecoder().decode(call.request.getDocumentsList_asU8()[0]))
 			);
 			reply.setMetadata(
 				new ResponseMetadata()
@@ -484,9 +563,9 @@ export class TestTigrisService {
 			const reply: UpdateResponse = new UpdateResponse();
 			reply.setStatus(
 				"updated: " +
-				Utility.uint8ArrayToString(call.request.getFilter_asU8()) +
-				", " +
-				Utility.uint8ArrayToString(call.request.getFields_asU8())
+					Utility.uint8ArrayToString(call.request.getFilter_asU8()) +
+					", " +
+					Utility.uint8ArrayToString(call.request.getFields_asU8())
 			);
 			reply.setModifiedCount(1);
 			reply.setMetadata(
@@ -495,7 +574,7 @@ export class TestTigrisService {
 					.setUpdatedAt(new google_protobuf_timestamp_pb.Timestamp())
 			);
 			callback(undefined, reply);
-		}
+		},
 	};
 }
 
