@@ -534,13 +534,12 @@ export const Utility = {
 			searchRequest.setExcludeFieldsList(request.excludeFields);
 		}
 
-		if (options !== undefined) {
-			if (options.collation !== undefined) {
-				searchRequest.setCollation(new ProtoCollation().setCase(options.collation.case));
-			}
-			if (options.perPage !== undefined) {
-				searchRequest.setPageSize(options.perPage);
-			}
+		if (request.hitsPerPage !== undefined) {
+			searchRequest.setPageSize(request.hitsPerPage);
+		}
+
+		if (options !== undefined && options.collation !== undefined) {
+			searchRequest.setCollation(new ProtoCollation().setCase(options.collation.case));
 		}
 
 		if (page !== undefined) {

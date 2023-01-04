@@ -576,16 +576,15 @@ describe("rpc tests", () => {
 				return maybePromise;
 			});
 
-			it("respects page size request option", () => {
-				const options: SearchRequestOptions = { perPage: 12 };
-				const request: SearchRequest<IBook> = { q: "philosophy", };
+			it("returns promise using request options", () => {
+				const options: SearchRequestOptions = { collation: {case: Case.CaseInsensitive} };
+				const request: SearchRequest<IBook> = { q: "philosophy"};
 
 				const maybePromise = db.getCollection<IBook>("books").search(request, options, pageNumber);
 				expect(maybePromise).toBeInstanceOf(Promise);
 
 				maybePromise.then((res: SearchResult<IBook>) => {
 					expect(res.meta.page.current).toBe(pageNumber);
-					expect(res.meta.page.size).toBe(options.perPage);
 				});
 
 				return maybePromise;
@@ -614,9 +613,9 @@ describe("rpc tests", () => {
 				expect(bookCounter).toBe(TestTigrisService.BOOKS_B64_BY_ID.size);
 			});
 
-			it("respects page size request option",async () => {
-				const request: SearchRequest<IBook> = { q: "philosophy", };
-				const options: SearchRequestOptions = { perPage: 12 };
+			it("returns iterator using request options",async () => {
+				const request: SearchRequest<IBook> = { q: "philosophy"};
+				const options: SearchRequestOptions = { collation: {case: Case.CaseInsensitive}};
 				let bookCounter = 0;
 
 				const maybeIterator = db.getCollection<IBook>("books").search(request, options);

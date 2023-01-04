@@ -46,6 +46,10 @@ export type SearchRequest<T extends TigrisCollectionType> = {
 	 * Document fields to exclude when returning search results
 	 */
 	excludeFields?: Array<string>;
+	/**
+	 * Maximum number of search hits (matched documents) to fetch per page
+	 */
+	hitsPerPage?: number;
 };
 
 /**
@@ -56,10 +60,6 @@ export type SearchRequestOptions = {
 	 * Allows case-insensitive filtering
 	 */
 	collation?: Collation;
-	/**
-	 * Number of matched documents (hits) to fetch per page
-	 */
-	perPage?: number;
 };
 
 export type FacetFieldsQuery = FacetFieldOptions | FacetFields;
@@ -186,7 +186,7 @@ export class SearchResult<T> {
 
 	static from<T>(resp: ProtoSearchResponse, config: TigrisClientConfig): SearchResult<T> {
 		const _meta =
-			typeof resp?.getMeta() !== "undefined" ? SearchMeta.from(resp.getMeta()) : undefined;
+			typeof resp?.getMeta() !== "undefined" ? SearchMeta.from(resp.getMeta()) : SearchMeta.default;
 		const _hits: Array<Hit<T>> = resp.getHitsList().map((h) => Hit.from(h, config));
 		const _facets: Map<string, FacetCountDistribution> = new Map(
 			resp
