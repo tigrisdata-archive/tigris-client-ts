@@ -15,7 +15,7 @@ import {
 	DeleteResponse,
 	DMLMetadata,
 	Filter,
-	ReadFields,
+	FindQuery,
 	ReadRequestOptions,
 	SelectorFilterOperator,
 	SimpleUpdateField,
@@ -52,37 +52,116 @@ export abstract class ReadOnlyCollection<T extends TigrisCollectionType> impleme
 		this.grpcClient = grpcClient;
 		this.config = config;
 	}
+
+	private isTxSession(txOrQuery: Session | unknown): txOrQuery is Session {
+		const mayBeTx = txOrQuery as Session;
+		return "id" in mayBeTx && mayBeTx instanceof Session;
+	}
+
+	/**
+	 * Read all the documents from a collection.
+	 *
+	 * @returns - {@link Cursor} to iterate over documents
+	 *
+	 * @example
+	 * ```
+	 * const cursor = db.getCollection<Book>(Book).findMany();
+	 *
+	 * for await (const document of cursor) {
+	 *   console.log(document);
+	 * }
+	 * ```
+	 */
+	findMany(): Cursor<T>;
+
+	/**
+	 * Reads all the documents from a collection in transactional context.
+	 *
+	 * @param tx - Session information for Transaction
+	 * @returns - {@link Cursor} to iterate over documents
+	 *
+	 * @example
+	 * ```
+	 * const cursor = db.getCollection<Book>(Book).findMany(tx);
+	 *
+	 * for await (const document of cursor) {
+	 *   console.log(document);
+	 * }
+	 * ```
+	 */
+	findMany(tx: Session): Cursor<T>;
+
 	/**
 	 * Performs a read query on collection and returns a cursor that can be used to iterate over
 	 * query results.
 	 *
-	 * @param filter - Optional filter. If unspecified, then all documents will match the filter
-	 * @param readFields - Optional field projection param allows returning only specific document fields in result
-	 * @param tx - Optional session information for transaction context
-	 * @param options - Optional settings for the find query
+	 * @param query - Filter, field projection and other parameters
+	 * @returns - {@link Cursor} to iterate over documents
+	 *
+	 * @example
+	 * ```
+	 * const cursor = db.getCollection<Book>(Book).findMany({
+	 * 		filter: { op: SelectorFilterOperator.EQ, fields: { author: "Marcel Proust" }},
+	 * 		readFields: { include: ["id", "title"] }
+	 * });
+	 *
+	 * for await (const document of cursor) {
+	 *   console.log(document);
+	 * }
+	 * ```
 	 */
-	findMany(
-		filter?: Filter<T>,
-		readFields?: ReadFields,
-		tx?: Session,
-		options?: ReadRequestOptions
-	): Cursor<T> {
-		// find all
-		if (filter === undefined) {
-			filter = { op: SelectorFilterOperator.NONE };
+	findMany(query: FindQuery<T>): Cursor<T>;
+
+	/**
+	 * Performs a read query on collection in transactional context and returns a
+	 * cursor that can be used to iterate over query results.
+	 *
+	 * @param query - Filter, field projection and other parameters
+	 * @param tx - Session information for Transaction
+	 * @returns - {@link Cursor} to iterate over documents
+	 *
+	 * @example
+	 * ```
+	 * const cursor = db.getCollection<Book>(Book).findMany({
+	 * 		filter: { op: SelectorFilterOperator.EQ, fields: { author: "Marcel Proust" }},
+	 * 		readFields: { include: ["id", "title"] }
+	 * }, tx);
+	 *
+	 * for await (const document of cursor) {
+	 *   console.log(document);
+	 * }
+	 * ```
+	 */
+	findMany(query: FindQuery<T>, tx: Session): Cursor<T>;
+
+	findMany(txOrQuery?: Session | FindQuery<T>, tx?: Session): Cursor<T> {
+		let query: FindQuery<T>;
+		if (typeof txOrQuery !== "undefined") {
+			if (this.isTxSession(txOrQuery)) {
+				tx = txOrQuery as Session;
+			} else {
+				query = txOrQuery as FindQuery<T>;
+			}
 		}
 
+		const findAll: Filter<T> = { op: SelectorFilterOperator.NONE };
+
+		if (!query) {
+			query = { filter: findAll };
+		} else if (!query.filter) {
+			query.filter = findAll;
+		}
 		const readRequest = new ProtoReadRequest()
 			.setProject(this.db)
 			.setCollection(this.collectionName)
-			.setFilter(Utility.stringToUint8Array(Utility.filterToString(filter)));
+			.setFilter(Utility.stringToUint8Array(Utility.filterToString(query.filter)));
 
-		if (readFields) {
-			readRequest.setFields(Utility.stringToUint8Array(Utility.readFieldString(readFields)));
+		if (query.readFields) {
+			readRequest.setFields(Utility.stringToUint8Array(Utility.readFieldString(query.readFields)));
 		}
 
-		if (options !== undefined) {
-			readRequest.setOptions(Utility._readRequestOptionsToProtoReadRequestOptions(options));
+		if (query.options) {
+			readRequest.setOptions(Utility._readRequestOptionsToProtoReadRequestOptions(query.options));
 		}
 
 		const initializer = new ReadCursorInitializer(this.grpcClient, readRequest, tx);
@@ -90,28 +169,106 @@ export abstract class ReadOnlyCollection<T extends TigrisCollectionType> impleme
 	}
 
 	/**
-	 * Performs a query to find a single document in collection. Returns the document if found, else
-	 * null.
+	 * Read a single document from collection.
 	 *
-	 * @param filter - Query to match the document
-	 * @param readFields - Optional field projection param allows returning only specific document fields in result
-	 * @param tx - Optional session information for transaction context
-	 * @param options - Optional settings for the find query
+	 * @returns - The document if found else **undefined**
+	 *
+	 * @example
+	 * ```
+	 * const documentPromise = db.getCollection<Book>(Book).findOne();
+	 *
+	 * documentPromise
+	 * 		.then((doc: Book | undefined) => console.log(doc));
+	 * 		.catch( // catch the error)
+	 * 		.finally( // finally do something);
+	 * ```
 	 */
-	findOne(
-		filter: Filter<T>,
-		readFields?: ReadFields,
-		tx?: Session,
-		options?: ReadRequestOptions
-	): Promise<T | undefined> {
-		return new Promise<T>((resolve, reject) => {
-			if (options === undefined) {
-				options = new ReadRequestOptions(1);
-			} else {
-				options.limit = 1;
-			}
+	findOne(): Promise<T | undefined>;
 
-			const cursor = this.findMany(filter, readFields, tx, options);
+	/**
+	 * Read a single document from collection in transactional context
+	 *
+	 * @param tx - Session information for Transaction
+	 * @returns - The document if found else **undefined**
+	 *
+	 * @example
+	 * ```
+	 * const documentPromise = db.getCollection<Book>(Book).findOne(tx);
+	 *
+	 * documentPromise
+	 * 		.then((doc: Book | undefined) => console.log(doc));
+	 * 		.catch( // catch the error)
+	 * 		.finally( // finally do something);
+	 * ```
+	 */
+	findOne(tx: Session): Promise<T | undefined>;
+
+	/**
+	 * Performs a read query on the collection and returns a single document matching
+	 * the query.
+	 *
+	 * @param query - Filter, field projection and other parameters
+	 * @returns - The document if found else **undefined**
+	 *
+	 * @example
+	 * ```
+	 * const documentPromise = db.getCollection<Book>(Book).findOne({
+	 * 		filter: { op: SelectorFilterOperator.EQ, fields: { author: "Marcel Proust" }},
+	 * 		readFields: { include: ["id", "title"] }
+	 * });
+	 *
+	 * documentPromise
+	 * 		.then((doc: Book | undefined) => console.log(doc));
+	 * 		.catch( // catch the error)
+	 * 		.finally( // finally do something);
+	 * ```
+	 */
+	findOne(query: FindQuery<T>): Promise<T | undefined>;
+	/**
+	 * Performs a read query on the collection in transactional context and returns
+	 * a single document matching the query.
+	 *
+	 * @param query - Filter, field projection and other parameters
+	 * @param tx - Session information for Transaction
+	 * @returns - The document if found else **undefined**
+	 *
+	 * @example
+	 * ```
+	 * const documentPromise = db.getCollection<Book>(Book).findOne({
+	 * 		filter: { op: SelectorFilterOperator.EQ, fields: { author: "Marcel Proust" }},
+	 * 		readFields: { include: ["id", "title"] }
+	 * }, tx);
+	 *
+	 * documentPromise
+	 * 		.then((doc: Book | undefined) => console.log(doc));
+	 * 		.catch( // catch the error)
+	 * 		.finally( // finally do something);
+	 * ```
+	 */
+	findOne(query: FindQuery<T>, tx: Session): Promise<T | undefined>;
+
+	findOne(txOrQuery?: Session | FindQuery<T>, tx?: Session): Promise<T | undefined> {
+		let query: FindQuery<T>;
+		if (typeof txOrQuery !== "undefined") {
+			if (this.isTxSession(txOrQuery)) {
+				tx = txOrQuery as Session;
+			} else {
+				query = txOrQuery as FindQuery<T>;
+			}
+		}
+
+		const findOnlyOne: ReadRequestOptions = new ReadRequestOptions(1);
+
+		if (!query) {
+			query = { options: findOnlyOne };
+		} else if (!query.options) {
+			query.options = findOnlyOne;
+		} else {
+			query.options.limit = findOnlyOne.limit;
+		}
+
+		return new Promise<T>((resolve, reject) => {
+			const cursor = this.findMany(query, tx);
 			const iteratorResult = cursor[Symbol.asyncIterator]().next();
 			if (iteratorResult !== undefined) {
 				iteratorResult

@@ -364,6 +364,23 @@ export type SimpleUpdateField = {
 	[key: string]: FieldTypes | undefined;
 };
 
+export interface FindQuery<T> {
+	/**
+	 * Filter to match the documents. Query will match all documents without a filter.
+	 */
+	filter?: Filter<T>;
+
+	/**
+	 * Field projection to allow returning only specific document fields. By default
+	 * all document fields are returned.
+	 */
+	readFields?: ReadFields;
+	/**
+	 * Optional params
+	 */
+	options?: ReadRequestOptions;
+}
+
 export enum TigrisDataTypes {
 	STRING = "string",
 	BOOLEAN = "boolean",

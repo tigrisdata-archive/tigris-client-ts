@@ -370,9 +370,11 @@ describe("rpc tests", () => {
 		const tigris = new Tigris({ serverUrl: "localhost:" + SERVER_PORT, projectName: "db3" });
 		const db1 = tigris.getDatabase();
 		const readOnePromise = db1.getCollection<IBook>("books").findOne({
-			op: SelectorFilterOperator.EQ,
-			fields: {
-				id: 1,
+			filter: {
+				op: SelectorFilterOperator.EQ,
+				fields: {
+					id: 1,
+				},
 			},
 		});
 		readOnePromise.then((value) => {
@@ -389,9 +391,11 @@ describe("rpc tests", () => {
 		const tigris = new Tigris({ serverUrl: "localhost:" + SERVER_PORT, projectName: "db3" });
 		const db1 = tigris.getDatabase();
 		const readOnePromise = db1.getCollection<IBook>("books").findOne({
-			op: SelectorFilterOperator.EQ,
-			fields: {
-				id: 2,
+			filter: {
+				op: SelectorFilterOperator.EQ,
+				fields: {
+					id: 2,
+				},
 			},
 		});
 		readOnePromise.then((value) => {
@@ -404,21 +408,23 @@ describe("rpc tests", () => {
 		const tigris = new Tigris({ serverUrl: "localhost:" + SERVER_PORT, projectName: "db3" });
 		const db1 = tigris.getDatabase();
 		const readOnePromise: Promise<IBook | void> = db1.getCollection<IBook>("books").findOne({
-			op: LogicalOperator.AND,
-			selectorFilters: [
-				{
-					op: SelectorFilterOperator.EQ,
-					fields: {
-						id: 3,
+			filter: {
+				op: LogicalOperator.AND,
+				selectorFilters: [
+					{
+						op: SelectorFilterOperator.EQ,
+						fields: {
+							id: 3,
+						},
 					},
-				},
-				{
-					op: SelectorFilterOperator.EQ,
-					fields: {
-						title: "In Search of Lost Time",
+					{
+						op: SelectorFilterOperator.EQ,
+						fields: {
+							title: "In Search of Lost Time",
+						},
 					},
-				},
-			],
+				],
+			},
 		});
 		readOnePromise.then((value) => {
 			const book: IBook = <IBook>value;
@@ -436,9 +442,11 @@ describe("rpc tests", () => {
 
 		it("with filter using for await on cursor", async () => {
 			const cursor = db.getCollection<IBook>("books").findMany({
-				op: SelectorFilterOperator.EQ,
-				fields: {
-					author: "Marcel Proust",
+				filter: {
+					op: SelectorFilterOperator.EQ,
+					fields: {
+						author: "Marcel Proust",
+					},
 				},
 			});
 
@@ -472,9 +480,11 @@ describe("rpc tests", () => {
 
 		it("throws an error", async () => {
 			const cursor = db.getCollection<IBook>("books").findMany({
-				op: SelectorFilterOperator.EQ,
-				fields: {
-					id: -1,
+				filter: {
+					op: SelectorFilterOperator.EQ,
+					fields: {
+						id: -1,
+					},
 				},
 			});
 
@@ -626,12 +636,13 @@ describe("rpc tests", () => {
 					books
 						.findOne(
 							{
-								op: SelectorFilterOperator.EQ,
-								fields: {
-									id: 1,
+								filter: {
+									op: SelectorFilterOperator.EQ,
+									fields: {
+										id: 1,
+									},
 								},
 							},
-							undefined,
 							tx
 						)
 						.then(() => {
