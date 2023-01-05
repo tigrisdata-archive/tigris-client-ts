@@ -11,6 +11,7 @@ import {
 } from "./proto/server/v1/api_pb";
 import { Session } from "./session";
 import {
+	DeleteQuery,
 	DeleteRequestOptions,
 	DeleteResponse,
 	DMLMetadata,
@@ -35,13 +36,17 @@ interface ICollection {
 	readonly db: string;
 }
 
-export abstract class ReadOnlyCollection<T extends TigrisCollectionType> implements ICollection {
+/**
+ * The **Collection** class represents Tigris collection allowing insert/find/update/delete/search
+ * operations.
+ */
+export class Collection<T extends TigrisCollectionType> implements ICollection {
 	readonly collectionName: string;
 	readonly db: string;
 	readonly grpcClient: TigrisClient;
 	readonly config: TigrisClientConfig;
 
-	protected constructor(
+	constructor(
 		collectionName: string,
 		db: string,
 		grpcClient: TigrisClient,
@@ -101,7 +106,7 @@ export abstract class ReadOnlyCollection<T extends TigrisCollectionType> impleme
 	 * @example
 	 * ```
 	 * const cursor = db.getCollection<Book>(Book).findMany({
-	 * 		filter: { op: SelectorFilterOperator.EQ, fields: { author: "Marcel Proust" }},
+	 * 		filter: { author: "Marcel Proust" },
 	 * 		readFields: { include: ["id", "title"] }
 	 * });
 	 *
@@ -123,7 +128,7 @@ export abstract class ReadOnlyCollection<T extends TigrisCollectionType> impleme
 	 * @example
 	 * ```
 	 * const cursor = db.getCollection<Book>(Book).findMany({
-	 * 		filter: { op: SelectorFilterOperator.EQ, fields: { author: "Marcel Proust" }},
+	 * 		filter: { author: "Marcel Proust" },
 	 * 		readFields: { include: ["id", "title"] }
 	 * }, tx);
 	 *
@@ -213,7 +218,7 @@ export abstract class ReadOnlyCollection<T extends TigrisCollectionType> impleme
 	 * @example
 	 * ```
 	 * const documentPromise = db.getCollection<Book>(Book).findOne({
-	 * 		filter: { op: SelectorFilterOperator.EQ, fields: { author: "Marcel Proust" }},
+	 * 		filter: { author: "Marcel Proust" },
 	 * 		readFields: { include: ["id", "title"] }
 	 * });
 	 *
@@ -235,7 +240,7 @@ export abstract class ReadOnlyCollection<T extends TigrisCollectionType> impleme
 	 * @example
 	 * ```
 	 * const documentPromise = db.getCollection<Book>(Book).findOne({
-	 * 		filter: { op: SelectorFilterOperator.EQ, fields: { author: "Marcel Proust" }},
+	 * 		filter: { author: "Marcel Proust" },
 	 * 		readFields: { include: ["id", "title"] }
 	 * }, tx);
 	 *
@@ -410,21 +415,6 @@ export abstract class ReadOnlyCollection<T extends TigrisCollectionType> impleme
 			});
 		}
 	}
-}
-
-/**
- * The **Collection** class represents Tigris collection allowing insert/find/update/delete/search
- * operations.
- */
-export class Collection<T extends TigrisCollectionType> extends ReadOnlyCollection<T> {
-	constructor(
-		collectionName: string,
-		db: string,
-		grpcClient: TigrisClient,
-		config: TigrisClientConfig
-	) {
-		super(collectionName, db, grpcClient, config);
-	}
 
 	private setDocsMetadata(docs: Array<T>, keys: Array<Uint8Array>): Array<T> {
 		let docIndex = 0;
@@ -546,28 +536,62 @@ export class Collection<T extends TigrisCollectionType> extends ReadOnlyCollecti
 	}
 
 	/**
-	 * Deletes documents in collection matching the filter
+	 * Delete documents from collection matching the query
 	 *
-	 * @param filter - Query to match documents to delete
-	 * @param tx - Optional session information for transaction context
-	 * @param options - Optional settings for delete
+	 * @param query - Filter to match documents and other deletion options
+	 * @returns {@link DeleteResponse}
+	 *
+	 * @example
+	 *
+	 * ```
+	 * const deletionPromise = db.getCollection<Book>(Book).deleteMany({
+	 * 		filter: { author: "Marcel Proust" }
+	 * });
+	 *
+	 * deletionPromise
+	 * 		.then((resp: DeleteResponse) => console.log(resp));
+	 * 		.catch( // catch the error)
+	 * 		.finally( // finally do something);
+	 * ```
 	 */
-	deleteMany(
-		filter: Filter<T>,
-		tx?: Session,
-		options?: DeleteRequestOptions
-	): Promise<DeleteResponse> {
+	deleteMany(query: DeleteQuery<T>): Promise<DeleteResponse>;
+
+	/**
+	 * Delete documents from collection in transactional context
+	 *
+	 * @param query - Filter to match documents and other deletion options
+	 * @param tx - Optional session information for transaction context
+	 * @returns {@link DeleteResponse}
+	 *
+	 * @example
+	 *
+	 * ```
+	 * const deletionPromise = db.getCollection<Book>(Book).deleteMany({
+	 * 		filter: { author: "Marcel Proust" }
+	 * }, tx);
+	 *
+	 * deletionPromise
+	 * 		.then((resp: DeleteResponse) => console.log(resp));
+	 * 		.catch( // catch the error)
+	 * 		.finally( // finally do something);
+	 * ```
+	 */
+	deleteMany(query: DeleteQuery<T>, tx: Session): Promise<DeleteResponse>;
+
+	deleteMany(query: DeleteQuery<T>, tx?: Session): Promise<DeleteResponse> {
 		return new Promise<DeleteResponse>((resolve, reject) => {
-			if (!filter) {
+			if (typeof query?.filter === "undefined") {
 				reject(new Error("No filter specified"));
 			}
 			const deleteRequest = new ProtoDeleteRequest()
 				.setProject(this.db)
 				.setCollection(this.collectionName)
-				.setFilter(Utility.stringToUint8Array(Utility.filterToString(filter)));
+				.setFilter(Utility.stringToUint8Array(Utility.filterToString(query.filter)));
 
-			if (options !== undefined) {
-				deleteRequest.setOptions(Utility._deleteRequestOptionsToProtoDeleteRequestOptions(options));
+			if (query.options) {
+				deleteRequest.setOptions(
+					Utility._deleteRequestOptionsToProtoDeleteRequestOptions(query.options)
+				);
 			}
 
 			this.grpcClient.delete(deleteRequest, Utility.txToMetadata(tx), (error, response) => {
@@ -585,24 +609,56 @@ export class Collection<T extends TigrisCollectionType> extends ReadOnlyCollecti
 	}
 
 	/**
-	 * Deletes a single document in collection matching the filter
+	 * Delete a single document from collection matching the query
 	 *
-	 * @param filter - Query to match documents to delete
-	 * @param tx - Optional session information for transaction context
-	 * @param options - Optional settings for delete
+	 * @param query - Filter to match documents and other deletion options
+	 * @returns {@link DeleteResponse}
+	 *
+	 * @example
+	 *
+	 * ```
+	 * const deletionPromise = db.getCollection<Book>(Book).deleteOne({
+	 * 		filter: { author: "Marcel Proust" }
+	 * });
+	 *
+	 * deletionPromise
+	 * 		.then((resp: DeleteResponse) => console.log(resp));
+	 * 		.catch( // catch the error)
+	 * 		.finally( // finally do something);
+	 * ```
 	 */
-	deleteOne(
-		filter: Filter<T>,
-		tx?: Session,
-		options?: DeleteRequestOptions
-	): Promise<DeleteResponse> {
-		if (options === undefined) {
-			options = new DeleteRequestOptions(1);
+	deleteOne(query: DeleteQuery<T>): Promise<DeleteResponse>;
+
+	/**
+	 * Delete a single document from collection in transactional context
+	 *
+	 * @param query - Filter to match documents and other deletion options
+	 * @param tx - Optional session information for transaction context
+	 * @returns {@link DeleteResponse}
+	 *
+	 * @example
+	 *
+	 * ```
+	 * const deletionPromise = db.getCollection<Book>(Book).deleteOne({
+	 * 		filter: { author: "Marcel Proust" }
+	 * }, tx);
+	 *
+	 * deletionPromise
+	 * 		.then((resp: DeleteResponse) => console.log(resp));
+	 * 		.catch( // catch the error)
+	 * 		.finally( // finally do something);
+	 * ```
+	 */
+	deleteOne(query: DeleteQuery<T>, tx: Session): Promise<DeleteResponse>;
+
+	deleteOne(query: DeleteQuery<T>, tx?: Session): Promise<DeleteResponse> {
+		if (query.options === undefined) {
+			query.options = new DeleteRequestOptions(1);
 		} else {
-			options.limit = 1;
+			query.options.limit = 1;
 		}
 
-		return this.deleteMany(filter, tx, options);
+		return this.deleteMany(query, tx);
 	}
 
 	/**

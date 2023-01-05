@@ -273,10 +273,7 @@ describe("rpc tests", () => {
 		const tigris = new Tigris({ serverUrl: "localhost:" + SERVER_PORT, projectName: "db3" });
 		const db1 = tigris.getDatabase();
 		const deletionPromise = db1.getCollection<IBook>(IBook).deleteMany({
-			op: SelectorFilterOperator.EQ,
-			fields: {
-				id: 1,
-			},
+			filter: { id: 1 },
 		});
 		deletionPromise.then((value) => {
 			expect(value.status).toBe('deleted: {"id":1}');
@@ -293,17 +290,17 @@ describe("rpc tests", () => {
 		const expectedCollation: Collation = { case: Case.CaseInsensitive };
 		const options = new DeleteRequestOptions(5, expectedCollation);
 
-		const deletePromise = collection.deleteOne(expectedFilter, undefined, options);
-		const [capturedFilter, capturedTx, capturedOptions] = capture(spyCollection.deleteMany).last();
+		const deletePromise = collection.deleteOne({ filter: expectedFilter, options: options });
+		const [capturedQuery, capturedTx] = capture(spyCollection.deleteMany).last();
 
 		// filter passed as it is
-		expect(capturedFilter).toBe(expectedFilter);
+		expect(capturedQuery.filter).toBe(expectedFilter);
 		// tx passed as it is
 		expect(capturedTx).toBe(undefined);
 		// options.collation passed as it is
-		expect(capturedOptions.collation).toBe(expectedCollation);
+		expect(capturedQuery.options.collation).toBe(expectedCollation);
 		// options.limit === 1 while original was 5
-		expect(capturedOptions.limit).toBe(1);
+		expect(capturedQuery.options.limit).toBe(1);
 
 		return deletePromise;
 	});
@@ -667,9 +664,11 @@ describe("rpc tests", () => {
 									books
 										.deleteMany(
 											{
-												op: SelectorFilterOperator.EQ,
-												fields: {
-													id: 1,
+												filter: {
+													op: SelectorFilterOperator.EQ,
+													fields: {
+														id: 1,
+													},
 												},
 											},
 											tx
