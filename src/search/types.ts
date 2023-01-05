@@ -57,7 +57,7 @@ export type SearchQuery<T extends TigrisCollectionType> = {
  */
 export type SearchQueryOptions = {
 	/**
-	 * Allows case-insensitive filtering
+	 * String comparison rules for filtering. E.g. - Case insensitive text match
 	 */
 	collation?: Collation;
 };

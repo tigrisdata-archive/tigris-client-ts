@@ -185,7 +185,7 @@ export class UpdateResponse extends DMLResponse {
 
 export class WriteOptions {}
 
-export class DeleteRequestOptions {
+export class DeleteQueryOptions {
 	private _collation: Collation;
 	private _limit: number;
 
@@ -211,7 +211,7 @@ export class DeleteRequestOptions {
 	}
 }
 
-export class UpdateRequestOptions {
+export class UpdateQueryOptions {
 	private _collation: Collation;
 	private _limit: number;
 
@@ -237,7 +237,7 @@ export class UpdateRequestOptions {
 	}
 }
 
-export class ReadRequestOptions {
+export class FindQueryOptions {
 	static DEFAULT_LIMIT = 100;
 	static DEFAULT_SKIP = 0;
 
@@ -250,8 +250,8 @@ export class ReadRequestOptions {
 	constructor(limit: number, skip: number);
 	constructor(limit?: number, skip?: number, offset?: string);
 	constructor(limit?: number, skip?: number, offset?: string, collation?: Collation) {
-		this._limit = limit ?? ReadRequestOptions.DEFAULT_LIMIT;
-		this._skip = skip ?? ReadRequestOptions.DEFAULT_SKIP;
+		this._limit = limit ?? FindQueryOptions.DEFAULT_LIMIT;
+		this._skip = skip ?? FindQueryOptions.DEFAULT_SKIP;
 		this._offset = offset;
 		this._collation = collation;
 	}
@@ -382,7 +382,7 @@ export interface FindQuery<T> {
 	/**
 	 * Optional params
 	 */
-	options?: ReadRequestOptions;
+	options?: FindQueryOptions;
 }
 
 /**
@@ -398,7 +398,7 @@ export interface DeleteQuery<T> {
 	/**
 	 * Optional params
 	 */
-	options?: DeleteRequestOptions;
+	options?: DeleteQueryOptions;
 }
 
 /**
@@ -419,7 +419,7 @@ export interface UpdateQuery<T> {
 	/**
 	 * Optional params
 	 */
-	options?: UpdateRequestOptions;
+	options?: UpdateQueryOptions;
 }
 
 export enum TigrisDataTypes {

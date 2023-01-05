@@ -12,16 +12,16 @@ import {
 import { Session } from "./session";
 import {
 	DeleteQuery,
-	DeleteRequestOptions,
+	DeleteQueryOptions,
 	DeleteResponse,
 	DMLMetadata,
 	Filter,
 	FindQuery,
-	ReadRequestOptions,
+	FindQueryOptions,
 	SelectorFilterOperator,
 	TigrisCollectionType,
 	UpdateQuery,
-	UpdateRequestOptions,
+	UpdateQueryOptions,
 	UpdateResponse,
 } from "./types";
 import { Utility } from "./utility";
@@ -280,7 +280,7 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 
 	updateOne(query: UpdateQuery<T>, tx?: Session): Promise<UpdateResponse> {
 		if (query.options === undefined) {
-			query.options = new UpdateRequestOptions(1);
+			query.options = new UpdateQueryOptions(1);
 		} else {
 			query.options.limit = 1;
 		}
@@ -405,7 +405,7 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 
 	deleteOne(query: DeleteQuery<T>, tx?: Session): Promise<DeleteResponse> {
 		if (query.options === undefined) {
-			query.options = new DeleteRequestOptions(1);
+			query.options = new DeleteQueryOptions(1);
 		} else {
 			query.options.limit = 1;
 		}
@@ -614,7 +614,7 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 				}
 			}
 
-			const findOnlyOne: ReadRequestOptions = new ReadRequestOptions(1);
+			const findOnlyOne: FindQueryOptions = new FindQueryOptions(1);
 
 			if (!query) {
 				query = { options: findOnlyOne };

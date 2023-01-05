@@ -2,14 +2,14 @@ import { Server, ServerCredentials } from "@grpc/grpc-js";
 import { TigrisService } from "../proto/server/v1/api_grpc_pb";
 import TestService, { TestTigrisService } from "./test-service";
 import {
-	DeleteRequestOptions,
+	DeleteQueryOptions,
 	LogicalOperator,
 	SelectorFilterOperator,
 	TigrisCollectionType,
 	TigrisDataTypes,
 	TigrisSchema,
 	UpdateFieldsOperator,
-	UpdateRequestOptions,
+	UpdateQueryOptions,
 } from "../types";
 import { Tigris } from "../tigris";
 import { Case, Collation, SearchQuery, SearchQueryOptions, SearchResult } from "../search/types";
@@ -282,7 +282,7 @@ describe("rpc tests", () => {
 
 		const expectedFilter = { id: 1 };
 		const expectedCollation: Collation = { case: Case.CaseInsensitive };
-		const options = new DeleteRequestOptions(5, expectedCollation);
+		const options = new DeleteQueryOptions(5, expectedCollation);
 
 		const deletePromise = collection.deleteOne({ filter: expectedFilter, options: options });
 		const [capturedQuery, capturedTx] = capture(spyCollection.deleteMany).last();
@@ -331,7 +331,7 @@ describe("rpc tests", () => {
 		const expectedFilter = { id: 1 };
 		const expectedCollation: Collation = { case: Case.CaseInsensitive };
 		const expectedUpdateFields = { title: "one" };
-		const options = new UpdateRequestOptions(5, expectedCollation);
+		const options = new UpdateQueryOptions(5, expectedCollation);
 
 		const updatePromise = collection.updateOne({
 			filter: expectedFilter,

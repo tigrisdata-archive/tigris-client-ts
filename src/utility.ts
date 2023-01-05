@@ -3,11 +3,11 @@ import json_bigint from "json-bigint";
 import { Session } from "./session";
 
 import {
-	DeleteRequestOptions,
+	DeleteQueryOptions,
 	LogicalFilter,
 	LogicalOperator,
 	ReadFields,
-	ReadRequestOptions,
+	FindQueryOptions,
 	Selector,
 	SelectorFilter,
 	SelectorFilterOperator,
@@ -17,7 +17,7 @@ import {
 	TigrisSchema,
 	UpdateFields,
 	UpdateFieldsOperator,
-	UpdateRequestOptions,
+	UpdateQueryOptions,
 } from "./types";
 import * as fs from "node:fs";
 import {
@@ -335,7 +335,7 @@ export const Utility = {
 		}
 		return properties;
 	},
-	_readRequestOptionsToProtoReadRequestOptions(input: ReadRequestOptions): ProtoReadRequestOptions {
+	_readRequestOptionsToProtoReadRequestOptions(input: FindQueryOptions): ProtoReadRequestOptions {
 		const result: ProtoReadRequestOptions = new ProtoReadRequestOptions();
 		if (input !== undefined) {
 			if (input.skip !== undefined) {
@@ -357,7 +357,7 @@ export const Utility = {
 		return result;
 	},
 	_deleteRequestOptionsToProtoDeleteRequestOptions(
-		input: DeleteRequestOptions
+		input: DeleteQueryOptions
 	): ProtoDeleteRequestOptions {
 		const result: ProtoDeleteRequestOptions = new ProtoDeleteRequestOptions();
 		if (input !== undefined) {
@@ -371,7 +371,7 @@ export const Utility = {
 		return result;
 	},
 	_updateRequestOptionsToProtoUpdateRequestOptions(
-		input: UpdateRequestOptions
+		input: UpdateQueryOptions
 	): ProtoUpdateRequestOptions {
 		const result: ProtoUpdateRequestOptions = new ProtoUpdateRequestOptions();
 		if (input !== undefined) {
