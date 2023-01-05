@@ -15,11 +15,11 @@ import { TigrisClientConfig } from "../tigris";
 export const MATCH_ALL_QUERY_STRING = "";
 
 /**
- * Search request params
+ * Search query builder
  */
-export type SearchRequest<T extends TigrisCollectionType> = {
+export interface SearchQuery<T extends TigrisCollectionType> {
 	/**
-	 * Text to query
+	 * Text to match
 	 */
 	q: string;
 	/**
@@ -50,17 +50,22 @@ export type SearchRequest<T extends TigrisCollectionType> = {
 	 * Maximum number of search hits (matched documents) to fetch per page
 	 */
 	hitsPerPage?: number;
-};
+
+	/**
+	 * Other parameters for search query
+	 */
+	options?: SearchQueryOptions;
+}
 
 /**
- * Options for search request
+ * Options for search query
  */
-export type SearchRequestOptions = {
+export interface SearchQueryOptions {
 	/**
-	 * Allows case-insensitive filtering
+	 * String comparison rules for filtering. E.g. - Case insensitive text match
 	 */
 	collation?: Collation;
-};
+}
 
 export type FacetFieldsQuery = FacetFieldOptions | FacetFields;
 

@@ -185,7 +185,7 @@ export class UpdateResponse extends DMLResponse {
 
 export class WriteOptions {}
 
-export class DeleteRequestOptions {
+export class DeleteQueryOptions {
 	private _collation: Collation;
 	private _limit: number;
 
@@ -211,7 +211,7 @@ export class DeleteRequestOptions {
 	}
 }
 
-export class UpdateRequestOptions {
+export class UpdateQueryOptions {
 	private _collation: Collation;
 	private _limit: number;
 
@@ -237,7 +237,7 @@ export class UpdateRequestOptions {
 	}
 }
 
-export class ReadRequestOptions {
+export class FindQueryOptions {
 	static DEFAULT_LIMIT = 100;
 	static DEFAULT_SKIP = 0;
 
@@ -250,8 +250,8 @@ export class ReadRequestOptions {
 	constructor(limit: number, skip: number);
 	constructor(limit?: number, skip?: number, offset?: string);
 	constructor(limit?: number, skip?: number, offset?: string, collation?: Collation) {
-		this._limit = limit ?? ReadRequestOptions.DEFAULT_LIMIT;
-		this._skip = skip ?? ReadRequestOptions.DEFAULT_SKIP;
+		this._limit = limit ?? FindQueryOptions.DEFAULT_LIMIT;
+		this._skip = skip ?? FindQueryOptions.DEFAULT_SKIP;
 		this._offset = offset;
 		this._collation = collation;
 	}
@@ -364,6 +364,10 @@ export type SimpleUpdateField = {
 	[key: string]: FieldTypes | undefined;
 };
 
+/**
+ * Query builder for reading documents from a collection
+ * @public
+ */
 export interface FindQuery<T> {
 	/**
 	 * Filter to match the documents. Query will match all documents without a filter.
@@ -378,7 +382,44 @@ export interface FindQuery<T> {
 	/**
 	 * Optional params
 	 */
-	options?: ReadRequestOptions;
+	options?: FindQueryOptions;
+}
+
+/**
+ * Query builder for deleting documents from a collection
+ * @public
+ */
+export interface DeleteQuery<T> {
+	/**
+	 * Filter to match the documents
+	 */
+	filter: Filter<T>;
+
+	/**
+	 * Optional params
+	 */
+	options?: DeleteQueryOptions;
+}
+
+/**
+ * Query builder for updating documents in a collection
+ * @public
+ */
+export interface UpdateQuery<T> {
+	/**
+	 * Filter to match the documents
+	 */
+	filter: Filter<T>;
+
+	/**
+	 * Document fields to update and the update operation
+	 */
+	fields: UpdateFields | SimpleUpdateField;
+
+	/**
+	 * Optional params
+	 */
+	options?: UpdateQueryOptions;
 }
 
 export enum TigrisDataTypes {

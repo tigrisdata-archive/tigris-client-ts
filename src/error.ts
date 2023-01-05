@@ -43,6 +43,16 @@ export class ReflectionNotEnabled extends TigrisError {
 	}
 }
 
+export class MissingArgumentError extends TigrisError {
+	constructor(propertyName: string) {
+		super(`'${propertyName}' is required and cannot be 'undefined'`);
+	}
+
+	override get name(): string {
+		return "MissingArgumentError";
+	}
+}
+
 export class CannotInferFieldTypeError extends TigrisError {
 	constructor(object: Object, propertyName: string) {
 		super(`Field type for '${object.constructor.name}#${propertyName}' cannot be determined`);

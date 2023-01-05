@@ -2,23 +2,17 @@ import { Server, ServerCredentials } from "@grpc/grpc-js";
 import { TigrisService } from "../proto/server/v1/api_grpc_pb";
 import TestService, { TestTigrisService } from "./test-service";
 import {
-	DeleteRequestOptions,
+	DeleteQueryOptions,
 	LogicalOperator,
 	SelectorFilterOperator,
 	TigrisCollectionType,
 	TigrisDataTypes,
 	TigrisSchema,
 	UpdateFieldsOperator,
-	UpdateRequestOptions,
+	UpdateQueryOptions,
 } from "../types";
 import { Tigris } from "../tigris";
-import {
-	Case,
-	Collation,
-	SearchRequest,
-	SearchRequestOptions,
-	SearchResult,
-} from "../search/types";
+import { Case, Collation, SearchQuery, SearchQueryOptions, SearchResult } from "../search/types";
 import { Utility } from "../utility";
 import { ObservabilityService } from "../proto/server/v1/observability_grpc_pb";
 import TestObservabilityService from "./test-observability-service";
@@ -273,10 +267,7 @@ describe("rpc tests", () => {
 		const tigris = new Tigris({ serverUrl: "localhost:" + SERVER_PORT, projectName: "db3" });
 		const db1 = tigris.getDatabase();
 		const deletionPromise = db1.getCollection<IBook>(IBook).deleteMany({
-			op: SelectorFilterOperator.EQ,
-			fields: {
-				id: 1,
-			},
+			filter: { id: 1 },
 		});
 		deletionPromise.then((value) => {
 			expect(value.status).toBe('deleted: {"id":1}');
@@ -291,19 +282,19 @@ describe("rpc tests", () => {
 
 		const expectedFilter = { id: 1 };
 		const expectedCollation: Collation = { case: Case.CaseInsensitive };
-		const options = new DeleteRequestOptions(5, expectedCollation);
+		const options = new DeleteQueryOptions(5, expectedCollation);
 
-		const deletePromise = collection.deleteOne(expectedFilter, undefined, options);
-		const [capturedFilter, capturedTx, capturedOptions] = capture(spyCollection.deleteMany).last();
+		const deletePromise = collection.deleteOne({ filter: expectedFilter, options: options });
+		const [capturedQuery, capturedTx] = capture(spyCollection.deleteMany).last();
 
 		// filter passed as it is
-		expect(capturedFilter).toBe(expectedFilter);
+		expect(capturedQuery.filter).toBe(expectedFilter);
 		// tx passed as it is
 		expect(capturedTx).toBe(undefined);
 		// options.collation passed as it is
-		expect(capturedOptions.collation).toBe(expectedCollation);
+		expect(capturedQuery.options.collation).toBe(expectedCollation);
 		// options.limit === 1 while original was 5
-		expect(capturedOptions.limit).toBe(1);
+		expect(capturedQuery.options.limit).toBe(1);
 
 		return deletePromise;
 	});
@@ -311,20 +302,20 @@ describe("rpc tests", () => {
 	it("update", () => {
 		const tigris = new Tigris({ serverUrl: "localhost:" + SERVER_PORT, projectName: "db3" });
 		const db1 = tigris.getDatabase();
-		const updatePromise = db1.getCollection<IBook>("books").updateMany(
-			{
+		const updatePromise = db1.getCollection<IBook>("books").updateMany({
+			filter: {
 				op: SelectorFilterOperator.EQ,
 				fields: {
 					id: 1,
 				},
 			},
-			{
+			fields: {
 				op: UpdateFieldsOperator.SET,
 				fields: {
 					title: "New Title",
 				},
-			}
-		);
+			},
+		});
 		updatePromise.then((value) => {
 			expect(value.status).toBe('updated: {"id":1}, {"$set":{"title":"New Title"}}');
 			expect(value.modifiedCount).toBe(1);
@@ -340,28 +331,25 @@ describe("rpc tests", () => {
 		const expectedFilter = { id: 1 };
 		const expectedCollation: Collation = { case: Case.CaseInsensitive };
 		const expectedUpdateFields = { title: "one" };
-		const options = new UpdateRequestOptions(5, expectedCollation);
+		const options = new UpdateQueryOptions(5, expectedCollation);
 
-		const updatePromise = collection.updateOne(
-			expectedFilter,
-			expectedUpdateFields,
-			undefined,
-			options
-		);
-		const [capturedFilter, capturedFields, capturedTx, capturedOptions] = capture(
-			spyCollection.updateMany
-		).last();
+		const updatePromise = collection.updateOne({
+			filter: expectedFilter,
+			fields: expectedUpdateFields,
+			options: options,
+		});
+		const [capturedQuery, capturedTx] = capture(spyCollection.updateMany).last();
 
 		// filter passed as it is
-		expect(capturedFilter).toBe(expectedFilter);
+		expect(capturedQuery.filter).toBe(expectedFilter);
 		// updateFields passed as it is
-		expect(capturedFields).toBe(expectedUpdateFields);
+		expect(capturedQuery.fields).toBe(expectedUpdateFields);
 		// tx passed as it is
 		expect(capturedTx).toBe(undefined);
 		// options.collation passed as it is
-		expect(capturedOptions.collation).toBe(expectedCollation);
+		expect(capturedQuery.options.collation).toBe(expectedCollation);
 		// options.limit === 1 while original was 5
-		expect(capturedOptions.limit).toBe(1);
+		expect(capturedQuery.options.limit).toBe(1);
 
 		return updatePromise;
 	});
@@ -507,14 +495,14 @@ describe("rpc tests", () => {
 			const pageNumber = 2;
 
 			it("returns a promise", () => {
-				const request: SearchRequest<IBook> = {
+				const query: SearchQuery<IBook> = {
 					q: "philosophy",
 					facets: {
 						tags: Utility.createFacetQueryOptions(),
 					},
 				};
 
-				const maybePromise = db.getCollection<IBook>("books").search(request, pageNumber);
+				const maybePromise = db.getCollection<IBook>("books").search(query, pageNumber);
 				expect(maybePromise).toBeInstanceOf(Promise);
 
 				maybePromise.then((res: SearchResult<IBook>) => {
@@ -524,25 +512,11 @@ describe("rpc tests", () => {
 				});
 				return maybePromise;
 			});
-
-			it("returns promise using request options", () => {
-				const options: SearchRequestOptions = { collation: { case: Case.CaseInsensitive } };
-				const request: SearchRequest<IBook> = { q: "philosophy" };
-
-				const maybePromise = db.getCollection<IBook>("books").search(request, options, pageNumber);
-				expect(maybePromise).toBeInstanceOf(Promise);
-
-				maybePromise.then((res: SearchResult<IBook>) => {
-					expect(res.meta.page.current).toBe(pageNumber);
-				});
-
-				return maybePromise;
-			});
 		});
 
 		describe("without explicit page number", () => {
 			it("returns an iterator", async () => {
-				const request: SearchRequest<IBook> = {
+				const query: SearchQuery<IBook> = {
 					q: "philosophy",
 					facets: {
 						tags: Utility.createFacetQueryOptions(),
@@ -550,7 +524,7 @@ describe("rpc tests", () => {
 				};
 				let bookCounter = 0;
 
-				const maybeIterator = db.getCollection<IBook>("books").search(request);
+				const maybeIterator = db.getCollection<IBook>("books").search(query);
 				expect(maybeIterator).toBeInstanceOf(SearchIterator);
 
 				// for await loop the iterator
@@ -559,22 +533,6 @@ describe("rpc tests", () => {
 					expect(searchResult.facets).toBeDefined();
 					bookCounter += searchResult.hits.length;
 				}
-				expect(bookCounter).toBe(TestTigrisService.BOOKS_B64_BY_ID.size);
-			});
-
-			it("returns iterator using request options", async () => {
-				const request: SearchRequest<IBook> = { q: "philosophy" };
-				const options: SearchRequestOptions = { collation: { case: Case.CaseInsensitive } };
-				let bookCounter = 0;
-
-				const maybeIterator = db.getCollection<IBook>("books").search(request, options);
-				expect(maybeIterator).toBeInstanceOf(SearchIterator);
-
-				for await (const searchResult of maybeIterator) {
-					expect(searchResult.hits).toBeDefined();
-					bookCounter += searchResult.hits.length;
-				}
-
 				expect(bookCounter).toBe(TestTigrisService.BOOKS_B64_BY_ID.size);
 			});
 		});
@@ -649,17 +607,18 @@ describe("rpc tests", () => {
 							books
 								.updateMany(
 									{
-										op: SelectorFilterOperator.EQ,
-										fields: {
-											id: 1,
+										filter: {
+											op: SelectorFilterOperator.EQ,
+											fields: {
+												id: 1,
+											},
 										},
-									},
-									{
-										op: UpdateFieldsOperator.SET,
 										fields: {
-											author: "Dr. Author",
+											op: UpdateFieldsOperator.SET,
+											fields: {
+												author: "Dr. Author",
+											},
 										},
-										// eslint-disable-next-line @typescript-eslint/no-unused-vars
 									},
 									tx
 								)
@@ -667,9 +626,11 @@ describe("rpc tests", () => {
 									books
 										.deleteMany(
 											{
-												op: SelectorFilterOperator.EQ,
-												fields: {
-													id: 1,
+												filter: {
+													op: SelectorFilterOperator.EQ,
+													fields: {
+														id: 1,
+													},
 												},
 											},
 											tx

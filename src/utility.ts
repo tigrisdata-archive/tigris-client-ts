@@ -3,11 +3,11 @@ import json_bigint from "json-bigint";
 import { Session } from "./session";
 
 import {
-	DeleteRequestOptions,
+	DeleteQueryOptions,
 	LogicalFilter,
 	LogicalOperator,
 	ReadFields,
-	ReadRequestOptions,
+	FindQueryOptions,
 	Selector,
 	SelectorFilter,
 	SelectorFilterOperator,
@@ -17,7 +17,7 @@ import {
 	TigrisSchema,
 	UpdateFields,
 	UpdateFieldsOperator,
-	UpdateRequestOptions,
+	UpdateQueryOptions,
 } from "./types";
 import * as fs from "node:fs";
 import {
@@ -26,8 +26,7 @@ import {
 	FacetQueryOptions,
 	MATCH_ALL_QUERY_STRING,
 	Ordering,
-	SearchRequest,
-	SearchRequestOptions,
+	SearchQuery,
 } from "./search/types";
 import {
 	Collation as ProtoCollation,
@@ -335,7 +334,7 @@ export const Utility = {
 		}
 		return properties;
 	},
-	_readRequestOptionsToProtoReadRequestOptions(input: ReadRequestOptions): ProtoReadRequestOptions {
+	_readRequestOptionsToProtoReadRequestOptions(input: FindQueryOptions): ProtoReadRequestOptions {
 		const result: ProtoReadRequestOptions = new ProtoReadRequestOptions();
 		if (input !== undefined) {
 			if (input.skip !== undefined) {
@@ -357,7 +356,7 @@ export const Utility = {
 		return result;
 	},
 	_deleteRequestOptionsToProtoDeleteRequestOptions(
-		input: DeleteRequestOptions
+		input: DeleteQueryOptions
 	): ProtoDeleteRequestOptions {
 		const result: ProtoDeleteRequestOptions = new ProtoDeleteRequestOptions();
 		if (input !== undefined) {
@@ -371,7 +370,7 @@ export const Utility = {
 		return result;
 	},
 	_updateRequestOptionsToProtoUpdateRequestOptions(
-		input: UpdateRequestOptions
+		input: UpdateQueryOptions
 	): ProtoUpdateRequestOptions {
 		const result: ProtoUpdateRequestOptions = new ProtoUpdateRequestOptions();
 		if (input !== undefined) {
@@ -499,47 +498,44 @@ export const Utility = {
 	createProtoSearchRequest<T>(
 		dbName: string,
 		collectionName: string,
-		request: SearchRequest<T>,
-		options?: SearchRequestOptions,
+		query: SearchQuery<T>,
 		page?: number
 	): ProtoSearchRequest {
 		const searchRequest = new ProtoSearchRequest()
 			.setProject(dbName)
 			.setCollection(collectionName)
-			.setQ(request.q ?? MATCH_ALL_QUERY_STRING);
+			.setQ(query.q ?? MATCH_ALL_QUERY_STRING);
 
-		if (request.searchFields !== undefined) {
-			searchRequest.setSearchFieldsList(request.searchFields);
+		if (query.searchFields !== undefined) {
+			searchRequest.setSearchFieldsList(query.searchFields);
 		}
 
-		if (request.filter !== undefined) {
-			searchRequest.setFilter(Utility.stringToUint8Array(Utility.filterToString(request.filter)));
+		if (query.filter !== undefined) {
+			searchRequest.setFilter(Utility.stringToUint8Array(Utility.filterToString(query.filter)));
 		}
 
-		if (request.facets !== undefined) {
-			searchRequest.setFacet(
-				Utility.stringToUint8Array(Utility.facetQueryToString(request.facets))
-			);
+		if (query.facets !== undefined) {
+			searchRequest.setFacet(Utility.stringToUint8Array(Utility.facetQueryToString(query.facets)));
 		}
 
-		if (request.sort !== undefined) {
-			searchRequest.setSort(Utility.stringToUint8Array(Utility.sortOrderingToString(request.sort)));
+		if (query.sort !== undefined) {
+			searchRequest.setSort(Utility.stringToUint8Array(Utility.sortOrderingToString(query.sort)));
 		}
 
-		if (request.includeFields !== undefined) {
-			searchRequest.setIncludeFieldsList(request.includeFields);
+		if (query.includeFields !== undefined) {
+			searchRequest.setIncludeFieldsList(query.includeFields);
 		}
 
-		if (request.excludeFields !== undefined) {
-			searchRequest.setExcludeFieldsList(request.excludeFields);
+		if (query.excludeFields !== undefined) {
+			searchRequest.setExcludeFieldsList(query.excludeFields);
 		}
 
-		if (request.hitsPerPage !== undefined) {
-			searchRequest.setPageSize(request.hitsPerPage);
+		if (query.hitsPerPage !== undefined) {
+			searchRequest.setPageSize(query.hitsPerPage);
 		}
 
-		if (options !== undefined && options.collation !== undefined) {
-			searchRequest.setCollation(new ProtoCollation().setCase(options.collation.case));
+		if (query.options?.collation !== undefined) {
+			searchRequest.setCollation(new ProtoCollation().setCase(query.options.collation.case));
 		}
 
 		if (page !== undefined) {
