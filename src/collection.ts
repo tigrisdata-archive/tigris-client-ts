@@ -66,11 +66,11 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	 * @param tx - Session information for transaction context
 	 */
 	insertMany(docs: Array<T>, tx?: Session): Promise<Array<T>> {
+		const encoder = new TextEncoder();
 		return new Promise<Array<T>>((resolve, reject) => {
-			const docsArray = new Array<Uint8Array | string>();
-			for (const doc of docs) {
-				docsArray.push(new TextEncoder().encode(Utility.objToJsonString(doc)));
-			}
+			const docsArray: Array<Uint8Array | string> = docs.map((doc) =>
+				encoder.encode(Utility.objToJsonString(doc))
+			);
 
 			const protoRequest = new ProtoInsertRequest()
 				.setProject(this.db)
@@ -81,7 +81,7 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 				protoRequest,
 				Utility.txToMetadata(tx),
 				(error: grpc.ServiceError, response: server_v1_api_pb.InsertResponse): void => {
-					if (error !== undefined && error !== null) {
+					if (error) {
 						reject(error);
 					} else {
 						const clonedDocs = this.setDocsMetadata(docs, response.getKeysList_asU8());
@@ -100,8 +100,7 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	 */
 	insertOne(doc: T, tx?: Session): Promise<T> {
 		return new Promise<T>((resolve, reject) => {
-			const docArr: Array<T> = new Array<T>();
-			docArr.push(doc);
+			const docArr: Array<T> = [doc];
 			this.insertMany(docArr, tx)
 				.then((docs) => {
 					resolve(docs[0]);
@@ -120,10 +119,9 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	 */
 	insertOrReplaceMany(docs: Array<T>, tx?: Session): Promise<Array<T>> {
 		return new Promise<Array<T>>((resolve, reject) => {
-			const docsArray = new Array<Uint8Array | string>();
-			for (const doc of docs) {
-				docsArray.push(new TextEncoder().encode(Utility.objToJsonString(doc)));
-			}
+			const docsArray: Array<Uint8Array | string> = docs.map((doc) =>
+				new TextEncoder().encode(Utility.objToJsonString(doc))
+			);
 			const protoRequest = new ProtoReplaceRequest()
 				.setProject(this.db)
 				.setCollection(this.collectionName)
@@ -133,7 +131,7 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 				protoRequest,
 				Utility.txToMetadata(tx),
 				(error: grpc.ServiceError, response: server_v1_api_pb.ReplaceResponse): void => {
-					if (error !== undefined && error !== null) {
+					if (error) {
 						reject(error);
 					} else {
 						const clonedDocs = this.setDocsMetadata(docs, response.getKeysList_asU8());
@@ -152,8 +150,7 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	 */
 	insertOrReplaceOne(doc: T, tx?: Session): Promise<T> {
 		return new Promise<T>((resolve, reject) => {
-			const docArr: Array<T> = new Array<T>();
-			docArr.push(doc);
+			const docArr: Array<T> = [doc];
 			this.insertOrReplaceMany(docArr, tx)
 				.then((docs) => resolve(docs[0]))
 				.catch((error) => reject(error));
