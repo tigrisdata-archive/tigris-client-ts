@@ -309,6 +309,93 @@ export class TransactionResponse extends TigrisResponse {
 	}
 }
 
+export class CacheMetadata {
+	private readonly _name: string;
+
+	constructor(name: string) {
+		this._name = name;
+	}
+
+	get name(): string {
+		return this._name;
+	}
+}
+export class ListCachesResponse {
+	private readonly _caches: CacheMetadata[];
+
+	constructor(caches: CacheMetadata[]) {
+		this._caches = caches;
+	}
+
+	get caches(): CacheMetadata[] {
+		return this._caches;
+	}
+}
+
+export class DeleteCacheResponse extends TigrisResponse {
+	private readonly _message: string;
+
+	constructor(status: string, message: string) {
+		super(status);
+		this._message = message;
+	}
+
+	get message(): string {
+		return this._message;
+	}
+}
+
+export class CacheSetResponse extends TigrisResponse {
+	private readonly _message: string;
+
+	constructor(status: string, message: string) {
+		super(status);
+		this._message = message;
+	}
+
+	get message(): string {
+		return this._message;
+	}
+}
+
+export class CacheDelResponse extends TigrisResponse {
+	private readonly _message: string;
+
+	constructor(status: string, message: string) {
+		super(status);
+		this._message = message;
+	}
+
+	get message(): string {
+		return this._message;
+	}
+}
+
+export interface CacheSetOptions {
+	// optional ttl in seconds
+	ex: number;
+	// optional ttl in ms
+	px: number;
+	// only set if key doesn't exist
+	nx: boolean;
+	// only set if key exists
+	xx: boolean;
+	// get the old value as part of response
+	get: boolean;
+}
+
+export class CacheGetResponse {
+	private readonly _value: object;
+
+	constructor(value: object) {
+		this._value = value;
+	}
+
+	get value(): object {
+		return this._value;
+	}
+}
+
 export class ServerMetadata {
 	private readonly _serverVersion: string;
 

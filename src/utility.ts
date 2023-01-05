@@ -466,6 +466,10 @@ export const Utility = {
 		return Buffer.from(b64String, "base64").toString("binary");
 	},
 
+	_base64DecodeToObject(b64String: string, config: TigrisClientConfig): object {
+		return this.jsonStringToObj(Buffer.from(b64String, "base64").toString("binary"), config);
+	},
+
 	createFacetQueryOptions(options?: Partial<FacetQueryOptions>): FacetQueryOptions {
 		const defaults = { size: 10, type: FacetQueryFieldType.VALUE };
 		return { ...defaults, ...options };
