@@ -7,7 +7,13 @@ import { GetInfoRequest as ProtoGetInfoRequest } from "./proto/server/v1/observa
 import { HealthCheckInput as ProtoHealthCheckInput } from "./proto/server/v1/health_pb";
 
 import * as dotenv from "dotenv";
-import { ServerMetadata, TigrisCollectionType } from "./types";
+import {
+	DeleteCacheResponse,
+	ListCachesResponse,
+	ServerMetadata,
+	TigrisCollectionType,
+	CacheMetadata,
+} from "./types";
 
 import {
 	GetAccessTokenRequest as ProtoGetAccessTokenRequest,
@@ -20,6 +26,13 @@ import { Utility } from "./utility";
 import { Log } from "./utils/logger";
 import { DecoratorMetaStorage } from "./decorators/metadata/decorator-meta-storage";
 import { getDecoratorMetaStorage } from "./globals";
+import { Cache } from "./cache";
+import { CacheClient } from "./proto/server/v1/cache_grpc_pb";
+import { CreateCacheRequest as ProtoCreateCacheRequest } from "./proto/server/v1/cache_pb";
+import { DeleteCacheRequest as ProtoDeleteCacheRequest } from "./proto/server/v1/cache_pb";
+import { ListCachesRequest as ProtoListCachesRequest } from "./proto/server/v1/cache_pb";
+
+import { Status } from "@grpc/grpc-js/build/src/constants";
 
 const AuthorizationHeaderName = "authorization";
 const AuthorizationBearer = "Bearer ";
@@ -124,6 +137,7 @@ const DEST_NAME_KEY = "destination-name";
 export class Tigris {
 	private readonly grpcClient: TigrisClient;
 	private readonly observabilityClient: ObservabilityClient;
+	private readonly cacheClient: CacheClient;
 	private readonly healthAPIClient: HealthAPIClient;
 	private readonly _config: TigrisClientConfig;
 	private readonly _metadataStorage: DecoratorMetaStorage;
@@ -192,6 +206,7 @@ export class Tigris {
 			const insecureCreds: ChannelCredentials = grpc.credentials.createInsecure();
 			this.grpcClient = new TigrisClient(config.serverUrl, insecureCreds);
 			this.observabilityClient = new ObservabilityClient(config.serverUrl, insecureCreds);
+			this.cacheClient = new CacheClient(config.serverUrl, insecureCreds);
 			this.healthAPIClient = new HealthAPIClient(config.serverUrl, insecureCreds);
 		} else if (config.clientId === undefined || config.clientSecret === undefined) {
 			throw new Error("Both `clientId` and `clientSecret` are required");
@@ -216,6 +231,7 @@ export class Tigris {
 			);
 			this.grpcClient = new TigrisClient(config.serverUrl, channelCreds);
 			this.observabilityClient = new ObservabilityClient(config.serverUrl, channelCreds);
+			this.cacheClient = new CacheClient(config.serverUrl, channelCreds);
 			this.healthAPIClient = new HealthAPIClient(config.serverUrl, channelCreds);
 			this._ping = () => {
 				this.healthAPIClient.health(new ProtoHealthCheckInput(), (error, response) => {
@@ -244,6 +260,70 @@ export class Tigris {
 
 	public getDatabase(): DB {
 		return new DB(this._config.projectName, this.grpcClient, this._config);
+	}
+
+	/**
+	 * Creates the cache for this project, if the cache doesn't already exist
+	 * @param cacheName
+	 */
+	public createCacheIfNotExists(cacheName: string): Promise<Cache> {
+		return new Promise<Cache>((resolve, reject) => {
+			this.cacheClient.createCache(
+				new ProtoCreateCacheRequest().setProject(this._config.projectName).setName(cacheName),
+				// eslint-disable-next-line @typescript-eslint/no-unused-vars
+				(error, response) => {
+					if (error && error.code != Status.ALREADY_EXISTS) {
+						reject(error);
+					} else {
+						resolve(new Cache(this._config.projectName, cacheName, this.cacheClient, this._config));
+					}
+				}
+			);
+		});
+	}
+
+	/**
+	 * Deletes the entire cache from this project.
+	 * @param cacheName
+	 */
+	public deleteCache(cacheName: string): Promise<DeleteCacheResponse> {
+		return new Promise<DeleteCacheResponse>((resolve, reject) => {
+			this.cacheClient.deleteCache(
+				new ProtoDeleteCacheRequest().setProject(this._config.projectName).setName(cacheName),
+				(error, response) => {
+					if (error) {
+						reject(error);
+					} else {
+						resolve(new DeleteCacheResponse(response.getStatus(), response.getMessage()));
+					}
+				}
+			);
+		});
+	}
+
+	/**
+	 * Lists all the caches for this project
+	 */
+	public listCaches(): Promise<ListCachesResponse> {
+		return new Promise<ListCachesResponse>((resolve, reject) => {
+			this.cacheClient.listCaches(
+				new ProtoListCachesRequest().setProject(this._config.projectName),
+				(error, response) => {
+					if (error) {
+						reject(error);
+					} else {
+						const cachesMetadata: CacheMetadata[] = new Array<CacheMetadata>();
+						for (const value of response.getCachesList())
+							cachesMetadata.push(new CacheMetadata(value.getName()));
+						resolve(new ListCachesResponse(cachesMetadata));
+					}
+				}
+			);
+		});
+	}
+
+	public getCache(cacheName: string): Cache {
+		return new Cache(this._config.projectName, cacheName, this.cacheClient, this._config);
 	}
 
 	public getServerMetadata(): Promise<ServerMetadata> {

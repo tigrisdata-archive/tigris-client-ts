@@ -1,0 +1,139 @@
+import { CacheDelResponse, CacheGetResponse, CacheSetOptions, CacheSetResponse } from "./types";
+import { CacheClient } from "./proto/server/v1/cache_grpc_pb";
+import {
+	DelRequest as ProtoDelRequest,
+	GetRequest as ProtoGetRequest,
+	KeysRequest as ProtoKeysRequest,
+	SetRequest as ProtoSetRequest,
+} from "./proto/server/v1/cache_pb";
+import { Utility } from "./utility";
+import { TigrisClientConfig } from "./tigris";
+
+export class Cache {
+	private readonly _projectName: string;
+	private readonly _cacheName: string;
+	private readonly _cacheClient: CacheClient;
+	private readonly _config: TigrisClientConfig;
+
+	constructor(
+		projectName: string,
+		cacheName: string,
+		cacheClient: CacheClient,
+		config: TigrisClientConfig
+	) {
+		this._projectName = projectName;
+		this._cacheName = cacheName;
+		this._cacheClient = cacheClient;
+		this._config = config;
+	}
+
+	public getCacheName(): string {
+		return this._cacheName;
+	}
+
+	/**
+	 * Sets the key with value. It will override the value if already exists
+	 * @param key
+	 * @param value
+	 * @param options - optionally set params.
+	 */
+	public set(
+		key: string,
+		value: string | number | boolean | object,
+		options?: CacheSetOptions
+	): Promise<CacheSetResponse> {
+		return new Promise<CacheSetResponse>((resolve, reject) => {
+			const req = new ProtoSetRequest()
+				.setProject(this._projectName)
+				.setName(this._cacheName)
+				.setKey(key)
+				.setValue(new TextEncoder().encode(Utility.objToJsonString(value as object)));
+
+			if (options !== undefined && options.ex !== undefined) {
+				req.setEx(options.ex);
+			}
+			if (options !== undefined && options.px !== undefined) {
+				req.setPx(options.px);
+			}
+			if (options !== undefined && options.nx !== undefined) {
+				req.setNx(options.nx);
+			}
+			if (options !== undefined && options.xx !== undefined) {
+				req.setXx(options.xx);
+			}
+			if (options !== undefined && options.get !== undefined) {
+				req.setGet(options.get);
+			}
+
+			this._cacheClient.set(req, (error, response) => {
+				if (error) {
+					reject(error);
+				} else {
+					resolve(new CacheSetResponse(response.getStatus(), response.getMessage()));
+				}
+			});
+		});
+	}
+
+	/**
+	 * get the value for the key, errors if the key doesn't exist or expired
+	 * @param key
+	 */
+	public get(key: string): Promise<CacheGetResponse> {
+		return new Promise<CacheGetResponse>((resolve, reject) => {
+			this._cacheClient.get(
+				new ProtoGetRequest().setProject(this._projectName).setName(this._cacheName).setKey(key),
+				(error, response) => {
+					if (error) {
+						reject(error);
+					} else {
+						resolve(
+							new CacheGetResponse(
+								Utility._base64DecodeToObject(response.getValue_asB64(), this._config)
+							)
+						);
+					}
+				}
+			);
+		});
+	}
+
+	/**
+	 * deletes the key
+	 * @param key
+	 */
+	public del(key: string): Promise<CacheDelResponse> {
+		return new Promise<CacheDelResponse>((resolve, reject) => {
+			this._cacheClient.del(
+				new ProtoDelRequest().setProject(this._projectName).setName(this._cacheName).setKey(key),
+				(error, response) => {
+					if (error) {
+						reject(error);
+					} else {
+						resolve(new CacheDelResponse(response.getStatus(), response.getMessage()));
+					}
+				}
+			);
+		});
+	}
+
+	/**
+	 * returns an array of keys, complying the pattern
+	 * @param pattern - optional argument to filter keys
+	 */
+	public keys(pattern?: string): Promise<string[]> {
+		return new Promise<string[]>((resolve, reject) => {
+			const req = new ProtoKeysRequest().setProject(this._projectName).setName(this._cacheName);
+			if (pattern !== undefined) {
+				req.setPattern(pattern);
+			}
+			this._cacheClient.keys(req, (error, response) => {
+				if (error) {
+					reject(error);
+				} else {
+					resolve(response.getKeysList());
+				}
+			});
+		});
+	}
+}

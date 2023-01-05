@@ -1,6 +1,8 @@
 import { Server, ServerCredentials } from "@grpc/grpc-js";
 import { TigrisService } from "../proto/server/v1/api_grpc_pb";
 import TestService, { TestTigrisService } from "./test-service";
+import TestServiceCache, { TestCacheService } from "./test-cache-service";
+
 import {
 	DeleteRequestOptions,
 	LogicalOperator,
@@ -27,6 +29,7 @@ import { TigrisCollection } from "../decorators/tigris-collection";
 import { PrimaryKey } from "../decorators/tigris-primary-key";
 import { Field } from "../decorators/tigris-field";
 import { SearchIterator } from "../consumables/search-iterator";
+import { CacheService } from "../proto/server/v1/cache_grpc_pb";
 
 describe("rpc tests", () => {
 	let server: Server;
@@ -36,6 +39,7 @@ describe("rpc tests", () => {
 		server = new Server();
 		TestTigrisService.reset();
 		server.addService(TigrisService, TestService.handler.impl);
+		server.addService(CacheService, TestServiceCache.handler.impl);
 		server.addService(ObservabilityService, TestObservabilityService.handler.impl);
 		server.bindAsync(
 			"localhost:" + SERVER_PORT,
@@ -54,6 +58,7 @@ describe("rpc tests", () => {
 
 	beforeEach(() => {
 		TestTigrisService.reset();
+		TestCacheService.reset();
 	});
 
 	afterAll((done) => {
@@ -717,6 +722,110 @@ describe("rpc tests", () => {
 			expect(value.serverVersion).toBe("1.0.0-test-service");
 		});
 		return serverMetadataPromise;
+	});
+
+	it("createCache", () => {
+		const tigris = new Tigris({ serverUrl: "localhost:" + SERVER_PORT, projectName: "db3" });
+		const cacheC1Promise = tigris.createCacheIfNotExists("c1");
+		cacheC1Promise.then((value) => {
+			expect(value.getCacheName()).toBe("c1");
+		});
+		return cacheC1Promise;
+	});
+
+	it("listCaches", async () => {
+		const tigris = new Tigris({ serverUrl: "localhost:" + SERVER_PORT, projectName: "db3" });
+		for (let i = 0; i < 5; i++) {
+			await tigris.createCacheIfNotExists("c" + i);
+		}
+		const listCachesResponse = await tigris.listCaches();
+		for (let i = 0; i < 5; i++) {
+			let found = false;
+			for (let cache of listCachesResponse.caches) {
+				if (cache.name === "c" + i) {
+					if (found) {
+						throw new Error("already found " + cache.name);
+					}
+					found = true;
+					break;
+				}
+			}
+			expect(found).toBe(true);
+		}
+	});
+
+	it("deleteCache", async () => {
+		const tigris = new Tigris({ serverUrl: "localhost:" + SERVER_PORT, projectName: "db3" });
+		for (let i = 0; i < 5; i++) {
+			await tigris.createCacheIfNotExists("c" + i);
+		}
+		let listCachesResponse = await tigris.listCaches();
+		expect(listCachesResponse.caches.length).toBe(5);
+
+		const deleteResponse = await tigris.deleteCache("c3");
+		expect(deleteResponse.status).toBe("deleted");
+
+		listCachesResponse = await tigris.listCaches();
+		expect(listCachesResponse.caches.length).toBe(4);
+
+		await tigris.deleteCache("c2");
+		listCachesResponse = await tigris.listCaches();
+		expect(listCachesResponse.caches.length).toBe(3);
+
+		// deleting non-existing cache
+		let errored = false;
+		try {
+			await tigris.deleteCache("c3");
+		} catch (error) {
+			errored = true;
+		}
+		expect(errored).toBe(true);
+
+		listCachesResponse = await tigris.listCaches();
+		expect(listCachesResponse.caches.length).toBe(3);
+	});
+
+	it("cacheCrud", async () => {
+		const tigris = new Tigris({ serverUrl: "localhost:" + SERVER_PORT, projectName: "db3" });
+		const c1 = await tigris.createCacheIfNotExists("c1");
+
+		await c1.set("k1", "val1");
+		expect((await c1.get("k1")).value).toBe("val1");
+
+		await c1.set("k1", "val1-new");
+		expect((await c1.get("k1")).value).toBe("val1-new");
+
+		await c1.set("k2", 123);
+		expect((await c1.get("k2")).value).toBe(123);
+
+		await c1.set("k3", true);
+		expect((await c1.get("k3")).value).toBe(true);
+
+		await c1.set("k4", { a: "b", n: 12 });
+		expect((await c1.get("k4")).value).toEqual({ a: "b", n: 12 });
+
+		const keys = await c1.keys();
+		expect(keys).toContain("k1");
+		expect(keys).toContain("k2");
+		expect(keys).toContain("k3");
+		expect(keys).toContain("k4");
+		expect(keys).toHaveLength(4);
+
+		await c1.del("k1");
+		let errored = false;
+		try {
+			await c1.get("k1");
+		} catch (error) {
+			errored = true;
+		}
+		expect(errored).toBe(true);
+
+		// k1 is deleted
+		const keysNew = await c1.keys();
+		expect(keysNew).toContain("k2");
+		expect(keysNew).toContain("k3");
+		expect(keysNew).toContain("k4");
+		expect(keysNew).toHaveLength(3);
 	});
 });
 
