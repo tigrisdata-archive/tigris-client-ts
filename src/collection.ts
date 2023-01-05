@@ -25,11 +25,11 @@ import {
 	UpdateResponse,
 } from "./types";
 import { Utility } from "./utility";
-import { SearchQuery, SearchQueryOptions, SearchResult } from "./search/types";
 import { TigrisClientConfig } from "./tigris";
-import { Cursor, ReadCursorInitializer } from "./consumables/cursor";
-import { SearchIterator, SearchIteratorInitializer } from "./consumables/search-iterator";
 import { MissingArgumentError } from "./error";
+import { Cursor, ReadCursorInitializer } from "./consumables/cursor";
+import { SearchQuery, SearchQueryOptions, SearchResult } from "./search/types";
+import { SearchIterator, SearchIteratorInitializer } from "./consumables/search-iterator";
 
 interface ICollection {
 	readonly collectionName: string;
@@ -59,9 +59,358 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 		this.config = config;
 	}
 
-	private isTxSession(txOrQuery: Session | unknown): txOrQuery is Session {
-		const mayBeTx = txOrQuery as Session;
-		return "id" in mayBeTx && mayBeTx instanceof Session;
+	/**
+	 * Inserts multiple documents in Tigris collection.
+	 *
+	 * @param docs - Array of documents to insert
+	 * @param tx - Session information for transaction context
+	 */
+	insertMany(docs: Array<T>, tx?: Session): Promise<Array<T>> {
+		return new Promise<Array<T>>((resolve, reject) => {
+			const docsArray = new Array<Uint8Array | string>();
+			for (const doc of docs) {
+				docsArray.push(new TextEncoder().encode(Utility.objToJsonString(doc)));
+			}
+
+			const protoRequest = new ProtoInsertRequest()
+				.setProject(this.db)
+				.setCollection(this.collectionName)
+				.setDocumentsList(docsArray);
+
+			this.grpcClient.insert(
+				protoRequest,
+				Utility.txToMetadata(tx),
+				(error: grpc.ServiceError, response: server_v1_api_pb.InsertResponse): void => {
+					if (error !== undefined && error !== null) {
+						reject(error);
+					} else {
+						const clonedDocs = this.setDocsMetadata(docs, response.getKeysList_asU8());
+						resolve(clonedDocs);
+					}
+				}
+			);
+		});
+	}
+
+	/**
+	 * Inserts a single document in Tigris collection.
+	 *
+	 * @param doc - Document to insert
+	 * @param tx - Session information for transaction context
+	 */
+	insertOne(doc: T, tx?: Session): Promise<T> {
+		return new Promise<T>((resolve, reject) => {
+			const docArr: Array<T> = new Array<T>();
+			docArr.push(doc);
+			this.insertMany(docArr, tx)
+				.then((docs) => {
+					resolve(docs[0]);
+				})
+				.catch((error) => {
+					reject(error);
+				});
+		});
+	}
+
+	/**
+	 * Insert new or replace existing documents in collection.
+	 *
+	 * @param docs - Array of documents to insert or replace
+	 * @param tx - Session information for transaction context
+	 */
+	insertOrReplaceMany(docs: Array<T>, tx?: Session): Promise<Array<T>> {
+		return new Promise<Array<T>>((resolve, reject) => {
+			const docsArray = new Array<Uint8Array | string>();
+			for (const doc of docs) {
+				docsArray.push(new TextEncoder().encode(Utility.objToJsonString(doc)));
+			}
+			const protoRequest = new ProtoReplaceRequest()
+				.setProject(this.db)
+				.setCollection(this.collectionName)
+				.setDocumentsList(docsArray);
+
+			this.grpcClient.replace(
+				protoRequest,
+				Utility.txToMetadata(tx),
+				(error: grpc.ServiceError, response: server_v1_api_pb.ReplaceResponse): void => {
+					if (error !== undefined && error !== null) {
+						reject(error);
+					} else {
+						const clonedDocs = this.setDocsMetadata(docs, response.getKeysList_asU8());
+						resolve(clonedDocs);
+					}
+				}
+			);
+		});
+	}
+
+	/**
+	 * Insert new or replace an existing document in collection.
+	 *
+	 * @param doc - Document to insert or replace
+	 * @param tx - Session information for transaction context
+	 */
+	insertOrReplaceOne(doc: T, tx?: Session): Promise<T> {
+		return new Promise<T>((resolve, reject) => {
+			const docArr: Array<T> = new Array<T>();
+			docArr.push(doc);
+			this.insertOrReplaceMany(docArr, tx)
+				.then((docs) => resolve(docs[0]))
+				.catch((error) => reject(error));
+		});
+	}
+
+	/**
+	 * Update multiple documents in a collection
+	 *
+	 * @param query - Filter to match documents and the update operations. Update
+	 * 								will be applied to matching documents only.
+	 * @returns {@link UpdateResponse}
+	 *
+	 * @example To update **language** of all books published by "Marcel Proust"
+	 * ```
+	 * const updatePromise = db.getCollection<Book>(Book).updateMany({
+	 *   filter: { author: "Marcel Proust" },
+	 *   fields: { language: "French" }
+	 * });
+	 *
+	 * updatePromise
+	 * 		.then((resp: UpdateResponse) => console.log(resp));
+	 * 		.catch( // catch the error)
+	 * 		.finally( // finally do something);
+	 * ```
+	 */
+	updateMany(query: UpdateQuery<T>): Promise<UpdateResponse>;
+
+	/**
+	 * Update multiple documents in a collection in transactional context
+	 *
+	 * @param query - Filter to match documents and the update operations. Update
+	 * 								will be applied to matching documents only.
+	 * @param tx - Session information for transaction context
+	 * @returns {@link UpdateResponse}
+	 *
+	 * @example To update **language** of all books published by "Marcel Proust"
+	 * ```
+	 * const updatePromise = db.getCollection<Book>(Book).updateMany({
+	 *   filter: { author: "Marcel Proust" },
+	 *   fields: { language: "French" }
+	 * }, tx);
+	 *
+	 * updatePromise
+	 * 		.then((resp: UpdateResponse) => console.log(resp));
+	 * 		.catch( // catch the error)
+	 * 		.finally( // finally do something);
+	 * ```
+	 */
+	updateMany(query: UpdateQuery<T>, tx: Session): Promise<UpdateResponse>;
+
+	updateMany(query: UpdateQuery<T>, tx?: Session): Promise<UpdateResponse> {
+		return new Promise<UpdateResponse>((resolve, reject) => {
+			const updateRequest = new ProtoUpdateRequest()
+				.setProject(this.db)
+				.setCollection(this.collectionName)
+				.setFilter(Utility.stringToUint8Array(Utility.filterToString(query.filter)))
+				.setFields(Utility.stringToUint8Array(Utility.updateFieldsString(query.fields)));
+
+			if (query.options !== undefined) {
+				updateRequest.setOptions(
+					Utility._updateRequestOptionsToProtoUpdateRequestOptions(query.options)
+				);
+			}
+
+			this.grpcClient.update(updateRequest, Utility.txToMetadata(tx), (error, response) => {
+				if (error) {
+					reject(error);
+				} else {
+					const metadata: DMLMetadata = new DMLMetadata(
+						response.getMetadata().getCreatedAt(),
+						response.getMetadata().getUpdatedAt()
+					);
+					resolve(new UpdateResponse(response.getStatus(), response.getModifiedCount(), metadata));
+				}
+			});
+		});
+	}
+
+	/**
+	 * Update a single document in collection
+	 *
+	 * @param query - Filter to match the document and the update operations. Update
+	 * 								will be applied to matching documents only.
+	 * @returns {@link UpdateResponse}
+	 *
+	 * @example To update **language** of a book published by "Marcel Proust"
+	 * ```
+	 * const updatePromise = db.getCollection<Book>(Book).updateOne({
+	 *   filter: { author: "Marcel Proust" },
+	 *   fields: { language: "French" }
+	 * });
+	 *
+	 * updatePromise
+	 * 		.then((resp: UpdateResponse) => console.log(resp));
+	 * 		.catch( // catch the error)
+	 * 		.finally( // finally do something);
+	 * ```
+	 */
+	updateOne(query: UpdateQuery<T>): Promise<UpdateResponse>;
+
+	/**
+	 * Update a single document in a collection in transactional context
+	 *
+	 * @param query - Filter to match the document and update operations. Update
+	 * 								will be applied to a single matching document only.
+	 * @param tx - Session information for transaction context
+	 * @returns {@link UpdateResponse}
+	 *
+	 * @example To update **language** of a book published by "Marcel Proust"
+	 * ```
+	 * const updatePromise = db.getCollection<Book>(Book).updateOne({
+	 *   filter: { author: "Marcel Proust" },
+	 *   fields: { language: "French" }
+	 * }, tx);
+	 *
+	 * updatePromise
+	 * 		.then((resp: UpdateResponse) => console.log(resp));
+	 * 		.catch( // catch the error)
+	 * 		.finally( // finally do something);
+	 * ```
+	 */
+	updateOne(query: UpdateQuery<T>, tx: Session): Promise<UpdateResponse>;
+
+	updateOne(query: UpdateQuery<T>, tx?: Session): Promise<UpdateResponse> {
+		if (query.options === undefined) {
+			query.options = new UpdateRequestOptions(1);
+		} else {
+			query.options.limit = 1;
+		}
+		return this.updateMany(query, tx);
+	}
+
+	/**
+	 * Delete documents from collection matching the query
+	 *
+	 * @param query - Filter to match documents and other deletion options
+	 * @returns {@link DeleteResponse}
+	 *
+	 * @example
+	 *
+	 * ```
+	 * const deletionPromise = db.getCollection<Book>(Book).deleteMany({
+	 * 		filter: { author: "Marcel Proust" }
+	 * });
+	 *
+	 * deletionPromise
+	 * 		.then((resp: DeleteResponse) => console.log(resp));
+	 * 		.catch( // catch the error)
+	 * 		.finally( // finally do something);
+	 * ```
+	 */
+	deleteMany(query: DeleteQuery<T>): Promise<DeleteResponse>;
+
+	/**
+	 * Delete documents from collection in transactional context
+	 *
+	 * @param query - Filter to match documents and other deletion options
+	 * @param tx - Session information for transaction context
+	 * @returns {@link DeleteResponse}
+	 *
+	 * @example
+	 *
+	 * ```
+	 * const deletionPromise = db.getCollection<Book>(Book).deleteMany({
+	 * 		filter: { author: "Marcel Proust" }
+	 * }, tx);
+	 *
+	 * deletionPromise
+	 * 		.then((resp: DeleteResponse) => console.log(resp));
+	 * 		.catch( // catch the error)
+	 * 		.finally( // finally do something);
+	 * ```
+	 */
+	deleteMany(query: DeleteQuery<T>, tx: Session): Promise<DeleteResponse>;
+
+	deleteMany(query: DeleteQuery<T>, tx?: Session): Promise<DeleteResponse> {
+		return new Promise<DeleteResponse>((resolve, reject) => {
+			if (typeof query?.filter === "undefined") {
+				reject(new MissingArgumentError("filter"));
+			}
+			const deleteRequest = new ProtoDeleteRequest()
+				.setProject(this.db)
+				.setCollection(this.collectionName)
+				.setFilter(Utility.stringToUint8Array(Utility.filterToString(query.filter)));
+
+			if (query.options) {
+				deleteRequest.setOptions(
+					Utility._deleteRequestOptionsToProtoDeleteRequestOptions(query.options)
+				);
+			}
+
+			this.grpcClient.delete(deleteRequest, Utility.txToMetadata(tx), (error, response) => {
+				if (error) {
+					reject(error);
+				} else {
+					const metadata: DMLMetadata = new DMLMetadata(
+						response.getMetadata().getCreatedAt(),
+						response.getMetadata().getUpdatedAt()
+					);
+					resolve(new DeleteResponse(response.getStatus(), metadata));
+				}
+			});
+		});
+	}
+
+	/**
+	 * Delete a single document from collection matching the query
+	 *
+	 * @param query - Filter to match documents and other deletion options
+	 * @returns {@link DeleteResponse}
+	 *
+	 * @example
+	 *
+	 * ```
+	 * const deletionPromise = db.getCollection<Book>(Book).deleteOne({
+	 * 		filter: { author: "Marcel Proust" }
+	 * });
+	 *
+	 * deletionPromise
+	 * 		.then((resp: DeleteResponse) => console.log(resp));
+	 * 		.catch( // catch the error)
+	 * 		.finally( // finally do something);
+	 * ```
+	 */
+	deleteOne(query: DeleteQuery<T>): Promise<DeleteResponse>;
+
+	/**
+	 * Delete a single document from collection in transactional context
+	 *
+	 * @param query - Filter to match documents and other deletion options
+	 * @param tx - Session information for transaction context
+	 * @returns {@link DeleteResponse}
+	 *
+	 * @example
+	 *
+	 * ```
+	 * const deletionPromise = db.getCollection<Book>(Book).deleteOne({
+	 * 		filter: { author: "Marcel Proust" }
+	 * }, tx);
+	 *
+	 * deletionPromise
+	 * 		.then((resp: DeleteResponse) => console.log(resp));
+	 * 		.catch( // catch the error)
+	 * 		.finally( // finally do something);
+	 * ```
+	 */
+	deleteOne(query: DeleteQuery<T>, tx: Session): Promise<DeleteResponse>;
+
+	deleteOne(query: DeleteQuery<T>, tx?: Session): Promise<DeleteResponse> {
+		if (query.options === undefined) {
+			query.options = new DeleteRequestOptions(1);
+		} else {
+			query.options.limit = 1;
+		}
+
+		return this.deleteMany(query, tx);
 	}
 
 	/**
@@ -230,6 +579,7 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	 * ```
 	 */
 	findOne(query: FindQuery<T>): Promise<T | undefined>;
+
 	/**
 	 * Performs a read query on the collection in transactional context and returns
 	 * a single document matching the query.
@@ -417,6 +767,11 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 		}
 	}
 
+	private isTxSession(txOrQuery: Session | unknown): txOrQuery is Session {
+		const mayBeTx = txOrQuery as Session;
+		return "id" in mayBeTx && mayBeTx instanceof Session;
+	}
+
 	private setDocsMetadata(docs: Array<T>, keys: Array<Uint8Array>): Array<T> {
 		let docIndex = 0;
 		const clonedDocs: T[] = Object.assign([], docs);
@@ -433,359 +788,5 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 		}
 
 		return clonedDocs;
-	}
-
-	/**
-	 * Inserts multiple documents in Tigris collection.
-	 *
-	 * @param docs - Array of documents to insert
-	 * @param tx - Session information for transaction context
-	 */
-	insertMany(docs: Array<T>, tx?: Session): Promise<Array<T>> {
-		return new Promise<Array<T>>((resolve, reject) => {
-			const docsArray = new Array<Uint8Array | string>();
-			for (const doc of docs) {
-				docsArray.push(new TextEncoder().encode(Utility.objToJsonString(doc)));
-			}
-
-			const protoRequest = new ProtoInsertRequest()
-				.setProject(this.db)
-				.setCollection(this.collectionName)
-				.setDocumentsList(docsArray);
-
-			this.grpcClient.insert(
-				protoRequest,
-				Utility.txToMetadata(tx),
-				(error: grpc.ServiceError, response: server_v1_api_pb.InsertResponse): void => {
-					if (error !== undefined && error !== null) {
-						reject(error);
-					} else {
-						const clonedDocs = this.setDocsMetadata(docs, response.getKeysList_asU8());
-						resolve(clonedDocs);
-					}
-				}
-			);
-		});
-	}
-
-	/**
-	 * Inserts a single document in Tigris collection.
-	 *
-	 * @param doc - Document to insert
-	 * @param tx - Session information for transaction context
-	 */
-	insertOne(doc: T, tx?: Session): Promise<T> {
-		return new Promise<T>((resolve, reject) => {
-			const docArr: Array<T> = new Array<T>();
-			docArr.push(doc);
-			this.insertMany(docArr, tx)
-				.then((docs) => {
-					resolve(docs[0]);
-				})
-				.catch((error) => {
-					reject(error);
-				});
-		});
-	}
-
-	/**
-	 * Insert new or replace existing documents in collection.
-	 *
-	 * @param docs - Array of documents to insert or replace
-	 * @param tx - Session information for transaction context
-	 */
-	insertOrReplaceMany(docs: Array<T>, tx?: Session): Promise<Array<T>> {
-		return new Promise<Array<T>>((resolve, reject) => {
-			const docsArray = new Array<Uint8Array | string>();
-			for (const doc of docs) {
-				docsArray.push(new TextEncoder().encode(Utility.objToJsonString(doc)));
-			}
-			const protoRequest = new ProtoReplaceRequest()
-				.setProject(this.db)
-				.setCollection(this.collectionName)
-				.setDocumentsList(docsArray);
-
-			this.grpcClient.replace(
-				protoRequest,
-				Utility.txToMetadata(tx),
-				(error: grpc.ServiceError, response: server_v1_api_pb.ReplaceResponse): void => {
-					if (error !== undefined && error !== null) {
-						reject(error);
-					} else {
-						const clonedDocs = this.setDocsMetadata(docs, response.getKeysList_asU8());
-						resolve(clonedDocs);
-					}
-				}
-			);
-		});
-	}
-
-	/**
-	 * Insert new or replace an existing document in collection.
-	 *
-	 * @param doc - Document to insert or replace
-	 * @param tx - Session information for transaction context
-	 */
-	insertOrReplaceOne(doc: T, tx?: Session): Promise<T> {
-		return new Promise<T>((resolve, reject) => {
-			const docArr: Array<T> = new Array<T>();
-			docArr.push(doc);
-			this.insertOrReplaceMany(docArr, tx)
-				.then((docs) => resolve(docs[0]))
-				.catch((error) => reject(error));
-		});
-	}
-
-	/**
-	 * Delete documents from collection matching the query
-	 *
-	 * @param query - Filter to match documents and other deletion options
-	 * @returns {@link DeleteResponse}
-	 *
-	 * @example
-	 *
-	 * ```
-	 * const deletionPromise = db.getCollection<Book>(Book).deleteMany({
-	 * 		filter: { author: "Marcel Proust" }
-	 * });
-	 *
-	 * deletionPromise
-	 * 		.then((resp: DeleteResponse) => console.log(resp));
-	 * 		.catch( // catch the error)
-	 * 		.finally( // finally do something);
-	 * ```
-	 */
-	deleteMany(query: DeleteQuery<T>): Promise<DeleteResponse>;
-
-	/**
-	 * Delete documents from collection in transactional context
-	 *
-	 * @param query - Filter to match documents and other deletion options
-	 * @param tx - Session information for transaction context
-	 * @returns {@link DeleteResponse}
-	 *
-	 * @example
-	 *
-	 * ```
-	 * const deletionPromise = db.getCollection<Book>(Book).deleteMany({
-	 * 		filter: { author: "Marcel Proust" }
-	 * }, tx);
-	 *
-	 * deletionPromise
-	 * 		.then((resp: DeleteResponse) => console.log(resp));
-	 * 		.catch( // catch the error)
-	 * 		.finally( // finally do something);
-	 * ```
-	 */
-	deleteMany(query: DeleteQuery<T>, tx: Session): Promise<DeleteResponse>;
-
-	deleteMany(query: DeleteQuery<T>, tx?: Session): Promise<DeleteResponse> {
-		return new Promise<DeleteResponse>((resolve, reject) => {
-			if (typeof query?.filter === "undefined") {
-				reject(new MissingArgumentError("filter"));
-			}
-			const deleteRequest = new ProtoDeleteRequest()
-				.setProject(this.db)
-				.setCollection(this.collectionName)
-				.setFilter(Utility.stringToUint8Array(Utility.filterToString(query.filter)));
-
-			if (query.options) {
-				deleteRequest.setOptions(
-					Utility._deleteRequestOptionsToProtoDeleteRequestOptions(query.options)
-				);
-			}
-
-			this.grpcClient.delete(deleteRequest, Utility.txToMetadata(tx), (error, response) => {
-				if (error) {
-					reject(error);
-				} else {
-					const metadata: DMLMetadata = new DMLMetadata(
-						response.getMetadata().getCreatedAt(),
-						response.getMetadata().getUpdatedAt()
-					);
-					resolve(new DeleteResponse(response.getStatus(), metadata));
-				}
-			});
-		});
-	}
-
-	/**
-	 * Delete a single document from collection matching the query
-	 *
-	 * @param query - Filter to match documents and other deletion options
-	 * @returns {@link DeleteResponse}
-	 *
-	 * @example
-	 *
-	 * ```
-	 * const deletionPromise = db.getCollection<Book>(Book).deleteOne({
-	 * 		filter: { author: "Marcel Proust" }
-	 * });
-	 *
-	 * deletionPromise
-	 * 		.then((resp: DeleteResponse) => console.log(resp));
-	 * 		.catch( // catch the error)
-	 * 		.finally( // finally do something);
-	 * ```
-	 */
-	deleteOne(query: DeleteQuery<T>): Promise<DeleteResponse>;
-
-	/**
-	 * Delete a single document from collection in transactional context
-	 *
-	 * @param query - Filter to match documents and other deletion options
-	 * @param tx - Session information for transaction context
-	 * @returns {@link DeleteResponse}
-	 *
-	 * @example
-	 *
-	 * ```
-	 * const deletionPromise = db.getCollection<Book>(Book).deleteOne({
-	 * 		filter: { author: "Marcel Proust" }
-	 * }, tx);
-	 *
-	 * deletionPromise
-	 * 		.then((resp: DeleteResponse) => console.log(resp));
-	 * 		.catch( // catch the error)
-	 * 		.finally( // finally do something);
-	 * ```
-	 */
-	deleteOne(query: DeleteQuery<T>, tx: Session): Promise<DeleteResponse>;
-
-	deleteOne(query: DeleteQuery<T>, tx?: Session): Promise<DeleteResponse> {
-		if (query.options === undefined) {
-			query.options = new DeleteRequestOptions(1);
-		} else {
-			query.options.limit = 1;
-		}
-
-		return this.deleteMany(query, tx);
-	}
-
-	/**
-	 * Update multiple documents in a collection
-	 *
-	 * @param query - Filter to match documents and the update operations. Update
-	 * 								will be applied to matching documents only.
-	 * @returns {@link UpdateResponse}
-	 *
-	 * @example To update **language** of all books published by "Marcel Proust"
-	 * ```
-	 * const updatePromise = db.getCollection<Book>(Book).updateMany({
-	 *   filter: { author: "Marcel Proust" },
-	 *   fields: { language: "French" }
-	 * });
-	 *
-	 * updatePromise
-	 * 		.then((resp: UpdateResponse) => console.log(resp));
-	 * 		.catch( // catch the error)
-	 * 		.finally( // finally do something);
-	 * ```
-	 */
-	updateMany(query: UpdateQuery<T>): Promise<UpdateResponse>;
-
-	/**
-	 * Update multiple documents in a collection in transactional context
-	 *
-	 * @param query - Filter to match documents and the update operations. Update
-	 * 								will be applied to matching documents only.
-	 * @param tx - Session information for transaction context
-	 * @returns {@link UpdateResponse}
-	 *
-	 * @example To update **language** of all books published by "Marcel Proust"
-	 * ```
-	 * const updatePromise = db.getCollection<Book>(Book).updateMany({
-	 *   filter: { author: "Marcel Proust" },
-	 *   fields: { language: "French" }
-	 * }, tx);
-	 *
-	 * updatePromise
-	 * 		.then((resp: UpdateResponse) => console.log(resp));
-	 * 		.catch( // catch the error)
-	 * 		.finally( // finally do something);
-	 * ```
-	 */
-	updateMany(query: UpdateQuery<T>, tx: Session): Promise<UpdateResponse>;
-
-	updateMany(query: UpdateQuery<T>, tx?: Session): Promise<UpdateResponse> {
-		return new Promise<UpdateResponse>((resolve, reject) => {
-			const updateRequest = new ProtoUpdateRequest()
-				.setProject(this.db)
-				.setCollection(this.collectionName)
-				.setFilter(Utility.stringToUint8Array(Utility.filterToString(query.filter)))
-				.setFields(Utility.stringToUint8Array(Utility.updateFieldsString(query.fields)));
-
-			if (query.options !== undefined) {
-				updateRequest.setOptions(
-					Utility._updateRequestOptionsToProtoUpdateRequestOptions(query.options)
-				);
-			}
-
-			this.grpcClient.update(updateRequest, Utility.txToMetadata(tx), (error, response) => {
-				if (error) {
-					reject(error);
-				} else {
-					const metadata: DMLMetadata = new DMLMetadata(
-						response.getMetadata().getCreatedAt(),
-						response.getMetadata().getUpdatedAt()
-					);
-					resolve(new UpdateResponse(response.getStatus(), response.getModifiedCount(), metadata));
-				}
-			});
-		});
-	}
-
-	/**
-	 * Update a single document in collection
-	 *
-	 * @param query - Filter to match the document and the update operations. Update
-	 * 								will be applied to matching documents only.
-	 * @returns {@link UpdateResponse}
-	 *
-	 * @example To update **language** of a book published by "Marcel Proust"
-	 * ```
-	 * const updatePromise = db.getCollection<Book>(Book).updateOne({
-	 *   filter: { author: "Marcel Proust" },
-	 *   fields: { language: "French" }
-	 * });
-	 *
-	 * updatePromise
-	 * 		.then((resp: UpdateResponse) => console.log(resp));
-	 * 		.catch( // catch the error)
-	 * 		.finally( // finally do something);
-	 * ```
-	 */
-	updateOne(query: UpdateQuery<T>): Promise<UpdateResponse>;
-
-	/**
-	 * Update a single document in a collection in transactional context
-	 *
-	 * @param query - Filter to match the document and update operations. Update
-	 * 								will be applied to a single matching document only.
-	 * @param tx - Session information for transaction context
-	 * @returns {@link UpdateResponse}
-	 *
-	 * @example To update **language** of a book published by "Marcel Proust"
-	 * ```
-	 * const updatePromise = db.getCollection<Book>(Book).updateOne({
-	 *   filter: { author: "Marcel Proust" },
-	 *   fields: { language: "French" }
-	 * }, tx);
-	 *
-	 * updatePromise
-	 * 		.then((resp: UpdateResponse) => console.log(resp));
-	 * 		.catch( // catch the error)
-	 * 		.finally( // finally do something);
-	 * ```
-	 */
-	updateOne(query: UpdateQuery<T>, tx: Session): Promise<UpdateResponse>;
-
-	updateOne(query: UpdateQuery<T>, tx?: Session): Promise<UpdateResponse> {
-		if (query.options === undefined) {
-			query.options = new UpdateRequestOptions(1);
-		} else {
-			query.options.limit = 1;
-		}
-		return this.updateMany(query, tx);
 	}
 }
