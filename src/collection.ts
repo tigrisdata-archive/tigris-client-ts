@@ -26,7 +26,7 @@ import {
 	UpdateResponse,
 } from "./types";
 import { Utility } from "./utility";
-import { SearchRequest, SearchRequestOptions, SearchResult } from "./search/types";
+import { SearchQuery, SearchQueryOptions, SearchResult } from "./search/types";
 import { TigrisClientConfig } from "./tigris";
 import { Cursor, ReadCursorInitializer } from "./consumables/cursor";
 import { SearchIterator, SearchIteratorInitializer } from "./consumables/search-iterator";
@@ -293,12 +293,12 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	 * Search for documents in a collection. Easily perform sophisticated queries and refine
 	 * results using filters with advanced features like faceting and ordering.
 	 *
-	 * @param request - Search query to execute
+	 * @param query - Search query to execute
 	 * @returns {@link SearchIterator} - To iterate over pages of {@link SearchResult}
 	 *
 	 * @example
 	 * ```
-	 * const iterator = db.getCollection<Book>(Book).search(request);
+	 * const iterator = db.getCollection<Book>(Book).search(query);
 	 *
 	 * for await (const resultPage of iterator) {
 	 *   console.log(resultPage.hits);
@@ -306,19 +306,19 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	 * }
 	 * ```
 	 */
-	search(request: SearchRequest<T>): SearchIterator<T>;
+	search(query: SearchQuery<T>): SearchIterator<T>;
 
 	/**
 	 * Search for documents in a collection. Easily perform sophisticated queries and refine
 	 * results using filters with advanced features like faceting and ordering.
 	 *
-	 * @param request - Search query to execute
+	 * @param query - Search query to execute
 	 * @param page - Page number to retrieve. Page number `1` fetches the first page of search results.
 	 * @returns - Single page of results wrapped in a Promise
 	 *
 	 * @example To retrieve page number 5 of matched documents
 	 * ```
-	 * const resultPromise = db.getCollection<Book>(Book).search(request, 5);
+	 * const resultPromise = db.getCollection<Book>(Book).search(query, 5);
 	 *
 	 * resultPromise
 	 * 		.then((res: SearchResult<Book>) => console.log(res.hits))
@@ -327,19 +327,19 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	 *
 	 * ```
 	 */
-	search(request: SearchRequest<T>, page: number): Promise<SearchResult<T>>;
+	search(query: SearchQuery<T>, page: number): Promise<SearchResult<T>>;
 
 	/**
 	 * Search for documents in a collection. Easily perform sophisticated queries and refine
 	 * results using filters with advanced features like faceting and ordering.
 	 *
-	 * @param request - Search query to execute
+	 * @param query - Search query to execute
 	 * @param options - Optional settings for search
 	 * @returns {@link SearchIterator} - To iterate over pages of {@link SearchResult}
 	 *
 	 * @example
 	 * ```
-	 * const iterator = db.getCollection<Book>(Book).search(request, options);
+	 * const iterator = db.getCollection<Book>(Book).search(query, options);
 	 *
 	 * for await (const resultPage of iterator) {
 	 *   console.log(resultPage.hits);
@@ -347,20 +347,20 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	 * }
 	 * ```
 	 */
-	search(request: SearchRequest<T>, options: SearchRequestOptions): SearchIterator<T>;
+	search(query: SearchQuery<T>, options: SearchQueryOptions): SearchIterator<T>;
 
 	/**
 	 * Search for documents in a collection. Easily perform sophisticated queries and refine
 	 * results using filters with advanced features like faceting and ordering.
 	 *
-	 * @param request - Search query to execute
+	 * @param query - Search query to execute
 	 * @param options - Optional settings for search
 	 * @param page - Page number to retrieve. Page number `1` fetches the first page of search results.
 	 * @returns - Single page of results wrapped in a Promise
 	 *
 	 * @example To retrieve page number 5 of matched documents
 	 * ```
-	 * const resultPromise = db.getCollection<Book>(Book).search(request, options, 5);
+	 * const resultPromise = db.getCollection<Book>(Book).search(query, options, 5);
 	 *
 	 * resultPromise
 	 * 		.then((res: SearchResult<Book>) => console.log(res.hits))
@@ -370,29 +370,29 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	 * ```
 	 */
 	search(
-		request: SearchRequest<T>,
-		options: SearchRequestOptions,
+		query: SearchQuery<T>,
+		options: SearchQueryOptions,
 		page: number
 	): Promise<SearchResult<T>>;
 
 	search(
-		request: SearchRequest<T>,
-		pageOrOptions?: SearchRequestOptions | number,
+		query: SearchQuery<T>,
+		pageOrOptions?: SearchQueryOptions | number,
 		page?: number
 	): SearchIterator<T> | Promise<SearchResult<T>> {
-		let options: SearchRequestOptions;
+		let options: SearchQueryOptions;
 		if (typeof pageOrOptions !== "undefined") {
 			if (typeof pageOrOptions === "number") {
 				page = pageOrOptions as number;
 			} else {
-				options = pageOrOptions as SearchRequestOptions;
+				options = pageOrOptions as SearchQueryOptions;
 			}
 		}
 
 		const searchRequest = Utility.createProtoSearchRequest(
 			this.db,
 			this.collectionName,
-			request,
+			query,
 			options,
 			page
 		);

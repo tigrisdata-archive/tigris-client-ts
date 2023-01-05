@@ -12,13 +12,7 @@ import {
 	UpdateRequestOptions,
 } from "../types";
 import { Tigris } from "../tigris";
-import {
-	Case,
-	Collation,
-	SearchRequest,
-	SearchRequestOptions,
-	SearchResult,
-} from "../search/types";
+import { Case, Collation, SearchQuery, SearchQueryOptions, SearchResult } from "../search/types";
 import { Utility } from "../utility";
 import { ObservabilityService } from "../proto/server/v1/observability_grpc_pb";
 import TestObservabilityService from "./test-observability-service";
@@ -504,14 +498,14 @@ describe("rpc tests", () => {
 			const pageNumber = 2;
 
 			it("returns a promise", () => {
-				const request: SearchRequest<IBook> = {
+				const query: SearchQuery<IBook> = {
 					q: "philosophy",
 					facets: {
 						tags: Utility.createFacetQueryOptions(),
 					},
 				};
 
-				const maybePromise = db.getCollection<IBook>("books").search(request, pageNumber);
+				const maybePromise = db.getCollection<IBook>("books").search(query, pageNumber);
 				expect(maybePromise).toBeInstanceOf(Promise);
 
 				maybePromise.then((res: SearchResult<IBook>) => {
@@ -522,11 +516,11 @@ describe("rpc tests", () => {
 				return maybePromise;
 			});
 
-			it("returns promise using request options", () => {
-				const options: SearchRequestOptions = { collation: { case: Case.CaseInsensitive } };
-				const request: SearchRequest<IBook> = { q: "philosophy" };
+			it("returns promise using query options", () => {
+				const options: SearchQueryOptions = { collation: { case: Case.CaseInsensitive } };
+				const query: SearchQuery<IBook> = { q: "philosophy" };
 
-				const maybePromise = db.getCollection<IBook>("books").search(request, options, pageNumber);
+				const maybePromise = db.getCollection<IBook>("books").search(query, options, pageNumber);
 				expect(maybePromise).toBeInstanceOf(Promise);
 
 				maybePromise.then((res: SearchResult<IBook>) => {
@@ -539,7 +533,7 @@ describe("rpc tests", () => {
 
 		describe("without explicit page number", () => {
 			it("returns an iterator", async () => {
-				const request: SearchRequest<IBook> = {
+				const query: SearchQuery<IBook> = {
 					q: "philosophy",
 					facets: {
 						tags: Utility.createFacetQueryOptions(),
@@ -547,7 +541,7 @@ describe("rpc tests", () => {
 				};
 				let bookCounter = 0;
 
-				const maybeIterator = db.getCollection<IBook>("books").search(request);
+				const maybeIterator = db.getCollection<IBook>("books").search(query);
 				expect(maybeIterator).toBeInstanceOf(SearchIterator);
 
 				// for await loop the iterator
@@ -559,12 +553,12 @@ describe("rpc tests", () => {
 				expect(bookCounter).toBe(TestTigrisService.BOOKS_B64_BY_ID.size);
 			});
 
-			it("returns iterator using request options", async () => {
-				const request: SearchRequest<IBook> = { q: "philosophy" };
-				const options: SearchRequestOptions = { collation: { case: Case.CaseInsensitive } };
+			it("returns iterator using query options", async () => {
+				const query: SearchQuery<IBook> = { q: "philosophy" };
+				const options: SearchQueryOptions = { collation: { case: Case.CaseInsensitive } };
 				let bookCounter = 0;
 
-				const maybeIterator = db.getCollection<IBook>("books").search(request, options);
+				const maybeIterator = db.getCollection<IBook>("books").search(query, options);
 				expect(maybeIterator).toBeInstanceOf(SearchIterator);
 
 				for await (const searchResult of maybeIterator) {

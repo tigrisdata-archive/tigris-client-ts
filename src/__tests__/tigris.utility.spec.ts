@@ -7,7 +7,7 @@ import {
 	FacetQueryFieldType,
 	MATCH_ALL_QUERY_STRING,
 	Ordering,
-	SearchRequestOptions,
+	SearchQueryOptions,
 	SortOrder,
 } from "../search/types";
 
@@ -97,7 +97,7 @@ describe("utility tests", () => {
 
 		it("sets collation options", () => {
 			const emptyRequest = { q: "" };
-			const options: SearchRequestOptions = {
+			const options: SearchQueryOptions = {
 				collation: {
 					case: Case.CaseInsensitive,
 				},

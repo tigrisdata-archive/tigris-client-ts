@@ -15,11 +15,11 @@ import { TigrisClientConfig } from "../tigris";
 export const MATCH_ALL_QUERY_STRING = "";
 
 /**
- * Search request params
+ * Search query builder
  */
-export type SearchRequest<T extends TigrisCollectionType> = {
+export type SearchQuery<T extends TigrisCollectionType> = {
 	/**
-	 * Text to query
+	 * Text to match
 	 */
 	q: string;
 	/**
@@ -53,9 +53,9 @@ export type SearchRequest<T extends TigrisCollectionType> = {
 };
 
 /**
- * Options for search request
+ * Options for search query
  */
-export type SearchRequestOptions = {
+export type SearchQueryOptions = {
 	/**
 	 * Allows case-insensitive filtering
 	 */
