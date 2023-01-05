@@ -512,20 +512,6 @@ describe("rpc tests", () => {
 				});
 				return maybePromise;
 			});
-
-			it("returns promise using query options", () => {
-				const options: SearchQueryOptions = { collation: { case: Case.CaseInsensitive } };
-				const query: SearchQuery<IBook> = { q: "philosophy" };
-
-				const maybePromise = db.getCollection<IBook>("books").search(query, options, pageNumber);
-				expect(maybePromise).toBeInstanceOf(Promise);
-
-				maybePromise.then((res: SearchResult<IBook>) => {
-					expect(res.meta.page.current).toBe(pageNumber);
-				});
-
-				return maybePromise;
-			});
 		});
 
 		describe("without explicit page number", () => {
@@ -547,22 +533,6 @@ describe("rpc tests", () => {
 					expect(searchResult.facets).toBeDefined();
 					bookCounter += searchResult.hits.length;
 				}
-				expect(bookCounter).toBe(TestTigrisService.BOOKS_B64_BY_ID.size);
-			});
-
-			it("returns iterator using query options", async () => {
-				const query: SearchQuery<IBook> = { q: "philosophy" };
-				const options: SearchQueryOptions = { collation: { case: Case.CaseInsensitive } };
-				let bookCounter = 0;
-
-				const maybeIterator = db.getCollection<IBook>("books").search(query, options);
-				expect(maybeIterator).toBeInstanceOf(SearchIterator);
-
-				for await (const searchResult of maybeIterator) {
-					expect(searchResult.hits).toBeDefined();
-					bookCounter += searchResult.hits.length;
-				}
-
 				expect(bookCounter).toBe(TestTigrisService.BOOKS_B64_BY_ID.size);
 			});
 		});

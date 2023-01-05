@@ -28,7 +28,7 @@ import { Utility } from "./utility";
 import { TigrisClientConfig } from "./tigris";
 import { MissingArgumentError } from "./error";
 import { Cursor, ReadCursorInitializer } from "./consumables/cursor";
-import { SearchQuery, SearchQueryOptions, SearchResult } from "./search/types";
+import { SearchQuery, SearchResult } from "./search/types";
 import { SearchIterator, SearchIteratorInitializer } from "./consumables/search-iterator";
 
 interface ICollection {
@@ -680,71 +680,11 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	 */
 	search(query: SearchQuery<T>, page: number): Promise<SearchResult<T>>;
 
-	/**
-	 * Search for documents in a collection. Easily perform sophisticated queries and refine
-	 * results using filters with advanced features like faceting and ordering.
-	 *
-	 * @param query - Search query to execute
-	 * @param options - Optional settings for search
-	 * @returns {@link SearchIterator} - To iterate over pages of {@link SearchResult}
-	 *
-	 * @example
-	 * ```
-	 * const iterator = db.getCollection<Book>(Book).search(query, options);
-	 *
-	 * for await (const resultPage of iterator) {
-	 *   console.log(resultPage.hits);
-	 *   console.log(resultPage.facets);
-	 * }
-	 * ```
-	 */
-	search(query: SearchQuery<T>, options: SearchQueryOptions): SearchIterator<T>;
-
-	/**
-	 * Search for documents in a collection. Easily perform sophisticated queries and refine
-	 * results using filters with advanced features like faceting and ordering.
-	 *
-	 * @param query - Search query to execute
-	 * @param options - Optional settings for search
-	 * @param page - Page number to retrieve. Page number `1` fetches the first page of search results.
-	 * @returns - Single page of results wrapped in a Promise
-	 *
-	 * @example To retrieve page number 5 of matched documents
-	 * ```
-	 * const resultPromise = db.getCollection<Book>(Book).search(query, options, 5);
-	 *
-	 * resultPromise
-	 * 		.then((res: SearchResult<Book>) => console.log(res.hits))
-	 * 		.catch( // catch the error)
-	 * 		.finally( // finally do something);
-	 *
-	 * ```
-	 */
-	search(
-		query: SearchQuery<T>,
-		options: SearchQueryOptions,
-		page: number
-	): Promise<SearchResult<T>>;
-
-	search(
-		query: SearchQuery<T>,
-		pageOrOptions?: SearchQueryOptions | number,
-		page?: number
-	): SearchIterator<T> | Promise<SearchResult<T>> {
-		let options: SearchQueryOptions;
-		if (typeof pageOrOptions !== "undefined") {
-			if (typeof pageOrOptions === "number") {
-				page = pageOrOptions as number;
-			} else {
-				options = pageOrOptions as SearchQueryOptions;
-			}
-		}
-
+	search(query: SearchQuery<T>, page?: number): SearchIterator<T> | Promise<SearchResult<T>> {
 		const searchRequest = Utility.createProtoSearchRequest(
 			this.db,
 			this.collectionName,
 			query,
-			options,
 			page
 		);
 

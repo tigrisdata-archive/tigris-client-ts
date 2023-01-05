@@ -27,7 +27,6 @@ import {
 	MATCH_ALL_QUERY_STRING,
 	Ordering,
 	SearchQuery,
-	SearchQueryOptions,
 } from "./search/types";
 import {
 	Collation as ProtoCollation,
@@ -500,7 +499,6 @@ export const Utility = {
 		dbName: string,
 		collectionName: string,
 		query: SearchQuery<T>,
-		options?: SearchQueryOptions,
 		page?: number
 	): ProtoSearchRequest {
 		const searchRequest = new ProtoSearchRequest()
@@ -536,8 +534,8 @@ export const Utility = {
 			searchRequest.setPageSize(query.hitsPerPage);
 		}
 
-		if (options !== undefined && options.collation !== undefined) {
-			searchRequest.setCollation(new ProtoCollation().setCase(options.collation.case));
+		if (query.options?.collation !== undefined) {
+			searchRequest.setCollation(new ProtoCollation().setCase(query.options.collation.case));
 		}
 
 		if (page !== undefined) {

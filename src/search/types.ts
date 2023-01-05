@@ -17,7 +17,7 @@ export const MATCH_ALL_QUERY_STRING = "";
 /**
  * Search query builder
  */
-export type SearchQuery<T extends TigrisCollectionType> = {
+export interface SearchQuery<T extends TigrisCollectionType> {
 	/**
 	 * Text to match
 	 */
@@ -50,17 +50,22 @@ export type SearchQuery<T extends TigrisCollectionType> = {
 	 * Maximum number of search hits (matched documents) to fetch per page
 	 */
 	hitsPerPage?: number;
-};
+
+	/**
+	 * Other parameters for search query
+	 */
+	options?: SearchQueryOptions;
+}
 
 /**
  * Options for search query
  */
-export type SearchQueryOptions = {
+export interface SearchQueryOptions {
 	/**
 	 * String comparison rules for filtering. E.g. - Case insensitive text match
 	 */
 	collation?: Collation;
-};
+}
 
 export type FacetFieldsQuery = FacetFieldOptions | FacetFields;
 

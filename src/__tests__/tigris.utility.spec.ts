@@ -96,18 +96,13 @@ describe("utility tests", () => {
 		});
 
 		it("sets collation options", () => {
-			const emptyRequest = { q: "" };
 			const options: SearchQueryOptions = {
 				collation: {
 					case: Case.CaseInsensitive,
 				},
 			};
-			const generated = Utility.createProtoSearchRequest(
-				dbName,
-				collectionName,
-				emptyRequest,
-				options
-			);
+			const emptyRequest = { q: "", options: options };
+			const generated = Utility.createProtoSearchRequest(dbName, collectionName, emptyRequest);
 			expect(generated.getPage()).toBe(0);
 			expect(generated.getPageSize()).toBe(0);
 			expect(generated.getCollation().getCase()).toBe("ci");
