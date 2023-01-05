@@ -365,7 +365,8 @@ export type SimpleUpdateField = {
 };
 
 /**
- * Parameters for reading documents from a collection
+ * Query builder for reading documents from a collection
+ * @public
  */
 export interface FindQuery<T> {
 	/**
@@ -385,11 +386,12 @@ export interface FindQuery<T> {
 }
 
 /**
- * Parameters for deleting documents from a collection
+ * Query builder for deleting documents from a collection
+ * @public
  */
 export interface DeleteQuery<T> {
 	/**
-	 * Filter to match the documents. Query will match all documents without a filter.
+	 * Filter to match the documents
 	 */
 	filter: Filter<T>;
 
@@ -397,6 +399,27 @@ export interface DeleteQuery<T> {
 	 * Optional params
 	 */
 	options?: DeleteRequestOptions;
+}
+
+/**
+ * Query builder for updating documents in a collection
+ * @public
+ */
+export interface UpdateQuery<T> {
+	/**
+	 * Filter to match the documents
+	 */
+	filter: Filter<T>;
+
+	/**
+	 * Document fields to update and the update operation
+	 */
+	fields: UpdateFields | SimpleUpdateField;
+
+	/**
+	 * Optional params
+	 */
+	options?: UpdateRequestOptions;
 }
 
 export enum TigrisDataTypes {

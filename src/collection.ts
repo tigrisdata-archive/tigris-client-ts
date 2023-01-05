@@ -19,9 +19,8 @@ import {
 	FindQuery,
 	ReadRequestOptions,
 	SelectorFilterOperator,
-	SimpleUpdateField,
 	TigrisCollectionType,
-	UpdateFields,
+	UpdateQuery,
 	UpdateRequestOptions,
 	UpdateResponse,
 } from "./types";
@@ -30,6 +29,7 @@ import { SearchQuery, SearchQueryOptions, SearchResult } from "./search/types";
 import { TigrisClientConfig } from "./tigris";
 import { Cursor, ReadCursorInitializer } from "./consumables/cursor";
 import { SearchIterator, SearchIteratorInitializer } from "./consumables/search-iterator";
+import { MissingArgumentError } from "./error";
 
 interface ICollection {
 	readonly collectionName: string;
@@ -39,6 +39,7 @@ interface ICollection {
 /**
  * The **Collection** class represents Tigris collection allowing insert/find/update/delete/search
  * operations.
+ * @public
  */
 export class Collection<T extends TigrisCollectionType> implements ICollection {
 	readonly collectionName: string;
@@ -254,25 +255,25 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 
 	findOne(txOrQuery?: Session | FindQuery<T>, tx?: Session): Promise<T | undefined> {
 		let query: FindQuery<T>;
-		if (typeof txOrQuery !== "undefined") {
-			if (this.isTxSession(txOrQuery)) {
-				tx = txOrQuery as Session;
-			} else {
-				query = txOrQuery as FindQuery<T>;
-			}
-		}
-
-		const findOnlyOne: ReadRequestOptions = new ReadRequestOptions(1);
-
-		if (!query) {
-			query = { options: findOnlyOne };
-		} else if (!query.options) {
-			query.options = findOnlyOne;
-		} else {
-			query.options.limit = findOnlyOne.limit;
-		}
-
 		return new Promise<T>((resolve, reject) => {
+			if (typeof txOrQuery !== "undefined") {
+				if (this.isTxSession(txOrQuery)) {
+					tx = txOrQuery as Session;
+				} else {
+					query = txOrQuery as FindQuery<T>;
+				}
+			}
+
+			const findOnlyOne: ReadRequestOptions = new ReadRequestOptions(1);
+
+			if (!query) {
+				query = { options: findOnlyOne };
+			} else if (!query.options) {
+				query.options = findOnlyOne;
+			} else {
+				query.options.limit = findOnlyOne.limit;
+			}
+
 			const cursor = this.findMany(query, tx);
 			const iteratorResult = cursor[Symbol.asyncIterator]().next();
 			if (iteratorResult !== undefined) {
@@ -438,7 +439,7 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	 * Inserts multiple documents in Tigris collection.
 	 *
 	 * @param docs - Array of documents to insert
-	 * @param tx - Optional session information for transaction context
+	 * @param tx - Session information for transaction context
 	 */
 	insertMany(docs: Array<T>, tx?: Session): Promise<Array<T>> {
 		return new Promise<Array<T>>((resolve, reject) => {
@@ -471,7 +472,7 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	 * Inserts a single document in Tigris collection.
 	 *
 	 * @param doc - Document to insert
-	 * @param tx - Optional session information for transaction context
+	 * @param tx - Session information for transaction context
 	 */
 	insertOne(doc: T, tx?: Session): Promise<T> {
 		return new Promise<T>((resolve, reject) => {
@@ -491,7 +492,7 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	 * Insert new or replace existing documents in collection.
 	 *
 	 * @param docs - Array of documents to insert or replace
-	 * @param tx - Optional session information for transaction context
+	 * @param tx - Session information for transaction context
 	 */
 	insertOrReplaceMany(docs: Array<T>, tx?: Session): Promise<Array<T>> {
 		return new Promise<Array<T>>((resolve, reject) => {
@@ -523,7 +524,7 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	 * Insert new or replace an existing document in collection.
 	 *
 	 * @param doc - Document to insert or replace
-	 * @param tx - Optional session information for transaction context
+	 * @param tx - Session information for transaction context
 	 */
 	insertOrReplaceOne(doc: T, tx?: Session): Promise<T> {
 		return new Promise<T>((resolve, reject) => {
@@ -560,7 +561,7 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	 * Delete documents from collection in transactional context
 	 *
 	 * @param query - Filter to match documents and other deletion options
-	 * @param tx - Optional session information for transaction context
+	 * @param tx - Session information for transaction context
 	 * @returns {@link DeleteResponse}
 	 *
 	 * @example
@@ -581,7 +582,7 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	deleteMany(query: DeleteQuery<T>, tx?: Session): Promise<DeleteResponse> {
 		return new Promise<DeleteResponse>((resolve, reject) => {
 			if (typeof query?.filter === "undefined") {
-				reject(new Error("No filter specified"));
+				reject(new MissingArgumentError("filter"));
 			}
 			const deleteRequest = new ProtoDeleteRequest()
 				.setProject(this.db)
@@ -633,7 +634,7 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	 * Delete a single document from collection in transactional context
 	 *
 	 * @param query - Filter to match documents and other deletion options
-	 * @param tx - Optional session information for transaction context
+	 * @param tx - Session information for transaction context
 	 * @returns {@link DeleteResponse}
 	 *
 	 * @example
@@ -662,28 +663,62 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	}
 
 	/**
-	 * Update multiple documents in collection
+	 * Update multiple documents in a collection
 	 *
-	 * @param filter - Query to match documents to apply update
-	 * @param fields - Document fields to update and update operation
-	 * @param tx - Optional session information for transaction context
-	 * @param options - Optional settings for search
+	 * @param query - Filter to match documents and the update operations. Update
+	 * 								will be applied to matching documents only.
+	 * @returns {@link UpdateResponse}
+	 *
+	 * @example To update **language** of all books published by "Marcel Proust"
+	 * ```
+	 * const updatePromise = db.getCollection<Book>(Book).updateMany({
+	 *   filter: { author: "Marcel Proust" },
+	 *   fields: { language: "French" }
+	 * });
+	 *
+	 * updatePromise
+	 * 		.then((resp: UpdateResponse) => console.log(resp));
+	 * 		.catch( // catch the error)
+	 * 		.finally( // finally do something);
+	 * ```
 	 */
-	updateMany(
-		filter: Filter<T>,
-		fields: UpdateFields | SimpleUpdateField,
-		tx?: Session,
-		options?: UpdateRequestOptions
-	): Promise<UpdateResponse> {
+	updateMany(query: UpdateQuery<T>): Promise<UpdateResponse>;
+
+	/**
+	 * Update multiple documents in a collection in transactional context
+	 *
+	 * @param query - Filter to match documents and the update operations. Update
+	 * 								will be applied to matching documents only.
+	 * @param tx - Session information for transaction context
+	 * @returns {@link UpdateResponse}
+	 *
+	 * @example To update **language** of all books published by "Marcel Proust"
+	 * ```
+	 * const updatePromise = db.getCollection<Book>(Book).updateMany({
+	 *   filter: { author: "Marcel Proust" },
+	 *   fields: { language: "French" }
+	 * }, tx);
+	 *
+	 * updatePromise
+	 * 		.then((resp: UpdateResponse) => console.log(resp));
+	 * 		.catch( // catch the error)
+	 * 		.finally( // finally do something);
+	 * ```
+	 */
+	updateMany(query: UpdateQuery<T>, tx: Session): Promise<UpdateResponse>;
+
+	updateMany(query: UpdateQuery<T>, tx?: Session): Promise<UpdateResponse> {
 		return new Promise<UpdateResponse>((resolve, reject) => {
 			const updateRequest = new ProtoUpdateRequest()
 				.setProject(this.db)
 				.setCollection(this.collectionName)
-				.setFilter(Utility.stringToUint8Array(Utility.filterToString(filter)))
-				.setFields(Utility.stringToUint8Array(Utility.updateFieldsString(fields)));
+				.setFilter(Utility.stringToUint8Array(Utility.filterToString(query.filter)))
+				.setFields(Utility.stringToUint8Array(Utility.updateFieldsString(query.fields)));
 
-			if (options !== undefined) {
-				updateRequest.setOptions(Utility._updateRequestOptionsToProtoUpdateRequestOptions(options));
+			if (query.options !== undefined) {
+				updateRequest.setOptions(
+					Utility._updateRequestOptionsToProtoUpdateRequestOptions(query.options)
+				);
 			}
 
 			this.grpcClient.update(updateRequest, Utility.txToMetadata(tx), (error, response) => {
@@ -701,24 +736,56 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	}
 
 	/**
-	 * Updates a single document in collection
+	 * Update a single document in collection
 	 *
-	 * @param filter - Query to match document to apply update
-	 * @param fields - Document fields to update and update operation
-	 * @param tx - Optional session information for transaction context
-	 * @param options - Optional settings for search
+	 * @param query - Filter to match the document and the update operations. Update
+	 * 								will be applied to matching documents only.
+	 * @returns {@link UpdateResponse}
+	 *
+	 * @example To update **language** of a book published by "Marcel Proust"
+	 * ```
+	 * const updatePromise = db.getCollection<Book>(Book).updateOne({
+	 *   filter: { author: "Marcel Proust" },
+	 *   fields: { language: "French" }
+	 * });
+	 *
+	 * updatePromise
+	 * 		.then((resp: UpdateResponse) => console.log(resp));
+	 * 		.catch( // catch the error)
+	 * 		.finally( // finally do something);
+	 * ```
 	 */
-	updateOne(
-		filter: Filter<T>,
-		fields: UpdateFields | SimpleUpdateField,
-		tx?: Session,
-		options?: UpdateRequestOptions
-	): Promise<UpdateResponse> {
-		if (options === undefined) {
-			options = new UpdateRequestOptions(1);
+	updateOne(query: UpdateQuery<T>): Promise<UpdateResponse>;
+
+	/**
+	 * Update a single document in a collection in transactional context
+	 *
+	 * @param query - Filter to match the document and update operations. Update
+	 * 								will be applied to a single matching document only.
+	 * @param tx - Session information for transaction context
+	 * @returns {@link UpdateResponse}
+	 *
+	 * @example To update **language** of a book published by "Marcel Proust"
+	 * ```
+	 * const updatePromise = db.getCollection<Book>(Book).updateOne({
+	 *   filter: { author: "Marcel Proust" },
+	 *   fields: { language: "French" }
+	 * }, tx);
+	 *
+	 * updatePromise
+	 * 		.then((resp: UpdateResponse) => console.log(resp));
+	 * 		.catch( // catch the error)
+	 * 		.finally( // finally do something);
+	 * ```
+	 */
+	updateOne(query: UpdateQuery<T>, tx: Session): Promise<UpdateResponse>;
+
+	updateOne(query: UpdateQuery<T>, tx?: Session): Promise<UpdateResponse> {
+		if (query.options === undefined) {
+			query.options = new UpdateRequestOptions(1);
 		} else {
-			options.limit = 1;
+			query.options.limit = 1;
 		}
-		return this.updateMany(filter, fields, tx, options);
+		return this.updateMany(query, tx);
 	}
 }

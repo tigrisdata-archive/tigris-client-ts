@@ -302,20 +302,20 @@ describe("rpc tests", () => {
 	it("update", () => {
 		const tigris = new Tigris({ serverUrl: "localhost:" + SERVER_PORT, projectName: "db3" });
 		const db1 = tigris.getDatabase();
-		const updatePromise = db1.getCollection<IBook>("books").updateMany(
-			{
+		const updatePromise = db1.getCollection<IBook>("books").updateMany({
+			filter: {
 				op: SelectorFilterOperator.EQ,
 				fields: {
 					id: 1,
 				},
 			},
-			{
+			fields: {
 				op: UpdateFieldsOperator.SET,
 				fields: {
 					title: "New Title",
 				},
-			}
-		);
+			},
+		});
 		updatePromise.then((value) => {
 			expect(value.status).toBe('updated: {"id":1}, {"$set":{"title":"New Title"}}');
 			expect(value.modifiedCount).toBe(1);
@@ -333,26 +333,23 @@ describe("rpc tests", () => {
 		const expectedUpdateFields = { title: "one" };
 		const options = new UpdateRequestOptions(5, expectedCollation);
 
-		const updatePromise = collection.updateOne(
-			expectedFilter,
-			expectedUpdateFields,
-			undefined,
-			options
-		);
-		const [capturedFilter, capturedFields, capturedTx, capturedOptions] = capture(
-			spyCollection.updateMany
-		).last();
+		const updatePromise = collection.updateOne({
+			filter: expectedFilter,
+			fields: expectedUpdateFields,
+			options: options,
+		});
+		const [capturedQuery, capturedTx] = capture(spyCollection.updateMany).last();
 
 		// filter passed as it is
-		expect(capturedFilter).toBe(expectedFilter);
+		expect(capturedQuery.filter).toBe(expectedFilter);
 		// updateFields passed as it is
-		expect(capturedFields).toBe(expectedUpdateFields);
+		expect(capturedQuery.fields).toBe(expectedUpdateFields);
 		// tx passed as it is
 		expect(capturedTx).toBe(undefined);
 		// options.collation passed as it is
-		expect(capturedOptions.collation).toBe(expectedCollation);
+		expect(capturedQuery.options.collation).toBe(expectedCollation);
 		// options.limit === 1 while original was 5
-		expect(capturedOptions.limit).toBe(1);
+		expect(capturedQuery.options.limit).toBe(1);
 
 		return updatePromise;
 	});
@@ -640,17 +637,18 @@ describe("rpc tests", () => {
 							books
 								.updateMany(
 									{
-										op: SelectorFilterOperator.EQ,
-										fields: {
-											id: 1,
+										filter: {
+											op: SelectorFilterOperator.EQ,
+											fields: {
+												id: 1,
+											},
 										},
-									},
-									{
-										op: UpdateFieldsOperator.SET,
 										fields: {
-											author: "Dr. Author",
+											op: UpdateFieldsOperator.SET,
+											fields: {
+												author: "Dr. Author",
+											},
 										},
-										// eslint-disable-next-line @typescript-eslint/no-unused-vars
 									},
 									tx
 								)
