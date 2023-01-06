@@ -148,13 +148,9 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	 * @param doc - Document to insert or replace
 	 * @param tx - Session information for transaction context
 	 */
-	insertOrReplaceOne(doc: T, tx?: Session): Promise<T> {
-		return new Promise<T>((resolve, reject) => {
-			const docArr: Array<T> = [doc];
-			this.insertOrReplaceMany(docArr, tx)
-				.then((docs) => resolve(docs[0]))
-				.catch((error) => reject(error));
-		});
+	async insertOrReplaceOne(doc: T, tx?: Session): Promise<T> {
+		const docs = await this.insertOrReplaceMany([doc], tx);
+		return docs[0];
 	}
 
 	/**
@@ -600,41 +596,30 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	 */
 	findOne(query: FindQuery<T>, tx: Session): Promise<T | undefined>;
 
-	findOne(txOrQuery?: Session | FindQuery<T>, tx?: Session): Promise<T | undefined> {
+	async findOne(txOrQuery?: Session | FindQuery<T>, tx?: Session): Promise<T | undefined> {
 		let query: FindQuery<T>;
-		return new Promise<T>((resolve, reject) => {
-			if (typeof txOrQuery !== "undefined") {
-				if (this.isTxSession(txOrQuery)) {
-					tx = txOrQuery as Session;
-				} else {
-					query = txOrQuery as FindQuery<T>;
-				}
-			}
-
-			const findOnlyOne: FindQueryOptions = new FindQueryOptions(1);
-
-			if (!query) {
-				query = { options: findOnlyOne };
-			} else if (!query.options) {
-				query.options = findOnlyOne;
+		if (typeof txOrQuery !== "undefined") {
+			if (this.isTxSession(txOrQuery)) {
+				tx = txOrQuery as Session;
 			} else {
-				query.options.limit = findOnlyOne.limit;
+				query = txOrQuery as FindQuery<T>;
 			}
+		}
 
-			const cursor = this.findMany(query, tx);
-			const iteratorResult = cursor[Symbol.asyncIterator]().next();
-			if (iteratorResult !== undefined) {
-				iteratorResult
-					.then(
-						(r) => resolve(r.value),
-						(error) => reject(error)
-					)
-					.catch(reject);
-			} else {
-				/* eslint unicorn/no-useless-undefined: ["error", {"checkArguments": false}]*/
-				resolve(undefined);
-			}
-		});
+		const findOnlyOne: FindQueryOptions = new FindQueryOptions(1);
+
+		if (!query) {
+			query = { options: findOnlyOne };
+		} else if (!query.options) {
+			query.options = findOnlyOne;
+		} else {
+			query.options.limit = findOnlyOne.limit;
+		}
+
+		const cursor = this.findMany(query, tx);
+		const iteratorResult = await cursor[Symbol.asyncIterator]().next();
+
+		return iteratorResult?.value;
 	}
 
 	/**
