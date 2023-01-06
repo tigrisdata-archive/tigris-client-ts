@@ -787,6 +787,21 @@ describe("rpc tests", () => {
 		expect(keysNew).toContain("k3");
 		expect(keysNew).toContain("k4");
 		expect(keysNew).toHaveLength(3);
+
+		// getset
+		let getSetResp = await c1.getSet("k2", 123_456);
+		expect(getSetResp.old_value).toBe(123);
+
+		getSetResp = await c1.getSet("k2", 123_457);
+		expect(getSetResp.old_value).toBe(123_456);
+
+		// getset for new key
+		try {
+			getSetResp = await c1.getSet("k6", "val6");
+			expect(getSetResp.old_value).toBeUndefined();
+		} catch (error) {
+			console.log(error);
+		}
 	});
 });
 

@@ -9,6 +9,8 @@ import {
 	DelResponse,
 	GetRequest,
 	GetResponse,
+	GetSetRequest,
+	GetSetResponse,
 	KeysRequest,
 	KeysResponse,
 	ListCachesRequest,
@@ -128,6 +130,30 @@ export class TestCacheService {
 					call.request.getValue_asB64()
 				);
 				callback(undefined, new SetResponse().setStatus("set").setMessage("set" + " successfully"));
+			} else {
+				callback(new Error("cache does not exist"), undefined);
+			}
+		},
+		getSet(
+			call: ServerUnaryCall<GetSetRequest, GetSetResponse>,
+			callback: sendUnaryData<GetSetResponse>
+		): void {
+			const cacheName = call.request.getProject() + "_" + call.request.getName();
+			if (TestCacheService.CACHE_MAP.has(cacheName)) {
+				let oldValue = undefined;
+				if (TestCacheService.CACHE_MAP.get(cacheName).has(call.request.getKey())) {
+					oldValue = TestCacheService.CACHE_MAP.get(cacheName).get(call.request.getKey());
+				}
+
+				TestCacheService.CACHE_MAP.get(cacheName).set(
+					call.request.getKey(),
+					call.request.getValue_asB64()
+				);
+				const result = new GetSetResponse().setStatus("set").setMessage("set" + " successfully");
+				if (oldValue !== undefined) {
+					result.setOldValue(oldValue);
+				}
+				callback(undefined, result);
 			} else {
 				callback(new Error("cache does not exist"), undefined);
 			}

@@ -358,6 +358,21 @@ export class CacheSetResponse extends TigrisResponse {
 	}
 }
 
+export class CacheGetSetResponse extends CacheSetResponse {
+	private readonly _old_value: object;
+
+	constructor(status: string, message: string, old_value?: object) {
+		super(status, message);
+		if (old_value !== undefined) {
+			this._old_value = old_value;
+		}
+	}
+
+	get old_value(): object {
+		return this._old_value;
+	}
+}
+
 export class CacheDelResponse extends TigrisResponse {
 	private readonly _message: string;
 
@@ -373,15 +388,13 @@ export class CacheDelResponse extends TigrisResponse {
 
 export interface CacheSetOptions {
 	// optional ttl in seconds
-	ex: number;
+	ex?: number;
 	// optional ttl in ms
-	px: number;
+	px?: number;
 	// only set if key doesn't exist
-	nx: boolean;
+	nx?: boolean;
 	// only set if key exists
-	xx: boolean;
-	// get the old value as part of response
-	get: boolean;
+	xx?: boolean;
 }
 
 export class CacheGetResponse {
