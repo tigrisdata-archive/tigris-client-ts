@@ -9,10 +9,11 @@
 	"collectCoverage": true,
 	"coverageDirectory": "coverage",
 	"coverageProvider": "v8",
+	"coveragePathIgnorePatterns": ["<rootDir>/src/decorators/metadata/*.ts"],
 	"collectCoverageFrom": [
 		"src/*.ts",
 		"src/consumables/*.ts",
-		"src/decorators/**/*.ts",
+		"src/decorators/*.ts",
 		"src/schema/**/*.ts",
 		"src/search/**/*.ts",
 		"src/utils/**/*.ts"

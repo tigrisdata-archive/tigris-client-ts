@@ -30,29 +30,10 @@ export function Field(type: TigrisDataTypes): PropertyDecorator;
  *
  * Uses `Reflection` to determine the data type of schema Field.
  *
- * @param options - Optional properties of the schema field
- */
-export function Field(options: TigrisFieldOptions): PropertyDecorator;
-/**
- * Field decorator is used to mark a class property as Collection field. Only properties
- * decorated with `@Field` will be used in Schema.
- *
- * Uses `Reflection` to determine the data type of schema Field.
- *
  * @param options - `EmbeddedFieldOptions` are only applicable to Array and Object types
  * 									of schema field.
  */
-export function Field(options: EmbeddedFieldOptions): PropertyDecorator;
-/**
- * Field decorator is used to mark a class property as Collection field. Only properties
- * decorated with `@Field` will be used in Schema.
- *
- * Uses `Reflection` to determine the data type of Field.
- *
- * @param type - Schema field's data type
- * @param options - Optional properties of the schema field
- */
-export function Field(type: TigrisDataTypes, options?: TigrisFieldOptions): PropertyDecorator;
+export function Field(options: EmbeddedFieldOptions & TigrisFieldOptions): PropertyDecorator;
 /**
  * Field decorator is used to mark a class property as Collection field. Only properties
  * decorated with `@Field` will be used in Schema.
@@ -63,15 +44,18 @@ export function Field(type: TigrisDataTypes, options?: TigrisFieldOptions): Prop
  * @param options - `EmbeddedFieldOptions` are only applicable to Array and Object types
  * 									of schema field.
  */
-export function Field(type: TigrisDataTypes, options?: EmbeddedFieldOptions): PropertyDecorator;
+export function Field(
+	type: TigrisDataTypes,
+	options?: EmbeddedFieldOptions & TigrisFieldOptions
+): PropertyDecorator;
 
 /**
  * Field decorator is used to mark a class property as Collection field. Only properties
  * decorated with `@Field` will be used in Schema.
  */
 export function Field(
-	typeOrOptions?: TigrisDataTypes | TigrisFieldOptions | EmbeddedFieldOptions,
-	options?: TigrisFieldOptions | EmbeddedFieldOptions
+	typeOrOptions?: TigrisDataTypes | (TigrisFieldOptions & EmbeddedFieldOptions),
+	options?: TigrisFieldOptions & EmbeddedFieldOptions
 ): PropertyDecorator {
 	return function (target, propertyName) {
 		propertyName = propertyName.toString();
@@ -84,17 +68,15 @@ export function Field(
 		} else if (typeof typeOrOptions === "object") {
 			if (isEmbeddedOption(typeOrOptions)) {
 				embedOptions = typeOrOptions as EmbeddedFieldOptions;
-			} else {
-				fieldOptions = typeOrOptions as TigrisFieldOptions;
 			}
+			fieldOptions = typeOrOptions as TigrisFieldOptions;
 		}
 
 		if (typeof options === "object") {
 			if (isEmbeddedOption(options)) {
 				embedOptions = options as EmbeddedFieldOptions;
-			} else {
-				fieldOptions = options as TigrisFieldOptions;
 			}
+			fieldOptions = options as TigrisFieldOptions;
 		}
 
 		// if type or options are not specified, infer using reflection

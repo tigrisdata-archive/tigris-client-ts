@@ -12,16 +12,18 @@ import { Field } from "../../../decorators/tigris-field";
  * - has an Array of embedded objects
  * - and infers the type of collection fields automatically using Reflection APIs
  *****************************************************************************/
+export const ORDERS_COLLECTION_NAME = "orders";
+
 export class Brand {
 	@Field()
 	name: string;
 
-	@Field({elements: TigrisDataTypes.STRING})
+	@Field({ elements: TigrisDataTypes.STRING })
 	tags: Set<string>;
 }
 
 export class Product {
-	@Field()
+	@Field({ maxLength: 64 })
 	name: string;
 
 	@Field()
@@ -34,16 +36,16 @@ export class Product {
 	price: number;
 }
 
-@TigrisCollection("orders")
+@TigrisCollection(ORDERS_COLLECTION_NAME)
 export class Order {
-	@PrimaryKey(TigrisDataTypes.UUID,{order: 1, autoGenerate: true})
+	@PrimaryKey(TigrisDataTypes.UUID, { order: 1, autoGenerate: true })
 	orderId: string;
 
-	@PrimaryKey({order: 2})
+	@PrimaryKey({ order: 2 })
 	customerId: string;
 
-	@Field({elements: Product})
-	products: Array<Product>
+	@Field({ elements: Product })
+	products: Array<Product>;
 }
 
 /********************************** END **************************************/
@@ -54,48 +56,49 @@ export class Order {
  * NOTE: This is only an illustration; you don't have to write this definition,
  * it will be auto generated.
  */
-export const ExpectedSchema: TigrisSchema<Order> = {
+export const OrderSchema: TigrisSchema<Order> = {
 	orderId: {
 		type: TigrisDataTypes.UUID,
 		primary_key: {
-			order:1,
-			autoGenerate: true
-		}
+			order: 1,
+			autoGenerate: true,
+		},
 	},
 	customerId: {
 		type: TigrisDataTypes.STRING,
 		primary_key: {
 			order: 2,
-			autoGenerate: false
-		}
+			autoGenerate: false,
+		},
 	},
 	products: {
 		type: TigrisDataTypes.ARRAY,
 		items: {
 			type: {
 				name: {
-					type: TigrisDataTypes.STRING
+					type: TigrisDataTypes.STRING,
+					maxLength: 64,
 				},
 				brand: {
 					type: {
 						name: {
-							type: TigrisDataTypes.STRING
+							type: TigrisDataTypes.STRING,
 						},
 						tags: {
 							type: TigrisDataTypes.ARRAY,
 							items: {
-								type: TigrisDataTypes.STRING
-							}
-						}
-					}
+								type: TigrisDataTypes.STRING,
+							},
+						},
+					},
 				},
 				upc: {
-					type: TigrisDataTypes.NUMBER_BIGINT
+					type: TigrisDataTypes.NUMBER_BIGINT,
 				},
 				price: {
-					type: TigrisDataTypes.NUMBER
-				}
-			}
-		}
-	}
-}
+					type: TigrisDataTypes.NUMBER,
+				},
+			},
+		},
+	},
+};

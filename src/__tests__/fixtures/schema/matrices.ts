@@ -10,31 +10,33 @@ import { PrimaryKey } from "../../../decorators/tigris-primary-key";
  * - has a nested Array (Array of Arrays)
  * - infers the type of collection fields automatically using Reflection APIs
  *****************************************************************************/
+export const MATRICES_COLLECTION_NAME = "matrices";
+
 export class CellValue {
 	@Field()
-	length: number
+	length: number;
 
 	@Field()
 	type: string;
 }
 
 export class Cell {
-	@Field()
+	@Field({ default: 0 })
 	x: number;
 
-	@Field()
+	@Field({ default: 0 })
 	y: number;
 
 	@Field()
 	value: CellValue;
 }
 
-@TigrisCollection("matrices")
-export class Matrix implements TigrisCollectionType {
-	@PrimaryKey({order: 1})
+@TigrisCollection(MATRICES_COLLECTION_NAME)
+export class Matrix {
+	@PrimaryKey({ order: 1 })
 	id: string;
 
-	@Field({elements: Cell, depth: 3})
+	@Field({ elements: Cell, depth: 3 })
 	cells: Array<Array<Array<Cell>>>;
 }
 /********************************** END **************************************/
@@ -45,12 +47,12 @@ export class Matrix implements TigrisCollectionType {
  * NOTE: This is only an illustration; you don't have to write this definition,
  * it will be auto generated.
  */
-export const ExpectedSchema: TigrisSchema<Matrix> = {
+export const MatrixSchema: TigrisSchema<Matrix> = {
 	id: {
 		type: TigrisDataTypes.STRING,
 		primary_key: {
 			order: 1,
-			autoGenerate: false
+			autoGenerate: false,
 		},
 	},
 	cells: {
@@ -63,23 +65,25 @@ export const ExpectedSchema: TigrisSchema<Matrix> = {
 					type: {
 						x: {
 							type: TigrisDataTypes.NUMBER,
+							default: 0,
 						},
 						y: {
 							type: TigrisDataTypes.NUMBER,
+							default: 0,
 						},
 						value: {
 							type: {
 								length: {
-									type: TigrisDataTypes.NUMBER
+									type: TigrisDataTypes.NUMBER,
 								},
 								type: {
-									type: TigrisDataTypes.STRING
-								}
+									type: TigrisDataTypes.STRING,
+								},
 							},
 						},
-					}
-				}
-			}
-		}
-	}
-}
+					},
+				},
+			},
+		},
+	},
+};

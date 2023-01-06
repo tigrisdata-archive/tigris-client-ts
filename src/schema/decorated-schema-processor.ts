@@ -59,12 +59,16 @@ export class DecoratedSchemaProcessor {
 						}
 					}
 					break;
-				case TigrisDataTypes.BYTE_STRING:
 				case TigrisDataTypes.STRING:
 					if (field.schemaFieldOptions?.maxLength) {
 						schema[key].maxLength = field.schemaFieldOptions.maxLength;
 					}
 					break;
+			}
+
+			// set "default" value for field,  if any
+			if (field.schemaFieldOptions && "default" in field.schemaFieldOptions) {
+				schema[key].default = field.schemaFieldOptions.default;
 			}
 		}
 		return schema;

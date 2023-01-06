@@ -64,7 +64,7 @@ export class DB {
 	 *
 	 * ```
 	 * @TigrisCollection("todoItems")
-	 * class TodoItem implements TigrisCollectionType {
+	 * class TodoItem {
 	 *   @PrimaryKey(TigrisDataTypes.INT32, { order: 1 })
 	 *   id: number;
 	 *

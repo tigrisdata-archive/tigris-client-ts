@@ -1,6 +1,6 @@
 import { TigrisCollection } from "../../../decorators/tigris-collection";
 import { PrimaryKey } from "../../../decorators/tigris-primary-key";
-import { TigrisDataTypes, TigrisSchema } from "../../../types";
+import { TigrisCollectionType, TigrisDataTypes, TigrisSchema } from "../../../types";
 import { Field } from "../../../decorators/tigris-field";
 
 /******************************************************************************
@@ -11,6 +11,7 @@ import { Field } from "../../../decorators/tigris-field";
  * - has an Object of type `Studio`
  * - does not use reflection, all the collection fields are explicitly typed
  *****************************************************************************/
+export const MOVIES_COLLECTION_NAME = "movies";
 
 export class Studio {
 	@Field(TigrisDataTypes.STRING)
@@ -21,17 +22,16 @@ export class Studio {
 }
 
 export class Actor {
-	@Field(TigrisDataTypes.STRING, {maxLength: 64})
+	@Field(TigrisDataTypes.STRING, { maxLength: 64 })
 	firstName: string;
 
-	@Field(TigrisDataTypes.STRING, {maxLength: 64})
+	@Field(TigrisDataTypes.STRING, { maxLength: 64 })
 	lastName: string;
 }
 
-@TigrisCollection("movies")
-export class Movie{
-
-	@PrimaryKey(TigrisDataTypes.STRING, {autoGenerate: true, order: 1})
+@TigrisCollection(MOVIES_COLLECTION_NAME)
+export class Movie {
+	@PrimaryKey(TigrisDataTypes.STRING, { order: 1 })
 	movieId: string;
 
 	@Field(TigrisDataTypes.STRING)
@@ -40,13 +40,13 @@ export class Movie{
 	@Field(TigrisDataTypes.INT32)
 	year: number;
 
-	@Field(TigrisDataTypes.ARRAY, {elements: Actor})
+	@Field(TigrisDataTypes.ARRAY, { elements: Actor })
 	actors: Array<Actor>;
 
-	@Field(TigrisDataTypes.ARRAY, {elements: TigrisDataTypes.STRING})
+	@Field(TigrisDataTypes.ARRAY, { elements: TigrisDataTypes.STRING })
 	genres: Array<string>;
 
-	@Field(TigrisDataTypes.OBJECT, {elements: Studio})
+	@Field(TigrisDataTypes.OBJECT, { elements: Studio })
 	productionHouse: Studio;
 }
 
@@ -58,19 +58,19 @@ export class Movie{
  * NOTE: This is only an illustration; you don't have to write this definition,
  * it will be auto generated.
  */
-export const ExpectedSchema: TigrisSchema<Movie> = {
+export const MovieSchema: TigrisSchema<Movie> = {
 	movieId: {
 		type: TigrisDataTypes.STRING,
 		primary_key: {
 			order: 1,
-			autoGenerate: true
-		}
+			autoGenerate: false,
+		},
 	},
 	title: {
-		type: TigrisDataTypes.STRING
+		type: TigrisDataTypes.STRING,
 	},
 	year: {
-		type: TigrisDataTypes.INT32
+		type: TigrisDataTypes.INT32,
 	},
 	actors: {
 		type: TigrisDataTypes.ARRAY,
@@ -78,29 +78,29 @@ export const ExpectedSchema: TigrisSchema<Movie> = {
 			type: {
 				firstName: {
 					type: TigrisDataTypes.STRING,
-					maxLength: 64
+					maxLength: 64,
 				},
 				lastName: {
 					type: TigrisDataTypes.STRING,
-					maxLength: 64
-				}
-			}
-		}
+					maxLength: 64,
+				},
+			},
+		},
 	},
 	genres: {
 		type: TigrisDataTypes.ARRAY,
 		items: {
-			type: TigrisDataTypes.STRING
-		}
+			type: TigrisDataTypes.STRING,
+		},
 	},
 	productionHouse: {
 		type: {
 			name: {
-				type: TigrisDataTypes.STRING
+				type: TigrisDataTypes.STRING,
 			},
 			city: {
-				type: TigrisDataTypes.STRING
-			}
-		}
-	}
-}
+				type: TigrisDataTypes.STRING,
+			},
+		},
+	},
+};
