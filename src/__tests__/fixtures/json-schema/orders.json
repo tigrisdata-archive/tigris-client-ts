@@ -1,0 +1,48 @@
+{
+	"title": "orders",
+	"additionalProperties": false,
+	"type": "object",
+	"properties": {
+		"orderId": {
+			"type": "string",
+			"format": "uuid",
+			"autoGenerate": true
+		},
+		"customerId": {
+			"type": "string"
+		},
+		"products": {
+			"type": "array",
+			"items": {
+				"type": "object",
+				"properties": {
+					"name": {
+						"type": "string",
+						"maxLength": 64
+					},
+					"brand": {
+						"type": "object",
+						"properties": {
+							"name": {
+								"type": "string"
+							},
+							"tags": {
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							}
+						}
+					},
+					"upc": {
+						"type": "integer"
+					},
+					"price": {
+						"type": "number"
+					}
+				}
+			}
+		}
+	},
+	"primary_key": ["orderId", "customerId"]
+}

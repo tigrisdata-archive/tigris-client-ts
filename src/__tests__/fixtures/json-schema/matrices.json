@@ -1,0 +1,44 @@
+{
+	"title": "matrices",
+	"additionalProperties": false,
+	"type": "object",
+	"properties": {
+		"id": {
+			"type": "string"
+		},
+		"cells": {
+			"type": "array",
+			"items": {
+				"type": "array",
+				"items": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"properties": {
+							"x": {
+								"type": "number",
+								"default": 0
+							},
+							"y": {
+								"type": "number",
+								"default": 0
+							},
+							"value": {
+								"type": "object",
+								"properties": {
+									"length": {
+										"type": "number"
+									},
+									"type": {
+										"type": "string"
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	},
+	"primary_key": ["id"]
+}

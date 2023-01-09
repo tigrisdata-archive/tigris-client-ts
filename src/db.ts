@@ -64,7 +64,7 @@ export class DB {
 	 *
 	 * ```
 	 * @TigrisCollection("todoItems")
-	 * class TodoItem implements TigrisCollectionType {
+	 * class TodoItem {
 	 *   @PrimaryKey(TigrisDataTypes.INT32, { order: 1 })
 	 *   id: number;
 	 *
@@ -256,12 +256,14 @@ export class DB {
 	public getCollection<T extends TigrisCollectionType>(
 		cls: new () => TigrisCollectionType
 	): Collection<T>;
+
 	/**
 	 * Gets a {@link Collection} object
 	 *
 	 * @param name - Collection name
 	 */
 	public getCollection<T extends TigrisCollectionType>(name: string): Collection<T>;
+
 	public getCollection<T extends TigrisCollectionType>(nameOrClass: T | string): Collection<T> {
 		const collectionName = this.resolveNameFromCollectionClass(nameOrClass);
 		return new Collection<T>(collectionName, this.db, this.grpcClient, this.config);

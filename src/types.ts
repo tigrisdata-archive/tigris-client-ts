@@ -185,7 +185,7 @@ export class UpdateResponse extends DMLResponse {
 
 export class WriteOptions {}
 
-export class DeleteRequestOptions {
+export class DeleteQueryOptions {
 	private _collation: Collation;
 	private _limit: number;
 
@@ -211,7 +211,7 @@ export class DeleteRequestOptions {
 	}
 }
 
-export class UpdateRequestOptions {
+export class UpdateQueryOptions {
 	private _collation: Collation;
 	private _limit: number;
 
@@ -237,7 +237,7 @@ export class UpdateRequestOptions {
 	}
 }
 
-export class ReadRequestOptions {
+export class FindQueryOptions {
 	static DEFAULT_LIMIT = 100;
 	static DEFAULT_SKIP = 0;
 
@@ -250,8 +250,8 @@ export class ReadRequestOptions {
 	constructor(limit: number, skip: number);
 	constructor(limit?: number, skip?: number, offset?: string);
 	constructor(limit?: number, skip?: number, offset?: string, collation?: Collation) {
-		this._limit = limit ?? ReadRequestOptions.DEFAULT_LIMIT;
-		this._skip = skip ?? ReadRequestOptions.DEFAULT_SKIP;
+		this._limit = limit ?? FindQueryOptions.DEFAULT_LIMIT;
+		this._skip = skip ?? FindQueryOptions.DEFAULT_SKIP;
 		this._offset = offset;
 		this._collation = collation;
 	}
@@ -306,6 +306,106 @@ export class RollbackTransactionResponse extends TigrisResponse {
 export class TransactionResponse extends TigrisResponse {
 	constructor(status: string) {
 		super(status);
+	}
+}
+
+export class CacheMetadata {
+	private readonly _name: string;
+
+	constructor(name: string) {
+		this._name = name;
+	}
+
+	get name(): string {
+		return this._name;
+	}
+}
+export class ListCachesResponse {
+	private readonly _caches: CacheMetadata[];
+
+	constructor(caches: CacheMetadata[]) {
+		this._caches = caches;
+	}
+
+	get caches(): CacheMetadata[] {
+		return this._caches;
+	}
+}
+
+export class DeleteCacheResponse extends TigrisResponse {
+	private readonly _message: string;
+
+	constructor(status: string, message: string) {
+		super(status);
+		this._message = message;
+	}
+
+	get message(): string {
+		return this._message;
+	}
+}
+
+export class CacheSetResponse extends TigrisResponse {
+	private readonly _message: string;
+
+	constructor(status: string, message: string) {
+		super(status);
+		this._message = message;
+	}
+
+	get message(): string {
+		return this._message;
+	}
+}
+
+export class CacheGetSetResponse extends CacheSetResponse {
+	private readonly _old_value: object;
+
+	constructor(status: string, message: string, old_value?: object) {
+		super(status, message);
+		if (old_value !== undefined) {
+			this._old_value = old_value;
+		}
+	}
+
+	get old_value(): object {
+		return this._old_value;
+	}
+}
+
+export class CacheDelResponse extends TigrisResponse {
+	private readonly _message: string;
+
+	constructor(status: string, message: string) {
+		super(status);
+		this._message = message;
+	}
+
+	get message(): string {
+		return this._message;
+	}
+}
+
+export interface CacheSetOptions {
+	// optional ttl in seconds
+	ex?: number;
+	// optional ttl in ms
+	px?: number;
+	// only set if key doesn't exist
+	nx?: boolean;
+	// only set if key exists
+	xx?: boolean;
+}
+
+export class CacheGetResponse {
+	private readonly _value: object;
+
+	constructor(value: object) {
+		this._value = value;
+	}
+
+	get value(): object {
+		return this._value;
 	}
 }
 
@@ -364,6 +464,64 @@ export type SimpleUpdateField = {
 	[key: string]: FieldTypes | undefined;
 };
 
+/**
+ * Query builder for reading documents from a collection
+ * @public
+ */
+export interface FindQuery<T> {
+	/**
+	 * Filter to match the documents. Query will match all documents without a filter.
+	 */
+	filter?: Filter<T>;
+
+	/**
+	 * Field projection to allow returning only specific document fields. By default
+	 * all document fields are returned.
+	 */
+	readFields?: ReadFields;
+	/**
+	 * Optional params
+	 */
+	options?: FindQueryOptions;
+}
+
+/**
+ * Query builder for deleting documents from a collection
+ * @public
+ */
+export interface DeleteQuery<T> {
+	/**
+	 * Filter to match the documents
+	 */
+	filter: Filter<T>;
+
+	/**
+	 * Optional params
+	 */
+	options?: DeleteQueryOptions;
+}
+
+/**
+ * Query builder for updating documents in a collection
+ * @public
+ */
+export interface UpdateQuery<T> {
+	/**
+	 * Filter to match the documents
+	 */
+	filter: Filter<T>;
+
+	/**
+	 * Document fields to update and the update operation
+	 */
+	fields: UpdateFields | SimpleUpdateField;
+
+	/**
+	 * Optional params
+	 */
+	options?: UpdateQueryOptions;
+}
+
 export enum TigrisDataTypes {
 	STRING = "string",
 	BOOLEAN = "boolean",
@@ -387,16 +545,39 @@ export enum TigrisDataTypes {
 	OBJECT = "object",
 }
 
-export interface TigrisFieldOptions {
-	maxLength?: number;
+export enum FieldDefaults {
+	TIME_UPDATED_AT = "updatedAt",
+	TIME_CREATED_AT = "createdAt",
+	TIME_NOW = "now()",
+	AUTO_CUID = "cuid()",
+	AUTO_UUID = "uuid()",
 }
+
+export type TigrisFieldOptions = {
+	/**
+	 * Max length for "string" type of fields
+	 */
+	maxLength?: number;
+	/**
+	 * Default
+	 */
+	default?:
+		| FieldDefaults
+		| number
+		| bigint
+		| string
+		| boolean
+		| Date
+		| Array<unknown>
+		| Record<string, unknown>;
+};
 
 export type TigrisSchema<T extends TigrisCollectionType> = {
 	[K in keyof T]: {
 		type: TigrisDataTypes | TigrisSchema<unknown>;
 		primary_key?: PrimaryKeyOptions;
 		items?: TigrisArrayItem;
-	};
+	} & TigrisFieldOptions;
 };
 
 export type TigrisArrayItem = {
@@ -409,30 +590,24 @@ export type PrimaryKeyOptions = {
 	autoGenerate?: boolean;
 };
 
-export type TigrisPartitionKey = {
-	order: number;
-};
-
 /**
-Generates all possible paths for type parameter T. By recursively iterating over its keys. While
- iterating the keys it makes the keys available in string form and in non string form both. For
- example
-
- interface IUser {
-  name: string;
-  id: number
-  address: Address;
- }
-
- interface Address {
-  city: string
-  state: string
- }
-
- and Paths<IUser> will make these keys available
- name, id, address (object type) and also in the string form
- "name", "id", "address.city", "address.state"
-
+ * Generates all possible paths for type parameter T. By recursively iterating over its keys. While
+ * iterating the keys it makes the keys available in string form and in non string form both. For
+ * @example
+ * ```
+ * interface IUser {
+ * 		name: string;
+ * 		id: number;
+ * 		address: Address;
+ * }
+ *
+ * interface Address {
+ * 		city: string
+ *		state: string
+ * }
+ * ```
+ * and Paths<IUser> will make these keys available name, id, address (object type) and also in the
+ * string form "name", "id", "address.city", "address.state"
  */
 type Paths<T, P extends string = ""> = {
 	[K in keyof T]: T[K] extends object

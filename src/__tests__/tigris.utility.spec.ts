@@ -1,4 +1,4 @@
-import {Utility} from "../utility";
+import { Utility } from "../utility";
 import {
 	Case,
 	FacetFieldOptions,
@@ -7,8 +7,8 @@ import {
 	FacetQueryFieldType,
 	MATCH_ALL_QUERY_STRING,
 	Ordering,
-	SearchRequestOptions,
-	SortOrder
+	SearchQueryOptions,
+	SortOrder,
 } from "../search/types";
 
 describe("utility tests", () => {
@@ -28,29 +28,9 @@ describe("utility tests", () => {
 		expect(generatedOptions.type).toBe(FacetQueryFieldType.VALUE);
 	});
 
-	describe("createSearchRequestOptions",() => {
-		it("generates default with empty options", () => {
-			const generated: SearchRequestOptions = Utility.createSearchRequestOptions();
-			expect(generated.page).toBe(1);
-			expect(generated.perPage).toBe(20);
-		});
-
-		it("fills missing options", () => {
-			const actual: SearchRequestOptions = {
-				page: 2, collation: {
-					case: Case.CaseInsensitive
-				}
-			};
-			const generated: SearchRequestOptions = Utility.createSearchRequestOptions(actual);
-			expect(generated.page).toBe(actual.page);
-			expect(generated.perPage).toBe(20);
-			expect(generated.collation).toBe(actual.collation);
-		});
-	});
-
 	it("backfills missing facet query options", () => {
 		const generatedOptions = Utility.createFacetQueryOptions({
-			size: 55
+			size: 55,
 		});
 		expect(generatedOptions.size).toBe(55);
 		expect(generatedOptions.type).toBe(FacetQueryFieldType.VALUE);
@@ -59,23 +39,27 @@ describe("utility tests", () => {
 	it("serializes FacetFields to string", () => {
 		const fields: FacetFields = ["field_1", "field_2"];
 		const serialized: string = Utility.facetQueryToString(fields);
-		expect(serialized).toBe("{\"field_1\":{\"size\":10,\"type\":\"value\"},\"field_2\":{\"size\":10,\"type\":\"value\"}}");
+		expect(serialized).toBe(
+			'{"field_1":{"size":10,"type":"value"},"field_2":{"size":10,"type":"value"}}'
+		);
 	});
 
 	it("serializes FacetFieldOptions to string", () => {
 		const fields: FacetFieldOptions = {
 			field_1: Utility.createFacetQueryOptions(),
-			field_2: {size: 10, type: FacetQueryFieldType.VALUE}
+			field_2: { size: 10, type: FacetQueryFieldType.VALUE },
 		};
 		const serialized: string = Utility.facetQueryToString(fields);
-		expect(serialized).toBe("{\"field_1\":{\"size\":10,\"type\":\"value\"},\"field_2\":{\"size\":10,\"type\":\"value\"}}");
+		expect(serialized).toBe(
+			'{"field_1":{"size":10,"type":"value"},"field_2":{"size":10,"type":"value"}}'
+		);
 	});
 
-	it("equivalent serialization of FacetFieldsQuery",() => {
+	it("equivalent serialization of FacetFieldsQuery", () => {
 		const facetFields: FacetFieldsQuery = ["field_1", "field_2"];
 		const fieldOptions: FacetFieldsQuery = {
 			field_1: Utility.createFacetQueryOptions(),
-			field_2: {size: 10, type: FacetQueryFieldType.VALUE}
+			field_2: { size: 10, type: FacetQueryFieldType.VALUE },
 		};
 		const serializedFields = Utility.facetQueryToString(facetFields);
 		expect(serializedFields).toBe(Utility.facetQueryToString(fieldOptions));
@@ -87,10 +71,10 @@ describe("utility tests", () => {
 
 	it("serializes sort orders to string", () => {
 		const ordering: Ordering = [
-			{field: "field_1", order: SortOrder.ASC},
-			{field: "parent.field_2", order: SortOrder.DESC}
+			{ field: "field_1", order: SortOrder.ASC },
+			{ field: "parent.field_2", order: SortOrder.DESC },
 		];
-		const expected = "[{\"field_1\":\"$asc\"},{\"parent.field_2\":\"$desc\"}]";
+		const expected = '[{"field_1":"$asc"},{"parent.field_2":"$desc"}]';
 		expect(Utility.sortOrderingToString(ordering)).toBe(expected);
 	});
 
@@ -99,30 +83,29 @@ describe("utility tests", () => {
 		const collectionName = "my_test_collection";
 
 		it("populates projectName and collection name", () => {
-			const emptyRequest = {q: ""};
+			const emptyRequest = { q: "" };
 			const generated = Utility.createProtoSearchRequest(dbName, collectionName, emptyRequest);
 			expect(generated.getProject()).toBe(dbName);
 			expect(generated.getCollection()).toBe(collectionName);
 		});
 
 		it("creates default match all query string", () => {
-			const request = {q: undefined};
+			const request = { q: undefined };
 			const generated = Utility.createProtoSearchRequest(dbName, collectionName, request);
 			expect(generated.getQ()).toBe(MATCH_ALL_QUERY_STRING);
 		});
 
-		it ("sets collation options", () => {
-			const emptyRequest = {q: ""};
-			const options: SearchRequestOptions = {
+		it("sets collation options", () => {
+			const options: SearchQueryOptions = {
 				collation: {
-					case: Case.CaseInsensitive
-				}
+					case: Case.CaseInsensitive,
+				},
 			};
-			const generated = Utility.createProtoSearchRequest(dbName, collectionName, emptyRequest, options);
+			const emptyRequest = { q: "", options: options };
+			const generated = Utility.createProtoSearchRequest(dbName, collectionName, emptyRequest);
 			expect(generated.getPage()).toBe(0);
 			expect(generated.getPageSize()).toBe(0);
 			expect(generated.getCollation().getCase()).toBe("ci");
 		});
-
 	});
 });

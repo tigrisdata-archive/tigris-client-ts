@@ -1,12 +1,12 @@
-import {Server, ServerCredentials} from "@grpc/grpc-js";
-import TestService, {TestTigrisService} from "../test-service";
-import {TigrisService} from "../../proto/server/v1/api_grpc_pb";
-import {IBook} from "../tigris.rpc.spec";
-import {Tigris} from "../../tigris";
-import {CursorInUseError} from "../../error";
-import {ObservabilityService} from "../../proto/server/v1/observability_grpc_pb";
+import { Server, ServerCredentials } from "@grpc/grpc-js";
+import TestService, { TestTigrisService } from "../test-service";
+import { TigrisService } from "../../proto/server/v1/api_grpc_pb";
+import { IBook } from "../tigris.rpc.spec";
+import { Tigris } from "../../tigris";
+import { CursorInUseError } from "../../error";
+import { ObservabilityService } from "../../proto/server/v1/observability_grpc_pb";
 import TestObservabilityService from "../test-observability-service";
-import {DB} from "../../db";
+import { DB } from "../../db";
 
 describe("class FindCursor", () => {
 	let server: Server;
@@ -30,7 +30,7 @@ describe("class FindCursor", () => {
 				}
 			}
 		);
-		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT, projectName: "db3"});
+		const tigris = new Tigris({ serverUrl: "localhost:" + SERVER_PORT, projectName: "db3" });
 		db = tigris.getDatabase();
 		done();
 	});
@@ -52,7 +52,7 @@ describe("class FindCursor", () => {
 			bookCounter++;
 		}
 		expect(bookCounter).toBeGreaterThan(0);
-	})
+	});
 
 	it("Pipes the stream as iterable", async () => {
 		const cursor = db.getCollection<IBook>("books").findMany();
@@ -62,22 +62,22 @@ describe("class FindCursor", () => {
 			bookCounter++;
 		}
 		expect(bookCounter).toBeGreaterThan(0);
-	})
+	});
 
 	it("returns stream as an array", () => {
 		const cursor = db.getCollection<IBook>("books").findMany();
 		const booksPromise = cursor.toArray();
-		booksPromise.then(books => expect(books.length).toBeGreaterThan(0));
+		booksPromise.then((books) => expect(books.length).toBeGreaterThan(0));
 
 		return booksPromise;
-	})
+	});
 
 	it("does not allow cursor to be re-used", () => {
 		const cursor = db.getCollection<IBook>("books").findMany();
 		// cursor is backed by is a generator fn, calling next() would retrieve item from stream
 		cursor[Symbol.asyncIterator]().next();
 		expect(() => cursor.toArray()).toThrow(CursorInUseError);
-	})
+	});
 
 	it("allows cursor to be re-used once reset", async () => {
 		const cursor = db.getCollection<IBook>("books").findMany();
@@ -88,8 +88,8 @@ describe("class FindCursor", () => {
 			bookCounter++;
 		}
 
-		cursor.reset()
+		cursor.reset();
 		const books = await cursor.toArray();
 		expect(books.length).toBe(bookCounter);
-	})
+	});
 });

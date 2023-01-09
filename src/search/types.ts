@@ -15,11 +15,11 @@ import { TigrisClientConfig } from "../tigris";
 export const MATCH_ALL_QUERY_STRING = "";
 
 /**
- * Search request params
+ * Search query builder
  */
-export type SearchRequest<T extends TigrisCollectionType> = {
+export interface SearchQuery<T extends TigrisCollectionType> {
 	/**
-	 * Text to query
+	 * Text to match
 	 */
 	q: string;
 	/**
@@ -46,25 +46,26 @@ export type SearchRequest<T extends TigrisCollectionType> = {
 	 * Document fields to exclude when returning search results
 	 */
 	excludeFields?: Array<string>;
-};
+	/**
+	 * Maximum number of search hits (matched documents) to fetch per page
+	 */
+	hitsPerPage?: number;
+
+	/**
+	 * Other parameters for search query
+	 */
+	options?: SearchQueryOptions;
+}
 
 /**
- * Pagination and Collation options for search request
+ * Options for search query
  */
-export type SearchRequestOptions = {
+export interface SearchQueryOptions {
 	/**
-	 * Page number to fetch search results for
-	 */
-	page?: number;
-	/**
-	 * Number of search results to fetch per page
-	 */
-	perPage?: number;
-	/**
-	 * Allows case-insensitive filtering
+	 * String comparison rules for filtering. E.g. - Case insensitive text match
 	 */
 	collation?: Collation;
-};
+}
 
 export type FacetFieldsQuery = FacetFieldOptions | FacetFields;
 
@@ -160,11 +161,11 @@ export class SearchResult<T> {
 	}
 
 	static get empty(): SearchResult<never> {
-		return new SearchResult([], new Map(), undefined);
+		return new SearchResult([], new Map(), SearchMeta.default);
 	}
 
 	/**
-	 * @returns matched documents as immutable list
+	 * @returns matched documents as a list
 	 * @readonly
 	 */
 	get hits(): ReadonlyArray<Hit<T>> {
@@ -190,7 +191,7 @@ export class SearchResult<T> {
 
 	static from<T>(resp: ProtoSearchResponse, config: TigrisClientConfig): SearchResult<T> {
 		const _meta =
-			typeof resp?.getMeta() !== "undefined" ? SearchMeta.from(resp.getMeta()) : undefined;
+			typeof resp?.getMeta() !== "undefined" ? SearchMeta.from(resp.getMeta()) : SearchMeta.default;
 		const _hits: Array<Hit<T>> = resp.getHitsList().map((h) => Hit.from(h, config));
 		const _facets: Map<string, FacetCountDistribution> = new Map(
 			resp
@@ -480,6 +481,14 @@ export class SearchMeta {
 		const page = typeof resp?.getPage() !== "undefined" ? Page.from(resp.getPage()) : undefined;
 		return new SearchMeta(found, totalPages, page);
 	}
+
+	/**
+	 * @returns default metadata to construct empty/default response
+	 * @readonly
+	 */
+	static get default(): SearchMeta {
+		return new SearchMeta(0, 1, Page.default);
+	}
 }
 
 /**
@@ -514,5 +523,13 @@ export class Page {
 		const current = resp?.getCurrent() ?? 0;
 		const size = resp?.getSize() ?? 0;
 		return new Page(current, size);
+	}
+
+	/**
+	 * @returns the pre-defined page number and size to construct a default response
+	 * @readonly
+	 */
+	static get default(): Page {
+		return new Page(1, 20);
 	}
 }

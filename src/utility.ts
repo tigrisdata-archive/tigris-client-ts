@@ -3,11 +3,11 @@ import json_bigint from "json-bigint";
 import { Session } from "./session";
 
 import {
-	DeleteRequestOptions,
+	DeleteQueryOptions,
+	FindQueryOptions,
 	LogicalFilter,
 	LogicalOperator,
 	ReadFields,
-	ReadRequestOptions,
 	Selector,
 	SelectorFilter,
 	SelectorFilterOperator,
@@ -17,18 +17,16 @@ import {
 	TigrisSchema,
 	UpdateFields,
 	UpdateFieldsOperator,
-	UpdateRequestOptions,
+	UpdateQueryOptions,
 } from "./types";
 import * as fs from "node:fs";
 import {
-	Case,
 	FacetFieldsQuery,
 	FacetQueryFieldType,
 	FacetQueryOptions,
 	MATCH_ALL_QUERY_STRING,
 	Ordering,
-	SearchRequest,
-	SearchRequestOptions,
+	SearchQuery,
 } from "./search/types";
 import {
 	Collation as ProtoCollation,
@@ -223,12 +221,16 @@ export const Utility = {
 			if (!ob.hasOwnProperty(key)) continue;
 
 			if (typeof ob[key] == "object" && ob[key] !== null) {
-				const flatObject = Utility._flattenObj(ob[key]);
-				for (const x in flatObject) {
-					// eslint-disable-next-line no-prototype-builtins
-					if (!flatObject.hasOwnProperty(x)) continue;
-
-					toReturn[key + "." + x] = flatObject[x];
+				const value = ob[key];
+				if (value.constructor.name === "Date") {
+					toReturn[key] = (value as Date).toJSON();
+				} else {
+					const flatObject = Utility._flattenObj(value);
+					for (const x in flatObject) {
+						// eslint-disable-next-line no-prototype-builtins
+						if (!flatObject.hasOwnProperty(x)) continue;
+						toReturn[key + "." + x] = flatObject[x];
+					}
 				}
 			} else {
 				toReturn[key] = ob[key];
@@ -255,19 +257,10 @@ export const Utility = {
 	 - this can be extended for other schema massaging
 	 */
 	_postProcessDocumentSchema(result: object, pkeyMap: object): object {
-		if (Object.keys(pkeyMap).length === 0) {
-			// if no pkeys was used defined. add implicit pkey
-			result["properties"]["id"] = {
-				type: "string",
-				format: "uuid",
-			};
-			result["primary_key"] = ["id"];
-		} else {
-			result["primary_key"] = [];
-			// add primary_key in order
-			for (let i = 1; i <= Object.keys(pkeyMap).length; i++) {
-				result["primary_key"].push(pkeyMap[i.toString()]);
-			}
+		result["primary_key"] = [];
+		// add primary_key in order
+		for (let i = 1; i <= Object.keys(pkeyMap).length; i++) {
+			result["primary_key"].push(pkeyMap[i.toString()]);
 		}
 		return result;
 	},
@@ -324,15 +317,30 @@ export const Utility = {
 					keyMap[schema[property].key["order"]] = property;
 				}
 
+				// property is string and has "maxLength" optional attribute
+				if (
+					thisProperty["type"] == TigrisDataTypes.STRING.valueOf() &&
+					thisProperty["format"] === undefined &&
+					schema[property].maxLength
+				) {
+					thisProperty["maxLength"] = schema[property].maxLength as number;
+				}
+
 				// array type?
 			} else if (schema[property].type === TigrisDataTypes.ARRAY.valueOf()) {
 				thisProperty = this._getArrayBlock(schema[property], pkeyMap, keyMap);
 			}
 			properties[property] = thisProperty;
+			// 'default' values for schema fields, if any
+			if ("default" in schema[property]) {
+				thisProperty["default"] =
+					// eslint-disable-next-line unicorn/no-null
+					schema[property].default == undefined ? null : schema[property].default;
+			}
 		}
 		return properties;
 	},
-	_readRequestOptionsToProtoReadRequestOptions(input: ReadRequestOptions): ProtoReadRequestOptions {
+	_readRequestOptionsToProtoReadRequestOptions(input: FindQueryOptions): ProtoReadRequestOptions {
 		const result: ProtoReadRequestOptions = new ProtoReadRequestOptions();
 		if (input !== undefined) {
 			if (input.skip !== undefined) {
@@ -354,7 +362,7 @@ export const Utility = {
 		return result;
 	},
 	_deleteRequestOptionsToProtoDeleteRequestOptions(
-		input: DeleteRequestOptions
+		input: DeleteQueryOptions
 	): ProtoDeleteRequestOptions {
 		const result: ProtoDeleteRequestOptions = new ProtoDeleteRequestOptions();
 		if (input !== undefined) {
@@ -368,7 +376,7 @@ export const Utility = {
 		return result;
 	},
 	_updateRequestOptionsToProtoUpdateRequestOptions(
-		input: UpdateRequestOptions
+		input: UpdateQueryOptions
 	): ProtoUpdateRequestOptions {
 		const result: ProtoUpdateRequestOptions = new ProtoUpdateRequestOptions();
 		if (input !== undefined) {
@@ -389,25 +397,11 @@ export const Utility = {
 		const arrayBlock = {};
 		arrayBlock["type"] = "array";
 		arrayBlock["items"] = {};
-		// array of array?
-		if (arraySchema["items"]["type"] === TigrisDataTypes.ARRAY.valueOf()) {
-			arrayBlock["items"] = this._getArrayBlock(arraySchema["items"], pkeyMap, keyMap);
-			// array of custom type?
-		} else if (typeof arraySchema["items"]["type"] === "object") {
-			arrayBlock["items"]["type"] = "object";
-			arrayBlock["items"]["properties"] = this._getSchemaProperties(
-				arraySchema["items"]["type"],
-				pkeyMap,
-				keyMap
-			);
-			// within array: single flat property?
-		} else {
-			arrayBlock["items"]["type"] = this._getType(arraySchema["items"]["type"] as TigrisDataTypes);
-			const format = this._getFormat(arraySchema["items"]["type"] as TigrisDataTypes);
-			if (format) {
-				arrayBlock["items"]["format"] = format;
-			}
-		}
+		arrayBlock["items"] = this._getSchemaProperties(
+			{ _$arrayItemPlaceholder: arraySchema["items"] },
+			pkeyMap,
+			keyMap
+		)["_$arrayItemPlaceholder"];
 		return arrayBlock;
 	},
 
@@ -464,13 +458,12 @@ export const Utility = {
 		return Buffer.from(b64String, "base64").toString("binary");
 	},
 
-	createFacetQueryOptions(options?: Partial<FacetQueryOptions>): FacetQueryOptions {
-		const defaults = { size: 10, type: FacetQueryFieldType.VALUE };
-		return { ...defaults, ...options };
+	_base64DecodeToObject(b64String: string, config: TigrisClientConfig): object {
+		return this.jsonStringToObj(Buffer.from(b64String, "base64").toString("binary"), config);
 	},
 
-	createSearchRequestOptions(options?: Partial<SearchRequestOptions>): SearchRequestOptions {
-		const defaults = { page: 1, perPage: 20, collation: { case: Case.CaseInsensitive } };
+	createFacetQueryOptions(options?: Partial<FacetQueryOptions>): FacetQueryOptions {
+		const defaults = { size: 10, type: FacetQueryFieldType.VALUE };
 		return { ...defaults, ...options };
 	},
 
@@ -501,50 +494,48 @@ export const Utility = {
 	createProtoSearchRequest<T>(
 		dbName: string,
 		collectionName: string,
-		request: SearchRequest<T>,
-		options?: SearchRequestOptions
+		query: SearchQuery<T>,
+		page?: number
 	): ProtoSearchRequest {
 		const searchRequest = new ProtoSearchRequest()
 			.setProject(dbName)
 			.setCollection(collectionName)
-			.setQ(request.q ?? MATCH_ALL_QUERY_STRING);
+			.setQ(query.q ?? MATCH_ALL_QUERY_STRING);
 
-		if (request.searchFields !== undefined) {
-			searchRequest.setSearchFieldsList(request.searchFields);
+		if (query.searchFields !== undefined) {
+			searchRequest.setSearchFieldsList(query.searchFields);
 		}
 
-		if (request.filter !== undefined) {
-			searchRequest.setFilter(Utility.stringToUint8Array(Utility.filterToString(request.filter)));
+		if (query.filter !== undefined) {
+			searchRequest.setFilter(Utility.stringToUint8Array(Utility.filterToString(query.filter)));
 		}
 
-		if (request.facets !== undefined) {
-			searchRequest.setFacet(
-				Utility.stringToUint8Array(Utility.facetQueryToString(request.facets))
-			);
+		if (query.facets !== undefined) {
+			searchRequest.setFacet(Utility.stringToUint8Array(Utility.facetQueryToString(query.facets)));
 		}
 
-		if (request.sort !== undefined) {
-			searchRequest.setSort(Utility.stringToUint8Array(Utility.sortOrderingToString(request.sort)));
+		if (query.sort !== undefined) {
+			searchRequest.setSort(Utility.stringToUint8Array(Utility.sortOrderingToString(query.sort)));
 		}
 
-		if (request.includeFields !== undefined) {
-			searchRequest.setIncludeFieldsList(request.includeFields);
+		if (query.includeFields !== undefined) {
+			searchRequest.setIncludeFieldsList(query.includeFields);
 		}
 
-		if (request.excludeFields !== undefined) {
-			searchRequest.setExcludeFieldsList(request.excludeFields);
+		if (query.excludeFields !== undefined) {
+			searchRequest.setExcludeFieldsList(query.excludeFields);
 		}
 
-		if (options !== undefined) {
-			if (options.page !== undefined) {
-				searchRequest.setPage(options.page);
-			}
-			if (options.perPage !== undefined) {
-				searchRequest.setPageSize(options.perPage);
-			}
-			if (options.collation !== undefined) {
-				searchRequest.setCollation(new ProtoCollation().setCase(options.collation.case));
-			}
+		if (query.hitsPerPage !== undefined) {
+			searchRequest.setPageSize(query.hitsPerPage);
+		}
+
+		if (query.options?.collation !== undefined) {
+			searchRequest.setCollation(new ProtoCollation().setCase(query.options.collation.case));
+		}
+
+		if (page !== undefined) {
+			searchRequest.setPage(page);
 		}
 
 		return searchRequest;
