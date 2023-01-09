@@ -4,10 +4,10 @@ import { Session } from "./session";
 
 import {
 	DeleteQueryOptions,
+	FindQueryOptions,
 	LogicalFilter,
 	LogicalOperator,
 	ReadFields,
-	FindQueryOptions,
 	Selector,
 	SelectorFilter,
 	SelectorFilterOperator,
@@ -257,19 +257,10 @@ export const Utility = {
 	 - this can be extended for other schema massaging
 	 */
 	_postProcessDocumentSchema(result: object, pkeyMap: object): object {
-		if (Object.keys(pkeyMap).length === 0) {
-			// if no pkeys was used defined. add implicit pkey
-			result["properties"]["id"] = {
-				type: "string",
-				format: "uuid",
-			};
-			result["primary_key"] = ["id"];
-		} else {
-			result["primary_key"] = [];
-			// add primary_key in order
-			for (let i = 1; i <= Object.keys(pkeyMap).length; i++) {
-				result["primary_key"].push(pkeyMap[i.toString()]);
-			}
+		result["primary_key"] = [];
+		// add primary_key in order
+		for (let i = 1; i <= Object.keys(pkeyMap).length; i++) {
+			result["primary_key"].push(pkeyMap[i.toString()]);
 		}
 		return result;
 	},
@@ -326,11 +317,26 @@ export const Utility = {
 					keyMap[schema[property].key["order"]] = property;
 				}
 
+				// property is string and has "maxLength" optional attribute
+				if (
+					thisProperty["type"] == TigrisDataTypes.STRING.valueOf() &&
+					thisProperty["format"] === undefined &&
+					schema[property].maxLength
+				) {
+					thisProperty["maxLength"] = schema[property].maxLength as number;
+				}
+
 				// array type?
 			} else if (schema[property].type === TigrisDataTypes.ARRAY.valueOf()) {
 				thisProperty = this._getArrayBlock(schema[property], pkeyMap, keyMap);
 			}
 			properties[property] = thisProperty;
+			// 'default' values for schema fields, if any
+			if ("default" in schema[property]) {
+				thisProperty["default"] =
+					// eslint-disable-next-line unicorn/no-null
+					schema[property].default == undefined ? null : schema[property].default;
+			}
 		}
 		return properties;
 	},
@@ -391,25 +397,11 @@ export const Utility = {
 		const arrayBlock = {};
 		arrayBlock["type"] = "array";
 		arrayBlock["items"] = {};
-		// array of array?
-		if (arraySchema["items"]["type"] === TigrisDataTypes.ARRAY.valueOf()) {
-			arrayBlock["items"] = this._getArrayBlock(arraySchema["items"], pkeyMap, keyMap);
-			// array of custom type?
-		} else if (typeof arraySchema["items"]["type"] === "object") {
-			arrayBlock["items"]["type"] = "object";
-			arrayBlock["items"]["properties"] = this._getSchemaProperties(
-				arraySchema["items"]["type"],
-				pkeyMap,
-				keyMap
-			);
-			// within array: single flat property?
-		} else {
-			arrayBlock["items"]["type"] = this._getType(arraySchema["items"]["type"] as TigrisDataTypes);
-			const format = this._getFormat(arraySchema["items"]["type"] as TigrisDataTypes);
-			if (format) {
-				arrayBlock["items"]["format"] = format;
-			}
-		}
+		arrayBlock["items"] = this._getSchemaProperties(
+			{ _$arrayItemPlaceholder: arraySchema["items"] },
+			pkeyMap,
+			keyMap
+		)["_$arrayItemPlaceholder"];
 		return arrayBlock;
 	},
 

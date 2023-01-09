@@ -11,29 +11,31 @@ import { TigrisCollection } from "../../../decorators/tigris-collection";
  * - has an Array of primitive types
  * - infers the type of collection fields automatically using Reflection APIs
  *****************************************************************************/
+export const USERS_COLLECTION_NAME = "users";
+
 export class Identity {
-	@Field({maxLength: 128})
+	@Field({ maxLength: 128 })
 	connection?: string;
 
 	@Field()
 	isSocial: boolean;
 
-	@Field({elements: TigrisDataTypes.NUMBER})
+	@Field({ elements: TigrisDataTypes.NUMBER })
 	provider: Array<number>;
 
 	@Field()
 	linkedAccounts: number;
 }
 
-@TigrisCollection("users")
-export class User implements TigrisCollectionType {
-	@PrimaryKey({order: 1})
+@TigrisCollection(USERS_COLLECTION_NAME)
+export class User {
+	@PrimaryKey({ order: 1 })
 	id: number;
 
 	@Field()
 	created: Date;
 
-	@Field({elements: Identity})
+	@Field({ elements: Identity })
 	identities: Array<Identity>;
 
 	@Field()
@@ -48,16 +50,16 @@ export class User implements TigrisCollectionType {
  * NOTE: This is only an illustration; you don't have to write this definition,
  * it will be auto generated.
  */
-export const ExpectedSchema: TigrisSchema<User> = {
+export const UserSchema: TigrisSchema<User> = {
 	id: {
 		type: TigrisDataTypes.NUMBER,
 		primary_key: {
 			order: 1,
-			autoGenerate: false
+			autoGenerate: false,
 		},
 	},
 	created: {
-		type: TigrisDataTypes.DATE_TIME
+		type: TigrisDataTypes.DATE_TIME,
 	},
 	identities: {
 		type: TigrisDataTypes.ARRAY,
@@ -65,24 +67,24 @@ export const ExpectedSchema: TigrisSchema<User> = {
 			type: {
 				connection: {
 					type: TigrisDataTypes.STRING,
-					maxLength: 128
+					maxLength: 128,
 				},
 				isSocial: {
-					type: TigrisDataTypes.BOOLEAN
+					type: TigrisDataTypes.BOOLEAN,
 				},
 				provider: {
 					type: TigrisDataTypes.ARRAY,
 					items: {
-						type: TigrisDataTypes.NUMBER
-					}
+						type: TigrisDataTypes.NUMBER,
+					},
 				},
 				linkedAccounts: {
-					type: TigrisDataTypes.NUMBER
-				}
-			}
-		}
+					type: TigrisDataTypes.NUMBER,
+				},
+			},
+		},
 	},
 	name: {
-		type: TigrisDataTypes.STRING
-	}
+		type: TigrisDataTypes.STRING,
+	},
 };

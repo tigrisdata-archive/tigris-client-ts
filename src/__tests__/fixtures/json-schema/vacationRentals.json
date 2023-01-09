@@ -1,0 +1,116 @@
+{
+	"title": "vacation_rentals",
+	"additionalProperties": false,
+	"type": "object",
+	"properties": {
+		"id": {
+			"type": "string",
+			"format": "uuid",
+			"autoGenerate": true
+		},
+		"name": {
+			"type": "string",
+			"maxLength": 64
+		},
+		"description": {
+			"type": "string",
+			"maxLength": 256,
+			"default": ""
+		},
+		"propertyType": {
+			"type": "string",
+			"default": "Home"
+		},
+		"bedrooms": {
+			"type": "number",
+			"default": 0
+		},
+		"bathrooms": {
+			"type": "number",
+			"default": 0
+		},
+		"minimumNights": {
+			"type": "integer",
+			"format": "int32",
+			"default": 1
+		},
+		"isOwnerOccupied": {
+			"type": "boolean",
+			"default": false
+		},
+		"hasWiFi": {
+			"type": "boolean",
+			"default": true
+		},
+		"address": {
+			"type": "object",
+			"properties": {
+				"city": {
+					"type": "string"
+				},
+				"countryCode": {
+					"type": "string",
+					"maxLength": 2,
+					"default": "US"
+				}
+			},
+			"default": {}
+		},
+		"verifications": {
+			"type": "object",
+			"default": {
+				"stateId": true
+			}
+		},
+		"amenities": {
+			"type": "array",
+			"items": {
+				"type": "string"
+			},
+			"default": ["Beds"]
+		},
+		"attractions": {
+			"type": "array",
+			"items": {
+				"type": "string"
+			},
+			"default": []
+		},
+		"host": {
+			"type": "object",
+			"default": null
+		},
+		"reviews": {
+			"type": "array",
+			"items": {
+				"type": "object"
+			},
+			"default": null
+		},
+		"lastSeen": {
+			"type": "string",
+			"format": "date-time",
+			"default": "now()"
+		},
+		"createdAt": {
+			"type": "string",
+			"format": "date-time",
+			"default": "createdAt"
+		},
+		"lastModified": {
+			"type": "string",
+			"format": "date-time",
+			"default": "updatedAt"
+		},
+		"partnerId": {
+			"type": "string",
+			"default": "cuid()"
+		},
+		"referralId": {
+			"type": "string",
+			"format": "uuid",
+			"default": "uuid()"
+		}
+	},
+	"primary_key": ["id"]
+}

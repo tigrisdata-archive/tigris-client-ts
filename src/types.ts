@@ -545,16 +545,39 @@ export enum TigrisDataTypes {
 	OBJECT = "object",
 }
 
-export interface TigrisFieldOptions {
-	maxLength?: number;
+export enum FieldDefaults {
+	TIME_UPDATED_AT = "updatedAt",
+	TIME_CREATED_AT = "createdAt",
+	TIME_NOW = "now()",
+	AUTO_CUID = "cuid()",
+	AUTO_UUID = "uuid()",
 }
+
+export type TigrisFieldOptions = {
+	/**
+	 * Max length for "string" type of fields
+	 */
+	maxLength?: number;
+	/**
+	 * Default
+	 */
+	default?:
+		| FieldDefaults
+		| number
+		| bigint
+		| string
+		| boolean
+		| Date
+		| Array<unknown>
+		| Record<string, unknown>;
+};
 
 export type TigrisSchema<T extends TigrisCollectionType> = {
 	[K in keyof T]: {
 		type: TigrisDataTypes | TigrisSchema<unknown>;
 		primary_key?: PrimaryKeyOptions;
 		items?: TigrisArrayItem;
-	};
+	} & TigrisFieldOptions;
 };
 
 export type TigrisArrayItem = {
@@ -567,30 +590,24 @@ export type PrimaryKeyOptions = {
 	autoGenerate?: boolean;
 };
 
-export type TigrisPartitionKey = {
-	order: number;
-};
-
 /**
-Generates all possible paths for type parameter T. By recursively iterating over its keys. While
- iterating the keys it makes the keys available in string form and in non string form both. For
- example
-
- interface IUser {
-  name: string;
-  id: number
-  address: Address;
- }
-
- interface Address {
-  city: string
-  state: string
- }
-
- and Paths<IUser> will make these keys available
- name, id, address (object type) and also in the string form
- "name", "id", "address.city", "address.state"
-
+ * Generates all possible paths for type parameter T. By recursively iterating over its keys. While
+ * iterating the keys it makes the keys available in string form and in non string form both. For
+ * @example
+ * ```
+ * interface IUser {
+ * 		name: string;
+ * 		id: number;
+ * 		address: Address;
+ * }
+ *
+ * interface Address {
+ * 		city: string
+ *		state: string
+ * }
+ * ```
+ * and Paths<IUser> will make these keys available name, id, address (object type) and also in the
+ * string form "name", "id", "address.city", "address.state"
  */
 type Paths<T, P extends string = ""> = {
 	[K in keyof T]: T[K] extends object
