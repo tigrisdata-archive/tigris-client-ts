@@ -445,12 +445,6 @@ export enum UpdateFieldsOperator {
 
 export type FieldTypes = string | number | boolean | bigint | BigInteger;
 
-export type LogicalFilter<T> = {
-	op: LogicalOperator;
-	selectorFilters?: Array<SelectorFilter<T> | Selector<T>>;
-	logicalFilters?: Array<LogicalFilter<T>>;
-};
-
 export type ReadFields = {
 	include?: Array<string>;
 	exclude?: Array<string>;
@@ -545,12 +539,13 @@ export enum TigrisDataTypes {
 	OBJECT = "object",
 }
 
-export enum FieldDefaults {
-	TIME_UPDATED_AT = "updatedAt",
-	TIME_CREATED_AT = "createdAt",
-	TIME_NOW = "now()",
-	AUTO_CUID = "cuid()",
-	AUTO_UUID = "uuid()",
+export enum Generated {
+	UPDATED_AT = "updatedAt",
+	CREATED_AT = "createdAt",
+	TIMESTAMP = "timestamp",
+	NOW = "now()",
+	CUID = "cuid()",
+	UUID = "uuid()",
 }
 
 export type TigrisFieldOptions = {
@@ -562,7 +557,7 @@ export type TigrisFieldOptions = {
 	 * Default
 	 */
 	default?:
-		| FieldDefaults
+		| Generated
 		| number
 		| bigint
 		| string
@@ -638,5 +633,11 @@ export type SelectorFilter<T> = Partial<{
 	op?: SelectorFilterOperator;
 	fields: Selector<T>;
 }>;
+
+export type LogicalFilter<T> = {
+	op: LogicalOperator;
+	selectorFilters?: Array<SelectorFilter<T> | Selector<T>>;
+	logicalFilters?: Array<LogicalFilter<T>>;
+};
 
 export type Filter<T> = SelectorFilter<T> | LogicalFilter<T> | Selector<T>;

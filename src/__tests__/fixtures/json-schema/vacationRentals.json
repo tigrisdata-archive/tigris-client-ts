@@ -53,8 +53,7 @@
 					"maxLength": 2,
 					"default": "US"
 				}
-			},
-			"default": {}
+			}
 		},
 		"verifications": {
 			"type": "object",
@@ -87,20 +86,26 @@
 			},
 			"default": null
 		},
-		"lastSeen": {
+		"availableSince": {
 			"type": "string",
 			"format": "date-time",
 			"default": "now()"
 		},
+		"lastSeen": {
+			"type": "string",
+			"format": "date-time",
+			"createdAt": true,
+			"updatedAt": true
+		},
 		"createdAt": {
 			"type": "string",
 			"format": "date-time",
-			"default": "createdAt"
+			"createdAt": true
 		},
 		"lastModified": {
 			"type": "string",
 			"format": "date-time",
-			"default": "updatedAt"
+			"updatedAt": true
 		},
 		"partnerId": {
 			"type": "string",

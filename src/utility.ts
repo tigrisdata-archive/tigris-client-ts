@@ -4,6 +4,8 @@ import { Session } from "./session";
 
 import {
 	DeleteQueryOptions,
+	Generated,
+	Filter,
 	FindQueryOptions,
 	LogicalFilter,
 	LogicalOperator,
@@ -46,7 +48,7 @@ export const Utility = {
 		return new TextDecoder().decode(input);
 	},
 
-	filterToString<T>(filter: SelectorFilter<T> | LogicalFilter<T> | Selector<T>): string {
+	filterToString<T>(filter: Filter<T>): string {
 		if (
 			Object.prototype.hasOwnProperty.call(filter, "op") &&
 			(filter["op"] === LogicalOperator.AND || filter["op"] === LogicalOperator.OR)
@@ -333,9 +335,24 @@ export const Utility = {
 			properties[property] = thisProperty;
 			// 'default' values for schema fields, if any
 			if ("default" in schema[property]) {
-				thisProperty["default"] =
-					// eslint-disable-next-line unicorn/no-null
-					schema[property].default == undefined ? null : schema[property].default;
+				switch (schema[property].default) {
+					case undefined:
+						// eslint-disable-next-line unicorn/no-null
+						thisProperty["default"] = null;
+						break;
+					case Generated.UPDATED_AT:
+						thisProperty[Generated.UPDATED_AT] = true;
+						break;
+					case Generated.CREATED_AT:
+						thisProperty[Generated.CREATED_AT] = true;
+						break;
+					case Generated.TIMESTAMP:
+						thisProperty[Generated.CREATED_AT] = true;
+						thisProperty[Generated.UPDATED_AT] = true;
+						break;
+					default:
+						thisProperty["default"] = schema[property].default;
+				}
 			}
 		}
 		return properties;
