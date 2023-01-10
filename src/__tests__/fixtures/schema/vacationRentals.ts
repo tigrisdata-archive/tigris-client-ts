@@ -1,5 +1,5 @@
 import { TigrisCollection } from "../../../decorators/tigris-collection";
-import { FieldDefaults, TigrisDataTypes, TigrisSchema } from "../../../types";
+import { Generated, TigrisDataTypes, TigrisSchema } from "../../../types";
 import { PrimaryKey } from "../../../decorators/tigris-primary-key";
 import { Field } from "../../../decorators/tigris-field";
 
@@ -49,7 +49,7 @@ export class VacationRentals {
 	@Field({ default: true })
 	hasWiFi: boolean;
 
-	@Field({ default: {} })
+	@Field()
 	address: Address;
 
 	@Field({ default: { stateId: true } })
@@ -67,19 +67,22 @@ export class VacationRentals {
 	@Field({ elements: TigrisDataTypes.OBJECT, default: undefined })
 	reviews: Array<Object>;
 
-	@Field({ default: FieldDefaults.TIME_NOW })
+	@Field({ default: Generated.NOW })
+	availableSince: Date;
+
+	@Field({ default: Generated.NOW, timestamp: "updatedAt" })
 	lastSeen: Date;
 
-	@Field({ default: FieldDefaults.TIME_CREATED_AT })
+	@Field({ timestamp: "createdAt" })
 	createdAt: Date;
 
-	@Field({ default: FieldDefaults.TIME_UPDATED_AT })
+	@Field({ timestamp: "updatedAt" })
 	lastModified: Date;
 
-	@Field({ default: FieldDefaults.AUTO_CUID })
+	@Field({ default: Generated.CUID })
 	partnerId: string;
 
-	@Field(TigrisDataTypes.UUID, { default: FieldDefaults.AUTO_UUID })
+	@Field(TigrisDataTypes.UUID, { default: Generated.UUID })
 	referralId: string;
 }
 /********************************** END **************************************/
@@ -142,7 +145,6 @@ export const VacationsRentalSchema: TigrisSchema<VacationRentals> = {
 				maxLength: 2,
 			},
 		},
-		default: {},
 	},
 	verifications: {
 		type: TigrisDataTypes.OBJECT,
@@ -173,24 +175,29 @@ export const VacationsRentalSchema: TigrisSchema<VacationRentals> = {
 		},
 		default: undefined,
 	},
+	availableSince: {
+		type: TigrisDataTypes.DATE_TIME,
+		default: Generated.NOW,
+	},
 	lastSeen: {
 		type: TigrisDataTypes.DATE_TIME,
-		default: FieldDefaults.TIME_NOW,
+		default: Generated.NOW,
+		timestamp: "updatedAt",
 	},
 	createdAt: {
 		type: TigrisDataTypes.DATE_TIME,
-		default: FieldDefaults.TIME_CREATED_AT,
+		timestamp: "createdAt",
 	},
 	lastModified: {
 		type: TigrisDataTypes.DATE_TIME,
-		default: FieldDefaults.TIME_UPDATED_AT,
+		timestamp: "updatedAt",
 	},
 	partnerId: {
 		type: TigrisDataTypes.STRING,
-		default: FieldDefaults.AUTO_CUID,
+		default: Generated.CUID,
 	},
 	referralId: {
 		type: TigrisDataTypes.UUID,
-		default: FieldDefaults.AUTO_UUID,
+		default: Generated.UUID,
 	},
 };

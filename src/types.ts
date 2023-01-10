@@ -445,12 +445,6 @@ export enum UpdateFieldsOperator {
 
 export type FieldTypes = string | number | boolean | bigint | BigInteger;
 
-export type LogicalFilter<T> = {
-	op: LogicalOperator;
-	selectorFilters?: Array<SelectorFilter<T> | Selector<T>>;
-	logicalFilters?: Array<LogicalFilter<T>>;
-};
-
 export type ReadFields = {
 	include?: Array<string>;
 	exclude?: Array<string>;
@@ -545,13 +539,16 @@ export enum TigrisDataTypes {
 	OBJECT = "object",
 }
 
-export enum FieldDefaults {
-	TIME_UPDATED_AT = "updatedAt",
-	TIME_CREATED_AT = "createdAt",
-	TIME_NOW = "now()",
-	AUTO_CUID = "cuid()",
-	AUTO_UUID = "uuid()",
+/**
+ * DB generated values for the schema fields
+ */
+export enum Generated {
+	NOW = "now()",
+	CUID = "cuid()",
+	UUID = "uuid()",
 }
+
+export type AutoTimestamp = "createdAt" | "updatedAt";
 
 export type TigrisFieldOptions = {
 	/**
@@ -559,10 +556,10 @@ export type TigrisFieldOptions = {
 	 */
 	maxLength?: number;
 	/**
-	 * Default
+	 * Default value for the schema field
 	 */
 	default?:
-		| FieldDefaults
+		| Generated
 		| number
 		| bigint
 		| string
@@ -570,6 +567,11 @@ export type TigrisFieldOptions = {
 		| Date
 		| Array<unknown>
 		| Record<string, unknown>;
+
+	/**
+	 * Let DB generate values for `Date` type of fields
+	 */
+	timestamp?: AutoTimestamp;
 };
 
 export type TigrisSchema<T extends TigrisCollectionType> = {
@@ -638,5 +640,11 @@ export type SelectorFilter<T> = Partial<{
 	op?: SelectorFilterOperator;
 	fields: Selector<T>;
 }>;
+
+export type LogicalFilter<T> = {
+	op: LogicalOperator;
+	selectorFilters?: Array<SelectorFilter<T> | Selector<T>>;
+	logicalFilters?: Array<LogicalFilter<T>>;
+};
 
 export type Filter<T> = SelectorFilter<T> | LogicalFilter<T> | Selector<T>;
