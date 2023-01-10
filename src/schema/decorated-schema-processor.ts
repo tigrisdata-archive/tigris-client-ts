@@ -70,6 +70,10 @@ export class DecoratedSchemaProcessor {
 			if (field.schemaFieldOptions && "default" in field.schemaFieldOptions) {
 				schema[key].default = field.schemaFieldOptions.default;
 			}
+			// set "timestamp" value for field,  if any
+			if (field.schemaFieldOptions && "timestamp" in field.schemaFieldOptions) {
+				schema[key].timestamp = field.schemaFieldOptions.timestamp;
+			}
 		}
 		return schema;
 	}

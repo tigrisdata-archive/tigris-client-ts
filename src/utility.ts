@@ -4,6 +4,7 @@ import { Session } from "./session";
 
 import {
 	DeleteQueryOptions,
+	Filter,
 	FindQueryOptions,
 	LogicalFilter,
 	LogicalOperator,
@@ -46,7 +47,7 @@ export const Utility = {
 		return new TextDecoder().decode(input);
 	},
 
-	filterToString<T>(filter: SelectorFilter<T> | LogicalFilter<T> | Selector<T>): string {
+	filterToString<T>(filter: Filter<T>): string {
 		if (
 			Object.prototype.hasOwnProperty.call(filter, "op") &&
 			(filter["op"] === LogicalOperator.AND || filter["op"] === LogicalOperator.OR)
@@ -331,11 +332,22 @@ export const Utility = {
 				thisProperty = this._getArrayBlock(schema[property], pkeyMap, keyMap);
 			}
 			properties[property] = thisProperty;
+
 			// 'default' values for schema fields, if any
 			if ("default" in schema[property]) {
-				thisProperty["default"] =
-					// eslint-disable-next-line unicorn/no-null
-					schema[property].default == undefined ? null : schema[property].default;
+				switch (schema[property].default) {
+					case undefined:
+						// eslint-disable-next-line unicorn/no-null
+						thisProperty["default"] = null;
+						break;
+					default:
+						thisProperty["default"] = schema[property].default;
+				}
+			}
+
+			// 'timestamp' values for schema fields
+			if ("timestamp" in schema[property]) {
+				thisProperty[schema[property].timestamp] = true;
 			}
 		}
 		return properties;
