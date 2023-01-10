@@ -94,7 +94,7 @@
 		"lastSeen": {
 			"type": "string",
 			"format": "date-time",
-			"createdAt": true,
+			"default": "now()",
 			"updatedAt": true
 		},
 		"createdAt": {

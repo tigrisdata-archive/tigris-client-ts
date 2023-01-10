@@ -539,14 +539,16 @@ export enum TigrisDataTypes {
 	OBJECT = "object",
 }
 
+/**
+ * DB generated values for the schema fields
+ */
 export enum Generated {
-	UPDATED_AT = "updatedAt",
-	CREATED_AT = "createdAt",
-	TIMESTAMP = "timestamp",
 	NOW = "now()",
 	CUID = "cuid()",
 	UUID = "uuid()",
 }
+
+export type AutoTimestamp = "createdAt" | "updatedAt";
 
 export type TigrisFieldOptions = {
 	/**
@@ -554,7 +556,7 @@ export type TigrisFieldOptions = {
 	 */
 	maxLength?: number;
 	/**
-	 * Default
+	 * Default value for the schema field
 	 */
 	default?:
 		| Generated
@@ -565,6 +567,11 @@ export type TigrisFieldOptions = {
 		| Date
 		| Array<unknown>
 		| Record<string, unknown>;
+
+	/**
+	 * Let DB generate values for `Date` type of fields
+	 */
+	timestamp?: AutoTimestamp;
 };
 
 export type TigrisSchema<T extends TigrisCollectionType> = {

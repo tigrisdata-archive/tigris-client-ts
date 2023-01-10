@@ -70,13 +70,13 @@ export class VacationRentals {
 	@Field({ default: Generated.NOW })
 	availableSince: Date;
 
-	@Field({ default: Generated.TIMESTAMP })
+	@Field({ default: Generated.NOW, timestamp: "updatedAt" })
 	lastSeen: Date;
 
-	@Field({ default: Generated.CREATED_AT })
+	@Field({ timestamp: "createdAt" })
 	createdAt: Date;
 
-	@Field({ default: Generated.UPDATED_AT })
+	@Field({ timestamp: "updatedAt" })
 	lastModified: Date;
 
 	@Field({ default: Generated.CUID })
@@ -181,15 +181,16 @@ export const VacationsRentalSchema: TigrisSchema<VacationRentals> = {
 	},
 	lastSeen: {
 		type: TigrisDataTypes.DATE_TIME,
-		default: Generated.TIMESTAMP,
+		default: Generated.NOW,
+		timestamp: "updatedAt",
 	},
 	createdAt: {
 		type: TigrisDataTypes.DATE_TIME,
-		default: Generated.CREATED_AT,
+		timestamp: "createdAt",
 	},
 	lastModified: {
 		type: TigrisDataTypes.DATE_TIME,
-		default: Generated.UPDATED_AT,
+		timestamp: "updatedAt",
 	},
 	partnerId: {
 		type: TigrisDataTypes.STRING,

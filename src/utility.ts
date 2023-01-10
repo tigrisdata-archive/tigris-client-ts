@@ -4,7 +4,6 @@ import { Session } from "./session";
 
 import {
 	DeleteQueryOptions,
-	Generated,
 	Filter,
 	FindQueryOptions,
 	LogicalFilter,
@@ -333,6 +332,7 @@ export const Utility = {
 				thisProperty = this._getArrayBlock(schema[property], pkeyMap, keyMap);
 			}
 			properties[property] = thisProperty;
+
 			// 'default' values for schema fields, if any
 			if ("default" in schema[property]) {
 				switch (schema[property].default) {
@@ -340,19 +340,14 @@ export const Utility = {
 						// eslint-disable-next-line unicorn/no-null
 						thisProperty["default"] = null;
 						break;
-					case Generated.UPDATED_AT:
-						thisProperty[Generated.UPDATED_AT] = true;
-						break;
-					case Generated.CREATED_AT:
-						thisProperty[Generated.CREATED_AT] = true;
-						break;
-					case Generated.TIMESTAMP:
-						thisProperty[Generated.CREATED_AT] = true;
-						thisProperty[Generated.UPDATED_AT] = true;
-						break;
 					default:
 						thisProperty["default"] = schema[property].default;
 				}
+			}
+
+			// 'timestamp' values for schema fields
+			if ("timestamp" in schema[property]) {
+				thisProperty[schema[property].timestamp] = true;
 			}
 		}
 		return properties;
