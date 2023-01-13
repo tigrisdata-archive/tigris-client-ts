@@ -163,7 +163,7 @@ export class DB {
 		return this.createOrUpdate(
 			collectionName,
 			schema,
-			() => new Collection(collectionName, this._db, this.grpcClient, this.config)
+			() => new Collection(collectionName, this._db, this.branch, this.grpcClient, this.config)
 		);
 	}
 
@@ -176,6 +176,7 @@ export class DB {
 			const rawJSONSchema: string = Utility._toJSONSchema(name, schema);
 			const createOrUpdateCollectionRequest = new ProtoCreateOrUpdateCollectionRequest()
 				.setProject(this._db)
+				.setBranch(this.branch)
 				.setCollection(name)
 				.setOnlyCreate(false)
 				.setSchema(Utility.stringToUint8Array(rawJSONSchema));
@@ -197,7 +198,7 @@ export class DB {
 
 	public listCollections(options?: CollectionOptions): Promise<Array<CollectionInfo>> {
 		return new Promise<Array<CollectionInfo>>((resolve, reject) => {
-			const request = new ProtoListCollectionsRequest().setProject(this.db);
+			const request = new ProtoListCollectionsRequest().setProject(this.db).setBranch(this.branch);
 			if (typeof options !== "undefined") {
 				return request.setOptions(new ProtoCollectionOptions());
 			}
@@ -236,7 +237,10 @@ export class DB {
 		const collectionName = this.resolveNameFromCollectionClass(nameOrClass);
 		return new Promise<DropCollectionResponse>((resolve, reject) => {
 			this.grpcClient.dropCollection(
-				new ProtoDropCollectionRequest().setProject(this.db).setCollection(collectionName),
+				new ProtoDropCollectionRequest()
+					.setProject(this.db)
+					.setBranch(this.branch)
+					.setCollection(collectionName),
 				(error, response) => {
 					if (error) {
 						reject(error);
@@ -264,7 +268,7 @@ export class DB {
 	public describe(): Promise<DatabaseDescription> {
 		return new Promise<DatabaseDescription>((resolve, reject) => {
 			this.grpcClient.describeDatabase(
-				new ProtoDescribeDatabaseRequest().setProject(this.db),
+				new ProtoDescribeDatabaseRequest().setProject(this.db).setBranch(this.branch),
 				(error, response) => {
 					if (error) {
 						reject(error);
@@ -310,7 +314,7 @@ export class DB {
 
 	public getCollection<T extends TigrisCollectionType>(nameOrClass: T | string): Collection<T> {
 		const collectionName = this.resolveNameFromCollectionClass(nameOrClass);
-		return new Collection<T>(collectionName, this.db, this.grpcClient, this.config);
+		return new Collection<T>(collectionName, this.db, this.branch, this.grpcClient, this.config);
 	}
 
 	private resolveNameFromCollectionClass(nameOrClass: TigrisCollectionType | string) {
@@ -356,7 +360,9 @@ export class DB {
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	public beginTransaction(_options?: TransactionOptions): Promise<Session> {
 		return new Promise<Session>((resolve, reject) => {
-			const beginTxRequest = new ProtoBeginTransactionRequest().setProject(this._db);
+			const beginTxRequest = new ProtoBeginTransactionRequest()
+				.setProject(this._db)
+				.setBranch(this.branch);
 			const cookie: Metadata = new Metadata();
 			const call = this.grpcClient.makeUnaryRequest(
 				BeginTransactionMethodName,
@@ -375,6 +381,7 @@ export class DB {
 								response.getTxCtx().getOrigin(),
 								this.grpcClient,
 								this.db,
+								this.branch,
 								cookie
 							)
 						);

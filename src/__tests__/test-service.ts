@@ -58,9 +58,10 @@ import {
 import * as google_protobuf_timestamp_pb from "google-protobuf/google/protobuf/timestamp_pb";
 import { Utility } from "../utility";
 import { Status } from "@grpc/grpc-js/build/src/constants";
-import { ServerStatusResponse } from "@grpc/grpc-js/src/server-call";
+import assert from "assert";
 
 export class TestTigrisService {
+	public static readonly ExpectedBranch = "unit-tests";
 	private static PROJECTS: string[] = [];
 	private static COLLECTION_MAP = new Map<string, Array<string>>();
 	private static txId: string;
@@ -236,6 +237,8 @@ export class TestTigrisService {
 			call: ServerUnaryCall<BeginTransactionRequest, BeginTransactionResponse>,
 			callback: sendUnaryData<BeginTransactionResponse>
 		): void {
+			assert(call.request.getBranch() === TestTigrisService.ExpectedBranch);
+
 			const reply: BeginTransactionResponse = new BeginTransactionResponse();
 			if (call.request.getProject() === "test-tx") {
 				TestTigrisService.txId = uuidv4();
@@ -249,11 +252,12 @@ export class TestTigrisService {
 			reply.setTxCtx(new TransactionCtx().setId("id-test").setOrigin("origin-test"));
 			callback(undefined, reply);
 		},
-		// eslint-disable-next-line @typescript-eslint/no-empty-function
 		commitTransaction(
 			call: ServerUnaryCall<CommitTransactionRequest, CommitTransactionResponse>,
 			callback: sendUnaryData<CommitTransactionResponse>
 		): void {
+			assert(call.request.getBranch() === TestTigrisService.ExpectedBranch);
+
 			const reply: CommitTransactionResponse = new CommitTransactionResponse();
 			reply.setStatus("committed-test");
 			callback(undefined, reply);
@@ -268,23 +272,23 @@ export class TestTigrisService {
 			reply.setStatus("created");
 			callback(undefined, reply);
 		},
-		/* eslint-disable @typescript-eslint/no-empty-function */
 		createOrUpdateCollection(
-			// eslint-disable-next-line @typescript-eslint/no-unused-vars
 			call: ServerUnaryCall<CreateOrUpdateCollectionRequest, CreateOrUpdateCollectionResponse>,
-			// eslint-disable-next-line @typescript-eslint/no-unused-vars
 			callback: sendUnaryData<CreateOrUpdateCollectionResponse>
 		): void {
+			assert(call.request.getBranch() === TestTigrisService.ExpectedBranch);
+
 			const reply: CreateOrUpdateCollectionResponse = new CreateOrUpdateCollectionResponse();
 			reply.setStatus("Collections created successfully");
 			reply.setStatus(call.request.getCollection());
 			callback(undefined, reply);
 		},
-		/* eslint-enable @typescript-eslint/no-empty-function */
 		delete(
 			call: ServerUnaryCall<DeleteRequest, DeleteResponse>,
 			callback: sendUnaryData<DeleteResponse>
 		): void {
+			assert(call.request.getBranch() === TestTigrisService.ExpectedBranch);
+
 			if (call.request.getProject() === "test-tx") {
 				const txIdHeader = call.metadata.get("Tigris-Tx-Id").toString();
 				const txOriginHeader = call.metadata.get("Tigris-Tx-Origin").toString();
@@ -304,13 +308,12 @@ export class TestTigrisService {
 		},
 		/* eslint-disable @typescript-eslint/no-empty-function */
 		describeCollection(
-			// eslint-disable-next-line @typescript-eslint/no-unused-vars
-			_call: ServerUnaryCall<DescribeCollectionRequest, DescribeCollectionResponse>,
+			call: ServerUnaryCall<DescribeCollectionRequest, DescribeCollectionResponse>,
 			// eslint-disable-next-line @typescript-eslint/no-unused-vars
 			_callback: sendUnaryData<DescribeCollectionResponse>
-		): void {},
-
-		/* eslint-enable @typescript-eslint/no-empty-function */
+		): void {
+			assert(call.request.getBranch() === TestTigrisService.ExpectedBranch);
+		},
 		describeDatabase(
 			call: ServerUnaryCall<DescribeDatabaseRequest, DescribeDatabaseResponse>,
 			callback: sendUnaryData<DescribeDatabaseResponse>
@@ -332,7 +335,7 @@ export class TestTigrisService {
 			result
 				.setMetadata(new DatabaseMetadata())
 				.setCollectionsList(collectionsDescription)
-				.setBranchesList(["main", "staging"]);
+				.setBranchesList(["main", "staging", TestTigrisService.ExpectedBranch]);
 			callback(undefined, result);
 		},
 
@@ -340,6 +343,8 @@ export class TestTigrisService {
 			call: ServerUnaryCall<DropCollectionRequest, DropCollectionResponse>,
 			callback: sendUnaryData<DropCollectionResponse>
 		): void {
+			assert(call.request.getBranch() === TestTigrisService.ExpectedBranch);
+
 			const newCollections = TestTigrisService.COLLECTION_MAP.get(call.request.getProject()).filter(
 				(coll) => coll !== call.request.getCollection()
 			);
@@ -365,6 +370,8 @@ export class TestTigrisService {
 			call: ServerUnaryCall<InsertRequest, InsertResponse>,
 			callback: sendUnaryData<InsertResponse>
 		): void {
+			assert(call.request.getBranch() === TestTigrisService.ExpectedBranch);
+
 			if (call.request.getProject() === "test-tx") {
 				const txIdHeader = call.metadata.get("Tigris-Tx-Id").toString();
 				const txOriginHeader = call.metadata.get("Tigris-Tx-Origin").toString();
@@ -404,6 +411,8 @@ export class TestTigrisService {
 			call: ServerUnaryCall<ListCollectionsRequest, ListCollectionsResponse>,
 			callback: sendUnaryData<ListCollectionsResponse>
 		): void {
+			assert(call.request.getBranch() === TestTigrisService.ExpectedBranch);
+
 			const reply: ListCollectionsResponse = new ListCollectionsResponse();
 			const collectionInfos: CollectionInfo[] = [];
 			for (
@@ -437,8 +446,9 @@ export class TestTigrisService {
 			reply.setProjectsList(databaseInfos);
 			callback(undefined, reply);
 		},
-		// eslint-disable-next-line @typescript-eslint/no-empty-function
 		read(call: ServerWritableStream<ReadRequest, ReadResponse>): void {
+			assert(call.request.getBranch() === TestTigrisService.ExpectedBranch);
+
 			if (call.request.getProject() === "test-tx") {
 				const txIdHeader = call.metadata.get("Tigris-Tx-Id").toString();
 				const txOriginHeader = call.metadata.get("Tigris-Tx-Origin").toString();
@@ -501,8 +511,9 @@ export class TestTigrisService {
 				call.end();
 			}
 		},
-		// eslint-disable-next-line @typescript-eslint/no-empty-function
 		search(call: ServerWritableStream<SearchRequest, SearchResponse>): void {
+			assert(call.request.getBranch() === TestTigrisService.ExpectedBranch);
+
 			const searchMeta = new SearchMetadata().setFound(5).setTotalPages(5);
 
 			// paginated search impl
@@ -548,13 +559,12 @@ export class TestTigrisService {
 				call.end();
 			}
 		},
-		/* eslint-disable @typescript-eslint/no-empty-function */
 		replace(
-			// eslint-disable-next-line @typescript-eslint/no-unused-vars
 			call: ServerUnaryCall<ReplaceRequest, ReplaceResponse>,
-			// eslint-disable-next-line @typescript-eslint/no-unused-vars
 			callback: sendUnaryData<ReplaceResponse>
 		): void {
+			assert(call.request.getBranch() === TestTigrisService.ExpectedBranch);
+
 			if (call.request.getProject() === "test-tx") {
 				const txIdHeader = call.metadata.get("Tigris-Tx-Id").toString();
 				const txOriginHeader = call.metadata.get("Tigris-Tx-Origin").toString();
@@ -591,15 +601,18 @@ export class TestTigrisService {
 			call: ServerUnaryCall<RollbackTransactionRequest, RollbackTransactionResponse>,
 			callback: sendUnaryData<RollbackTransactionResponse>
 		): void {
+			assert(call.request.getBranch() === TestTigrisService.ExpectedBranch);
+
 			const reply: RollbackTransactionResponse = new RollbackTransactionResponse();
 			reply.setStatus("rollback-test");
 			callback(undefined, reply);
 		},
-		/* eslint-enable @typescript-eslint/no-empty-function */
 		update(
 			call: ServerUnaryCall<UpdateRequest, UpdateResponse>,
 			callback: sendUnaryData<UpdateResponse>
 		): void {
+			assert(call.request.getBranch() === TestTigrisService.ExpectedBranch);
+
 			if (call.request.getProject() === "test-tx") {
 				const txIdHeader = call.metadata.get("Tigris-Tx-Id").toString();
 				const txOriginHeader = call.metadata.get("Tigris-Tx-Origin").toString();

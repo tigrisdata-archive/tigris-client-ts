@@ -44,17 +44,20 @@ interface ICollection {
 export class Collection<T extends TigrisCollectionType> implements ICollection {
 	readonly collectionName: string;
 	readonly db: string;
+	readonly branch: string;
 	readonly grpcClient: TigrisClient;
 	readonly config: TigrisClientConfig;
 
 	constructor(
 		collectionName: string,
 		db: string,
+		branch: string,
 		grpcClient: TigrisClient,
 		config: TigrisClientConfig
 	) {
 		this.collectionName = collectionName;
 		this.db = db;
+		this.branch = branch;
 		this.grpcClient = grpcClient;
 		this.config = config;
 	}
@@ -74,6 +77,7 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 
 			const protoRequest = new ProtoInsertRequest()
 				.setProject(this.db)
+				.setBranch(this.branch)
 				.setCollection(this.collectionName)
 				.setDocumentsList(docsArray);
 
@@ -124,6 +128,7 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 			);
 			const protoRequest = new ProtoReplaceRequest()
 				.setProject(this.db)
+				.setBranch(this.branch)
 				.setCollection(this.collectionName)
 				.setDocumentsList(docsArray);
 
@@ -202,6 +207,7 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 		return new Promise<UpdateResponse>((resolve, reject) => {
 			const updateRequest = new ProtoUpdateRequest()
 				.setProject(this.db)
+				.setBranch(this.branch)
 				.setCollection(this.collectionName)
 				.setFilter(Utility.stringToUint8Array(Utility.filterToString(query.filter)))
 				.setFields(Utility.stringToUint8Array(Utility.updateFieldsString(query.fields)));
@@ -330,6 +336,7 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 			}
 			const deleteRequest = new ProtoDeleteRequest()
 				.setProject(this.db)
+				.setBranch(this.branch)
 				.setCollection(this.collectionName)
 				.setFilter(Utility.stringToUint8Array(Utility.filterToString(query.filter)));
 
@@ -501,6 +508,7 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 		}
 		const readRequest = new ProtoReadRequest()
 			.setProject(this.db)
+			.setBranch(this.branch)
 			.setCollection(this.collectionName)
 			.setFilter(Utility.stringToUint8Array(Utility.filterToString(query.filter)));
 
@@ -665,6 +673,7 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	search(query: SearchQuery<T>, page?: number): SearchIterator<T> | Promise<SearchResult<T>> {
 		const searchRequest = Utility.createProtoSearchRequest(
 			this.db,
+			this.branch,
 			this.collectionName,
 			query,
 			page

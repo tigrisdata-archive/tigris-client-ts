@@ -536,12 +536,14 @@ export const Utility = {
 
 	createProtoSearchRequest<T>(
 		dbName: string,
+		branch: string,
 		collectionName: string,
 		query: SearchQuery<T>,
 		page?: number
 	): ProtoSearchRequest {
 		const searchRequest = new ProtoSearchRequest()
 			.setProject(dbName)
+			.setBranch(branch)
 			.setCollection(collectionName)
 			.setQ(query.q ?? MATCH_ALL_QUERY_STRING);
 

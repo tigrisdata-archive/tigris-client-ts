@@ -1,5 +1,5 @@
 import { Server, ServerCredentials, ServiceError } from "@grpc/grpc-js";
-import { TigrisService } from "../proto/server/v1/api_grpc_pb";
+import { TigrisClient, TigrisService } from "../proto/server/v1/api_grpc_pb";
 import TestService, { Branch, TestTigrisService } from "./test-service";
 import TestServiceCache, { TestCacheService } from "./test-cache-service";
 
@@ -13,7 +13,7 @@ import {
 	UpdateFieldsOperator,
 	UpdateQueryOptions,
 } from "../types";
-import { Tigris } from "../tigris";
+import { Tigris, TigrisClientConfig } from "../tigris";
 import { Case, Collation, SearchQuery, SearchResult } from "../search/types";
 import { Utility } from "../utility";
 import { ObservabilityService } from "../proto/server/v1/observability_grpc_pb";
@@ -29,7 +29,7 @@ import { Status } from "@grpc/grpc-js/build/src/constants";
 
 describe("rpc tests", () => {
 	let server: Server;
-	const testConfig = { serverUrl: "localhost:" + 5002, projectName: "db1" };
+	const testConfig = { serverUrl: "localhost:" + 5002, projectName: "db1", branch: "unit-tests" };
 
 	beforeAll((done) => {
 		server = new Server();
@@ -857,6 +857,10 @@ describe("rpc tests", () => {
 
 	describe("initializeDB() tests", () => {
 		let mockedUtil;
+		let config: TigrisClientConfig = {
+			serverUrl: testConfig.serverUrl,
+			projectName: testConfig.projectName,
+		};
 		beforeEach(() => {
 			mockedUtil = spy(Utility);
 		});
@@ -866,9 +870,9 @@ describe("rpc tests", () => {
 		});
 
 		it("uses 'default branch' when no branch name given", async () => {
-			expect(testConfig["branch"]).toBeUndefined();
+			expect(config["branch"]).toBeUndefined();
 			when(mockedUtil.branchNameFromEnv(anything())).thenReturn(undefined);
-			const tigris = new Tigris(testConfig);
+			const tigris = new Tigris(config);
 			const dbPromise = tigris.getDatabase();
 			const db = await dbPromise;
 			expect(db.branch).toBe("");
@@ -877,7 +881,7 @@ describe("rpc tests", () => {
 
 		it("accepts empty string for branch name", async () => {
 			when(mockedUtil.branchNameFromEnv(anything())).thenReturn({ name: "", isTemplated: false });
-			const tigris = new Tigris({ ...testConfig, branch: "" });
+			const tigris = new Tigris({ ...config, branch: "" });
 			const dbPromise = tigris.getDatabase();
 			const db = await dbPromise;
 			expect(db.branch).toBe("");
@@ -889,7 +893,7 @@ describe("rpc tests", () => {
 				name: "staging",
 				isTemplated: true,
 			});
-			const tigris = new Tigris(testConfig);
+			const tigris = new Tigris(config);
 			const dbPromise = tigris.getDatabase();
 			const db = await dbPromise;
 			expect(db.branch).toBe("staging");
@@ -901,7 +905,7 @@ describe("rpc tests", () => {
 				name: "fork_feature_1",
 				isTemplated: true,
 			});
-			const tigris = new Tigris(testConfig);
+			const tigris = new Tigris(config);
 			const dbPromise = tigris.getDatabase();
 			const db = await dbPromise;
 			expect(db.branch).toBe("fork_feature_1");
@@ -913,7 +917,7 @@ describe("rpc tests", () => {
 				name: "fork_feature_1",
 				isTemplated: false,
 			});
-			const tigris = new Tigris(testConfig);
+			const tigris = new Tigris(config);
 			const dbPromise = tigris.getDatabase();
 			return await expect(dbPromise).rejects.toThrow(DatabaseBranchError);
 		});
@@ -923,7 +927,7 @@ describe("rpc tests", () => {
 				name: Branch.NotFound,
 				isTemplated: true,
 			});
-			const tigris = new Tigris(testConfig);
+			const tigris = new Tigris(config);
 			const dbPromise = tigris.getDatabase();
 			try {
 				await dbPromise;
@@ -940,7 +944,7 @@ describe("rpc tests", () => {
 				name: Branch.Existing,
 				isTemplated: true,
 			});
-			const tigris = new Tigris(testConfig);
+			const tigris = new Tigris(config);
 			const dbPromise = tigris.getDatabase();
 			const db = await dbPromise;
 			expect(db.branch).toBe(Branch.Existing);

@@ -80,18 +80,25 @@ describe("utility tests", () => {
 
 	describe("createProtoSearchRequest", () => {
 		const dbName = "my_test_db";
+		const branch = "my_test_branch";
 		const collectionName = "my_test_collection";
 
 		it("populates projectName and collection name", () => {
 			const emptyRequest = { q: "" };
-			const generated = Utility.createProtoSearchRequest(dbName, collectionName, emptyRequest);
+			const generated = Utility.createProtoSearchRequest(
+				dbName,
+				branch,
+				collectionName,
+				emptyRequest
+			);
 			expect(generated.getProject()).toBe(dbName);
+			expect(generated.getBranch()).toBe(branch);
 			expect(generated.getCollection()).toBe(collectionName);
 		});
 
 		it("creates default match all query string", () => {
 			const request = { q: undefined };
-			const generated = Utility.createProtoSearchRequest(dbName, collectionName, request);
+			const generated = Utility.createProtoSearchRequest(dbName, branch, collectionName, request);
 			expect(generated.getQ()).toBe(MATCH_ALL_QUERY_STRING);
 		});
 
@@ -102,7 +109,12 @@ describe("utility tests", () => {
 				},
 			};
 			const emptyRequest = { q: "", options: options };
-			const generated = Utility.createProtoSearchRequest(dbName, collectionName, emptyRequest);
+			const generated = Utility.createProtoSearchRequest(
+				dbName,
+				branch,
+				collectionName,
+				emptyRequest
+			);
 			expect(generated.getPage()).toBe(0);
 			expect(generated.getPageSize()).toBe(0);
 			expect(generated.getCollation().getCase()).toBe("ci");
