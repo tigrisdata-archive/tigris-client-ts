@@ -48,6 +48,7 @@ export const Utility = {
 		return new TextDecoder().decode(input);
 	},
 
+	/** @see tests for usage */
 	branchNameFromEnv(given?: string): TemplatedBranchName {
 		const maybeBranchName = typeof given !== "undefined" ? given : process.env.TIGRIS_DB_BRANCH;
 		if (typeof maybeBranchName === "undefined") {
@@ -69,11 +70,13 @@ export const Utility = {
 		}
 	},
 
+	/** @see {@link branchNameFromEnv} tests for usage */
 	getTemplatedVar(input: string): { matched: string; extracted: string } {
 		const output = input.match(/\${(.*?)}/);
 		return output ? { matched: output[0], extracted: output[1] } : undefined;
 	},
 
+	/** @see tests for usage */
 	nerfGitBranchName(original: string) {
 		return original.replace(/[^\d\n.A-Za-z]/g, "_");
 	},

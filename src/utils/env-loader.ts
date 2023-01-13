@@ -4,6 +4,25 @@ import path from "node:path";
 import fs from "node:fs";
 import { Log } from "./logger";
 
+/**
+ * Uses dotenv() to initialize `.env` config files based on the **NODE_ENV**
+ * environment variable in order -:
+ * 1. `.env.${NODE_ENV}.local`
+ * 2. `.env.local`
+ * 3. `.env.${NODE_ENV}`
+ * 4. `.env`
+ *
+ * @example If `NODE_ENV = production`
+ * ```
+ * export NODE_ENV=production
+ *
+ * // will load following 4 config files in order:
+ * .env.production.local
+ * .env.local
+ * .env.production
+ * .env
+ * ```
+ */
 export function initializeEnvironment() {
 	const envFiles = getEnvFiles(appRootPath.toString());
 	for (const f of envFiles) {
@@ -16,11 +35,11 @@ function getEnvFiles(dir: string) {
 	const dotEnvFiles: Array<string> = [];
 	switch (nodeEnv) {
 		case "test":
-			dotEnvFiles.push(`env.${nodeEnv}.local`);
+			dotEnvFiles.push(`.env.${nodeEnv}.local`);
 			break;
 		case "development":
 		case "production":
-			dotEnvFiles.push(`env.${nodeEnv}.local`, "env.local");
+			dotEnvFiles.push(`.env.${nodeEnv}.local`, ".env.local");
 			break;
 	}
 	dotEnvFiles.push(`.env.${nodeEnv}`, ".env");

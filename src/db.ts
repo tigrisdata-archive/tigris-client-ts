@@ -38,16 +38,36 @@ import { getDecoratorMetaStorage } from "./globals";
 import { CollectionNotFoundError, DatabaseBranchError } from "./error";
 import { Status } from "@grpc/grpc-js/build/src/constants";
 
-/**
- * Tigris Database
- */
 const SetCookie = "Set-Cookie";
 const Cookie = "Cookie";
 const BeginTransactionMethodName = "/tigrisdata.v1.Tigris/BeginTransaction";
 
+/**
+ * A branch name could be dynamically generated from environment variables.
+ *
+ * @example Simple name "my_database_branch" would translate to:
+ * ```
+ * {
+ *   name: "my_database_branch",
+ *   isTemplated: false
+ * }
+ * ```
+ * @example A dynamically generated branch name "my_db_${GIT_BRANCH}" would translate to:
+ * ```
+ * export GIT_BRANCH=feature_1
+ * {
+ *   name: "my_db_feature_1",
+ *   isTemplated: true
+ * }
+ * ```
+ */
 export type TemplatedBranchName = { name: string; isTemplated: boolean };
 const EmptyBranch: TemplatedBranchName = { name: "", isTemplated: false };
 
+/**
+ * Tigris Database class to manage database branches, collections and execute
+ * transactions.
+ */
 export class DB {
 	private readonly _db: string;
 	private _branchVar: TemplatedBranchName;
@@ -57,6 +77,30 @@ export class DB {
 	private readonly _metadataStorage: DecoratorMetaStorage;
 	private readonly _ready: Promise<this>;
 
+	/**
+	 * Create an instance of Tigris Database class.
+	 *
+	 * @example Recommended way to create instance using {@link TigrisClient.getDatabase}
+	 * ```
+	 * const client = new TigrisClient();
+	 * const db = await client.getDatabase();
+	 * ```
+	 *
+	 * @remarks
+	 * Highly recommend to use {@link TigrisClient.getDatabase} to create instance of this class and
+	 * not attempt to instantiate this class directly, it can have potential side effects
+	 * if database branch is not initialized properly.
+	 *
+	 * @privateRemarks
+	 * Object of this class depends on readiness state for proper initialization of database
+	 * and branch. To ensure object is ready to use:
+	 * ```
+	 * const instance = new DB(name, client, config);
+	 * const db: DB = await instance.ready;
+	 *
+	 * db.describe();
+	 * ```
+	 */
 	constructor(db: string, grpcClient: TigrisClient, config: TigrisClientConfig) {
 		this._db = db;
 		this.grpcClient = grpcClient;
@@ -68,6 +112,17 @@ export class DB {
 		this._ready = this.initializeDB();
 	}
 
+	/**
+	 * Initializes a database branch and returns DB object. A DB shouldn't be used
+	 * until it is initialized.
+	 *
+	 * Calls {@link describe()} to assert that the branch in use already exists. If not, and the
+	 * branch name needs to be generated dynamically (ex - `preview_${GIT_BRANCH}`) then try to
+	 * create that branch.
+	 *
+	 * @throws Error if branch doesn't exist and/or cannot be created
+	 * @private
+	 */
 	private async initializeDB(): Promise<this> {
 		if (this._branchVar.name === EmptyBranch.name) {
 			return this;

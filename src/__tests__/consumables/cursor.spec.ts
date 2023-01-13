@@ -8,7 +8,7 @@ import { ObservabilityService } from "../../proto/server/v1/observability_grpc_p
 import TestObservabilityService from "../test-observability-service";
 import { DB } from "../../db";
 
-describe("class FindCursor", () => {
+describe("FindCursor", () => {
 	let server: Server;
 	const SERVER_PORT = 5003;
 	let db: DB;
