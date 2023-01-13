@@ -6,7 +6,6 @@ import { ChannelCredentials, Metadata } from "@grpc/grpc-js";
 import { GetInfoRequest as ProtoGetInfoRequest } from "./proto/server/v1/observability_pb";
 import { HealthCheckInput as ProtoHealthCheckInput } from "./proto/server/v1/health_pb";
 
-import * as dotenv from "dotenv";
 import {
 	DeleteCacheResponse,
 	ListCachesResponse,
@@ -33,6 +32,7 @@ import { DeleteCacheRequest as ProtoDeleteCacheRequest } from "./proto/server/v1
 import { ListCachesRequest as ProtoListCachesRequest } from "./proto/server/v1/cache_pb";
 
 import { Status } from "@grpc/grpc-js/build/src/constants";
+import { initializeEnvironment } from "./utils/env-loader";
 
 const AuthorizationHeaderName = "authorization";
 const AuthorizationBearer = "Bearer ";
@@ -64,6 +64,11 @@ export interface TigrisClientConfig {
 	 * Controls the ping interval, if not specified defaults to 300_000ms (i.e. 5 min)
 	 */
 	pingIntervalMs?: number;
+
+	/**
+	 * Database branch name
+	 */
+	branch?: string;
 }
 
 class TokenSupplier {
@@ -149,7 +154,7 @@ export class Tigris {
 	 * @param  {TigrisClientConfig} config configuration
 	 */
 	constructor(config?: TigrisClientConfig) {
-		dotenv.config();
+		initializeEnvironment();
 		if (typeof config === "undefined") {
 			config = {};
 		}
@@ -258,8 +263,9 @@ export class Tigris {
 		Log.info(`Using Tigris at: ${config.serverUrl}`);
 	}
 
-	public getDatabase(): DB {
-		return new DB(this._config.projectName, this.grpcClient, this._config);
+	public getDatabase(): Promise<DB> {
+		const db = new DB(this._config.projectName, this.grpcClient, this._config);
+		return db.ready;
 	}
 
 	/**

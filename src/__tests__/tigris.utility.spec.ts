@@ -107,5 +107,73 @@ describe("utility tests", () => {
 			expect(generated.getPageSize()).toBe(0);
 			expect(generated.getCollation().getCase()).toBe("ci");
 		});
+
+		const nerfingTestCases = [
+			["main/fork", "main_fork"],
+			["main-fork", "main_fork"],
+			["main?fork", "main_fork"],
+			["sTaging21", "sTaging21"],
+			["hotfix/jira-23$4", "hotfix_jira_23_4"],
+			["", ""],
+			["release", "release"],
+			["zero ops", "zero_ops"],
+			["under_score", "under_score"],
+		];
+
+		test.each(nerfingTestCases)("nerfs the name - '%s'", (original, nerfed) => {
+			expect(Utility.nerfGitBranchName(original)).toBe(nerfed);
+		});
+
+		describe("get branch name from environment", () => {
+			const OLD_ENV = Object.assign({}, process.env);
+
+			beforeEach(() => {
+				jest.resetModules();
+			});
+
+			afterEach(() => {
+				process.env = OLD_ENV;
+			});
+
+			it.each([
+				[
+					"preview_${GIT_BRANCH}",
+					"GIT_BRANCH",
+					"feature_1",
+					{ name: "preview_feature_1", isTemplated: true },
+				],
+				["staging", undefined, undefined, { name: "staging", isTemplated: false }],
+				["integration_${MY_VAR}_auto", undefined, undefined, undefined],
+				["integration_${MY_VAR}_auto", "NOT_SET", "feature_2", undefined],
+				[
+					"${MY_GIT_BRANCH}",
+					"MY_GIT_BRANCH",
+					"jira/1234",
+					{ name: "jira_1234", isTemplated: true },
+				],
+				[
+					"${MY_GIT_BRANCH",
+					"MY_GIT_BRANCH",
+					"jira/1234",
+					{ name: "${MY_GIT_BRANCH", isTemplated: false },
+				],
+				[undefined, undefined, undefined, undefined],
+			])("envVar - '%s'", (branchEnvValue, templateEnvKey, templateEnvValue, expected) => {
+				process.env["TIGRIS_DB_BRANCH"] = branchEnvValue;
+				if (templateEnvKey) {
+					process.env[templateEnvKey] = templateEnvValue;
+				}
+				expect(Utility.branchNameFromEnv()).toEqual(expected);
+			});
+
+			it.each([
+				["any_given_branch", "any_given_branch"],
+				["", ""],
+			])("given branch - '%s'", (givenBranch, expected) => {
+				const actual = Utility.branchNameFromEnv(givenBranch);
+				expect(actual.name).toBe(expected);
+				expect(actual.isTemplated).toBeFalsy();
+			});
+		});
 	});
 });

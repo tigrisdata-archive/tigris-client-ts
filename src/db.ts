@@ -5,8 +5,10 @@ import {
 	CollectionMetadata,
 	CollectionOptions,
 	CommitTransactionResponse,
+	CreateBranchResponse,
 	DatabaseDescription,
 	DatabaseMetadata,
+	DeleteBranchResponse,
 	DropCollectionResponse,
 	TigrisCollectionType,
 	TigrisSchema,
@@ -17,7 +19,9 @@ import {
 	BeginTransactionRequest as ProtoBeginTransactionRequest,
 	BeginTransactionResponse,
 	CollectionOptions as ProtoCollectionOptions,
+	CreateBranchRequest as ProtoCreateBranchRequest,
 	CreateOrUpdateCollectionRequest as ProtoCreateOrUpdateCollectionRequest,
+	DeleteBranchRequest as ProtoDeleteBranchRequest,
 	DescribeDatabaseRequest as ProtoDescribeDatabaseRequest,
 	DropCollectionRequest as ProtoDropCollectionRequest,
 	ListCollectionsRequest as ProtoListCollectionsRequest,
@@ -31,7 +35,8 @@ import { DecoratedSchemaProcessor } from "./schema/decorated-schema-processor";
 import { Log } from "./utils/logger";
 import { DecoratorMetaStorage } from "./decorators/metadata/decorator-meta-storage";
 import { getDecoratorMetaStorage } from "./globals";
-import { CollectionNotFoundError } from "./error";
+import { CollectionNotFoundError, DatabaseBranchError } from "./error";
+import { Status } from "@grpc/grpc-js/build/src/constants";
 
 /**
  * Tigris Database
@@ -40,12 +45,17 @@ const SetCookie = "Set-Cookie";
 const Cookie = "Cookie";
 const BeginTransactionMethodName = "/tigrisdata.v1.Tigris/BeginTransaction";
 
+export type TemplatedBranchName = { name: string; isTemplated: boolean };
+const EmptyBranch: TemplatedBranchName = { name: "", isTemplated: false };
+
 export class DB {
 	private readonly _db: string;
+	private _branchVar: TemplatedBranchName;
 	private readonly grpcClient: TigrisClient;
 	private readonly config: TigrisClientConfig;
 	private readonly schemaProcessor: DecoratedSchemaProcessor;
 	private readonly _metadataStorage: DecoratorMetaStorage;
+	private readonly _ready: Promise<this>;
 
 	constructor(db: string, grpcClient: TigrisClient, config: TigrisClientConfig) {
 		this._db = db;
@@ -53,6 +63,34 @@ export class DB {
 		this.config = config;
 		this.schemaProcessor = DecoratedSchemaProcessor.Instance;
 		this._metadataStorage = getDecoratorMetaStorage();
+		// TODO: Should we just default to `main` or empty arg or throw an exception here?
+		this._branchVar = Utility.branchNameFromEnv(config.branch) ?? EmptyBranch;
+		this._ready = this.initializeDB();
+	}
+
+	private async initializeDB(): Promise<this> {
+		if (this._branchVar.name === EmptyBranch.name) {
+			return this;
+		}
+		const description = await this.describe();
+		const branchExists = description.branches.includes(this.branch);
+
+		if (!branchExists) {
+			if (this._branchVar.isTemplated) {
+				try {
+					await this.createBranch(this.branch);
+				} catch (error) {
+					if ((error as ServiceError).code !== Status.ALREADY_EXISTS) {
+						throw error;
+					}
+				}
+				Log.info(`Created database branch: ${this.branch}`);
+			} else {
+				throw new DatabaseBranchError(this.branch);
+			}
+		}
+		Log.info(`Using database branch: '${this.branch}'`);
+		return this;
 	}
 
 	/**
@@ -241,7 +279,13 @@ export class DB {
 								)
 							);
 						}
-						resolve(new DatabaseDescription(new DatabaseMetadata(), collectionsDescription));
+						resolve(
+							new DatabaseDescription(
+								new DatabaseMetadata(),
+								collectionsDescription,
+								response.getBranchesList()
+							)
+						);
 					}
 				}
 			);
@@ -345,7 +389,41 @@ export class DB {
 		});
 	}
 
+	public createBranch(name: string): Promise<CreateBranchResponse> {
+		return new Promise((resolve, reject) => {
+			const req = new ProtoCreateBranchRequest().setProject(this.db).setBranch(name);
+			this.grpcClient.createBranch(req, (error, response) => {
+				if (error) {
+					reject(error);
+					return;
+				}
+				resolve(CreateBranchResponse.from(response));
+			});
+		});
+	}
+
+	public deleteBranch(name: string): Promise<DeleteBranchResponse> {
+		return new Promise((resolve, reject) => {
+			const req = new ProtoDeleteBranchRequest().setProject(this.db).setBranch(name);
+			this.grpcClient.deleteBranch(req, (error, response) => {
+				if (error) {
+					reject(error);
+					return;
+				}
+				resolve(DeleteBranchResponse.from(response));
+			});
+		});
+	}
+
 	get db(): string {
 		return this._db;
+	}
+
+	get branch(): string {
+		return this._branchVar.name;
+	}
+
+	get ready(): Promise<this> {
+		return this._ready;
 	}
 }

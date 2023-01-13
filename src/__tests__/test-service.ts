@@ -1,4 +1,5 @@
-import { ITigrisServer, TigrisService } from "../proto/server/v1/api_grpc_pb";
+import { TigrisService } from "../proto/server/v1/api_grpc_pb";
+import * as grpc from "@grpc/grpc-js";
 import { sendUnaryData, ServerUnaryCall, ServerWritableStream } from "@grpc/grpc-js";
 import { v4 as uuidv4 } from "uuid";
 import {
@@ -9,20 +10,25 @@ import {
 	CollectionMetadata,
 	CommitTransactionRequest,
 	CommitTransactionResponse,
-	CreateProjectRequest,
-	CreateProjectResponse,
+	CreateBranchRequest,
+	CreateBranchResponse,
 	CreateOrUpdateCollectionRequest,
 	CreateOrUpdateCollectionResponse,
-	ProjectInfo,
+	CreateProjectRequest,
+	CreateProjectResponse,
 	DatabaseMetadata,
+	DeleteBranchRequest,
+	DeleteBranchResponse,
+	DeleteProjectRequest,
+	DeleteProjectResponse,
 	DeleteRequest,
 	DeleteResponse,
 	DescribeCollectionRequest,
 	DescribeCollectionResponse,
+	DescribeDatabaseRequest,
+	DescribeDatabaseResponse,
 	DropCollectionRequest,
 	DropCollectionResponse,
-	DeleteProjectRequest,
-	DeleteProjectResponse,
 	FacetCount,
 	InsertRequest,
 	InsertResponse,
@@ -31,6 +37,7 @@ import {
 	ListProjectsRequest,
 	ListProjectsResponse,
 	Page,
+	ProjectInfo,
 	ReadRequest,
 	ReadResponse,
 	ReplaceRequest,
@@ -47,15 +54,11 @@ import {
 	TransactionCtx,
 	UpdateRequest,
 	UpdateResponse,
-	DescribeDatabaseRequest,
-	DescribeDatabaseResponse,
-	CreateBranchRequest,
-	CreateBranchResponse,
-	DeleteBranchRequest,
-	DeleteBranchResponse,
 } from "../proto/server/v1/api_pb";
 import * as google_protobuf_timestamp_pb from "google-protobuf/google/protobuf/timestamp_pb";
 import { Utility } from "../utility";
+import { Status } from "@grpc/grpc-js/build/src/constants";
+import { ServerStatusResponse } from "@grpc/grpc-js/src/server-call";
 
 export class TestTigrisService {
 	private static PROJECTS: string[] = [];
@@ -179,13 +182,55 @@ export class TestTigrisService {
 			call: ServerUnaryCall<CreateBranchRequest, CreateBranchResponse>,
 			callback: sendUnaryData<CreateBranchResponse>
 		): void {
-			// TODO implement
+			let err: Partial<grpc.StatusObject>;
+			const reply = new CreateBranchResponse();
+
+			switch (call.request.getBranch()) {
+				case Branch.Existing:
+					err = {
+						code: Status.ALREADY_EXISTS,
+						details: `branch already exists '${Branch.Existing}'`,
+					};
+					break;
+				case Branch.NotFound:
+					err = {
+						code: Status.NOT_FOUND,
+						details: `project not found`,
+					};
+					break;
+				default:
+					reply.setStatus("created");
+					reply.setMessage("branch successfully created");
+			}
+
+			if (err) {
+				return callback(err, undefined);
+			} else {
+				return callback(undefined, reply);
+			}
 		},
 		deleteBranch(
 			call: ServerUnaryCall<DeleteBranchRequest, DeleteBranchResponse>,
 			callback: sendUnaryData<DeleteBranchResponse>
 		): void {
-			// TODO implement
+			let err: Partial<grpc.StatusObject>;
+			const reply = new DeleteBranchResponse();
+			switch (call.request.getBranch()) {
+				case Branch.NotFound:
+					err = {
+						code: Status.NOT_FOUND,
+						details: `Branch doesn't exist`,
+					};
+					break;
+				default:
+					reply.setStatus("deleted");
+					reply.setMessage("branch deleted successfully");
+			}
+			if (err) {
+				return callback(err, undefined);
+			} else {
+				return callback(undefined, reply);
+			}
 		},
 		beginTransaction(
 			call: ServerUnaryCall<BeginTransactionRequest, BeginTransactionResponse>,
@@ -284,7 +329,10 @@ export class TestTigrisService {
 						.setSchema("schema" + index)
 				);
 			}
-			result.setMetadata(new DatabaseMetadata()).setCollectionsList(collectionsDescription);
+			result
+				.setMetadata(new DatabaseMetadata())
+				.setCollectionsList(collectionsDescription)
+				.setBranchesList(["main", "staging"]);
 			callback(undefined, result);
 		},
 
@@ -582,3 +630,8 @@ export default {
 	service: TigrisService,
 	handler: new TestTigrisService(),
 };
+
+export enum Branch {
+	Existing = "existing",
+	NotFound = "no-project",
+}
