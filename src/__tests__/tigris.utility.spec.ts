@@ -152,22 +152,22 @@ describe("utility tests", () => {
 					"preview_${GIT_BRANCH}",
 					"GIT_BRANCH",
 					"feature_1",
-					{ name: "preview_feature_1", isTemplated: true },
+					{ name: "preview_feature_1", dynamicCreation: true },
 				],
-				["staging", undefined, undefined, { name: "staging", isTemplated: false }],
+				["staging", undefined, undefined, { name: "staging", dynamicCreation: false }],
 				["integration_${MY_VAR}_auto", undefined, undefined, undefined],
 				["integration_${MY_VAR}_auto", "NOT_SET", "feature_2", undefined],
 				[
 					"${MY_GIT_BRANCH}",
 					"MY_GIT_BRANCH",
 					"jira/1234",
-					{ name: "jira_1234", isTemplated: true },
+					{ name: "jira_1234", dynamicCreation: true },
 				],
 				[
 					"${MY_GIT_BRANCH",
 					"MY_GIT_BRANCH",
 					"jira/1234",
-					{ name: "${MY_GIT_BRANCH", isTemplated: false },
+					{ name: "${MY_GIT_BRANCH", dynamicCreation: false },
 				],
 				[undefined, undefined, undefined, undefined],
 			])("envVar - '%s'", (branchEnvValue, templateEnvKey, templateEnvValue, expected) => {
@@ -184,7 +184,7 @@ describe("utility tests", () => {
 			])("given branch - '%s'", (givenBranch, expected) => {
 				const actual = Utility.branchNameFromEnv(givenBranch);
 				expect(actual.name).toBe(expected);
-				expect(actual.isTemplated).toBeFalsy();
+				expect(actual.dynamicCreation).toBeFalsy();
 			});
 		});
 	});

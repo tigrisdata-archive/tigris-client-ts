@@ -62,11 +62,11 @@ export const Utility = {
 							isTemplate.matched,
 							this.nerfGitBranchName(process.env[isTemplate.extracted])
 						),
-						isTemplated: true,
+						dynamicCreation: true,
 				  }
 				: undefined;
 		} else {
-			return { name: maybeBranchName, isTemplated: false };
+			return { name: maybeBranchName, dynamicCreation: false };
 		}
 	},
 

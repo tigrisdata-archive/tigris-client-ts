@@ -60,19 +60,6 @@ export class TigrisResponse {
 	}
 }
 
-export class DropDatabaseResponse extends TigrisResponse {
-	private readonly _message: string;
-
-	constructor(status: string, message: string) {
-		super(status);
-		this._message = message;
-	}
-
-	get message(): string {
-		return this._message;
-	}
-}
-
 export class CreateBranchResponse extends TigrisResponse {
 	private readonly _message: string;
 

@@ -61,8 +61,8 @@ const BeginTransactionMethodName = "/tigrisdata.v1.Tigris/BeginTransaction";
  * }
  * ```
  */
-export type TemplatedBranchName = { name: string; isTemplated: boolean };
-const EmptyBranch: TemplatedBranchName = { name: "", isTemplated: false };
+export type TemplatedBranchName = { name: string; dynamicCreation: boolean };
+const NoBranch: TemplatedBranchName = { name: "", dynamicCreation: false };
 
 /**
  * Tigris Database class to manage database branches, collections and execute
@@ -108,7 +108,7 @@ export class DB {
 		this.schemaProcessor = DecoratedSchemaProcessor.Instance;
 		this._metadataStorage = getDecoratorMetaStorage();
 		// TODO: Should we just default to `main` or empty arg or throw an exception here?
-		this._branchVar = Utility.branchNameFromEnv(config.branch) ?? EmptyBranch;
+		this._branchVar = Utility.branchNameFromEnv(config.branch) ?? NoBranch;
 		this._ready = this.initializeDB();
 	}
 
@@ -124,14 +124,14 @@ export class DB {
 	 * @private
 	 */
 	private async initializeDB(): Promise<this> {
-		if (this._branchVar.name === EmptyBranch.name) {
+		if (this._branchVar.name === NoBranch.name) {
 			return this;
 		}
 		const description = await this.describe();
 		const branchExists = description.branches.includes(this.branch);
 
 		if (!branchExists) {
-			if (this._branchVar.isTemplated) {
+			if (this._branchVar.dynamicCreation) {
 				try {
 					await this.createBranch(this.branch);
 				} catch (error) {
@@ -139,7 +139,7 @@ export class DB {
 						throw error;
 					}
 				}
-				Log.info(`Created database branch: ${this.branch}`);
+				Log.event(`Created database branch: ${this.branch}`);
 			} else {
 				throw new DatabaseBranchError(this.branch);
 			}

@@ -880,7 +880,10 @@ describe("rpc tests", () => {
 		});
 
 		it("accepts empty string for branch name", async () => {
-			when(mockedUtil.branchNameFromEnv(anything())).thenReturn({ name: "", isTemplated: false });
+			when(mockedUtil.branchNameFromEnv(anything())).thenReturn({
+				name: "",
+				dynamicCreation: false,
+			});
 			const tigris = new Tigris({ ...config, branch: "" });
 			const dbPromise = tigris.getDatabase();
 			const db = await dbPromise;
@@ -891,7 +894,7 @@ describe("rpc tests", () => {
 		it("skips creating branch for existing", async () => {
 			when(mockedUtil.branchNameFromEnv(anything())).thenReturn({
 				name: "staging",
-				isTemplated: true,
+				dynamicCreation: true,
 			});
 			const tigris = new Tigris(config);
 			const dbPromise = tigris.getDatabase();
@@ -903,7 +906,7 @@ describe("rpc tests", () => {
 		it("creates templated branch if not exist", async () => {
 			when(mockedUtil.branchNameFromEnv(anything())).thenReturn({
 				name: "fork_feature_1",
-				isTemplated: true,
+				dynamicCreation: true,
 			});
 			const tigris = new Tigris(config);
 			const dbPromise = tigris.getDatabase();
@@ -915,7 +918,7 @@ describe("rpc tests", () => {
 		it("throws error if non-templated branch does not exist", async () => {
 			when(mockedUtil.branchNameFromEnv(anything())).thenReturn({
 				name: "fork_feature_1",
-				isTemplated: false,
+				dynamicCreation: false,
 			});
 			const tigris = new Tigris(config);
 			const dbPromise = tigris.getDatabase();
@@ -925,7 +928,7 @@ describe("rpc tests", () => {
 		it("fails to create branch if project does not exist", async () => {
 			when(mockedUtil.branchNameFromEnv(anything())).thenReturn({
 				name: Branch.NotFound,
-				isTemplated: true,
+				dynamicCreation: true,
 			});
 			const tigris = new Tigris(config);
 			const dbPromise = tigris.getDatabase();
@@ -942,7 +945,7 @@ describe("rpc tests", () => {
 		it("initializer succeeds if branch already exists", async () => {
 			when(mockedUtil.branchNameFromEnv(anything())).thenReturn({
 				name: Branch.Existing,
-				isTemplated: true,
+				dynamicCreation: true,
 			});
 			const tigris = new Tigris(config);
 			const dbPromise = tigris.getDatabase();
