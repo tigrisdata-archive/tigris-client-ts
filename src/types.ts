@@ -349,6 +349,7 @@ export class CacheMetadata {
 		return this._name;
 	}
 }
+
 export class ListCachesResponse {
 	private readonly _caches: CacheMetadata[];
 

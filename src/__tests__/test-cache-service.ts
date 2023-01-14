@@ -1,5 +1,5 @@
 import { CacheService, ICacheServer } from "../proto/server/v1/cache_grpc_pb";
-import { sendUnaryData, ServerUnaryCall } from "@grpc/grpc-js";
+import { sendUnaryData, ServerUnaryCall, ServerWritableStream } from "@grpc/grpc-js";
 import {
 	CacheMetadata,
 	CreateCacheRequest,
@@ -20,6 +20,9 @@ import {
 } from "../proto/server/v1/cache_pb";
 import { DelRequest } from "../../dist/proto/server/v1/cache_pb";
 import { Utility } from "../utility";
+import * as grpc from "@grpc/grpc-js";
+import * as server_v1_cache_pb from "../proto/server/v1/cache_pb";
+import { ReadRequest, ReadResponse } from "../proto/server/v1/api_pb";
 
 export class TestCacheService {
 	private static CACHE_MAP = new Map<string, Map<string, string>>();
@@ -91,21 +94,7 @@ export class TestCacheService {
 				callback(new Error("cache does not exist"), undefined);
 			}
 		},
-		keys(
-			call: ServerUnaryCall<KeysRequest, KeysResponse>,
-			callback: sendUnaryData<KeysResponse>
-		): void {
-			const cacheName = call.request.getProject() + "_" + call.request.getName();
-			if (TestCacheService.CACHE_MAP.has(cacheName)) {
-				const result: Array<string> = new Array<string>();
-				for (let key of TestCacheService.CACHE_MAP.get(cacheName).keys()) {
-					result.push(key);
-				}
-				callback(undefined, new KeysResponse().setKeysList(result));
-			} else {
-				callback(new Error("cache does not exist"), undefined);
-			}
-		},
+
 		listCaches(
 			call: ServerUnaryCall<ListCachesRequest, ListCachesResponse>,
 			callback: sendUnaryData<ListCachesResponse>
@@ -132,6 +121,22 @@ export class TestCacheService {
 				callback(undefined, new SetResponse().setStatus("set").setMessage("set" + " successfully"));
 			} else {
 				callback(new Error("cache does not exist"), undefined);
+			}
+		},
+		keys(call: ServerWritableStream<KeysRequest, KeysResponse>): void {
+			const cacheName = call.request.getProject() + "_" + call.request.getName();
+			if (TestCacheService.CACHE_MAP.has(cacheName)) {
+				const result: Array<string> = new Array<string>();
+				for (let key of TestCacheService.CACHE_MAP.get(cacheName).keys()) {
+					result.push(key);
+				}
+				call.write(new KeysResponse().setKeysList(result));
+				call.end();
+			} else {
+				call.emit("error", {
+					message: "cache does not exist",
+				});
+				call.end();
 			}
 		},
 		getSet(
