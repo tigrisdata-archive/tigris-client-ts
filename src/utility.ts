@@ -37,6 +37,7 @@ import {
 	UpdateRequestOptions as ProtoUpdateRequestOptions,
 } from "./proto/server/v1/api_pb";
 import { TigrisClientConfig } from "./tigris";
+import { TemplatedBranchName } from "./db";
 
 export const Utility = {
 	stringToUint8Array(input: string): Uint8Array {
@@ -45,6 +46,39 @@ export const Utility = {
 
 	uint8ArrayToString(input: Uint8Array): string {
 		return new TextDecoder().decode(input);
+	},
+
+	/** @see tests for usage */
+	branchNameFromEnv(given?: string): TemplatedBranchName {
+		const maybeBranchName = typeof given !== "undefined" ? given : process.env.TIGRIS_DB_BRANCH;
+		if (typeof maybeBranchName === "undefined") {
+			return undefined;
+		}
+		const isTemplate = Utility.getTemplatedVar(maybeBranchName);
+		if (isTemplate) {
+			return isTemplate.extracted in process.env
+				? {
+						name: maybeBranchName.replace(
+							isTemplate.matched,
+							this.nerfGitBranchName(process.env[isTemplate.extracted])
+						),
+						dynamicCreation: true,
+				  }
+				: undefined;
+		} else {
+			return { name: maybeBranchName, dynamicCreation: false };
+		}
+	},
+
+	/** @see {@link branchNameFromEnv} tests for usage */
+	getTemplatedVar(input: string): { matched: string; extracted: string } {
+		const output = input.match(/\${(.*?)}/);
+		return output ? { matched: output[0], extracted: output[1] } : undefined;
+	},
+
+	/** @see tests for usage */
+	nerfGitBranchName(original: string) {
+		return original.replace(/[^\d\n.A-Za-z]/g, "_");
 	},
 
 	filterToString<T>(filter: Filter<T>): string {
@@ -505,12 +539,14 @@ export const Utility = {
 
 	createProtoSearchRequest<T>(
 		dbName: string,
+		branch: string,
 		collectionName: string,
 		query: SearchQuery<T>,
 		page?: number
 	): ProtoSearchRequest {
 		const searchRequest = new ProtoSearchRequest()
 			.setProject(dbName)
+			.setBranch(branch)
 			.setCollection(collectionName)
 			.setQ(query.q ?? MATCH_ALL_QUERY_STRING);
 

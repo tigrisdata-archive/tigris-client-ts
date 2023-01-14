@@ -8,12 +8,12 @@ import { ObservabilityService } from "../../proto/server/v1/observability_grpc_p
 import TestObservabilityService from "../test-observability-service";
 import { DB } from "../../db";
 
-describe("class FindCursor", () => {
+describe("FindCursor", () => {
 	let server: Server;
 	const SERVER_PORT = 5003;
 	let db: DB;
 
-	beforeAll((done) => {
+	beforeAll(async () => {
 		server = new Server();
 		TestTigrisService.reset();
 		server.addService(TigrisService, TestService.handler.impl);
@@ -30,9 +30,14 @@ describe("class FindCursor", () => {
 				}
 			}
 		);
-		const tigris = new Tigris({ serverUrl: "localhost:" + SERVER_PORT, projectName: "db3" });
-		db = tigris.getDatabase();
-		done();
+		const tigris = new Tigris({
+			serverUrl: "localhost:" + SERVER_PORT,
+			projectName: "db3",
+			branch: TestTigrisService.ExpectedBranch,
+		});
+		const dbPromise = tigris.getDatabase();
+		db = await dbPromise;
+		return dbPromise;
 	});
 
 	beforeEach(() => {

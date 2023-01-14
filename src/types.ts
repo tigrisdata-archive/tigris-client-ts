@@ -1,4 +1,8 @@
 import { Collation } from "./search/types";
+import {
+	CreateBranchResponse as ProtoCreateBranchResponse,
+	DeleteBranchResponse as ProtoDeleteBranchResponse,
+} from "./proto/server/v1/api_pb";
 
 export class DatabaseInfo {
 	private readonly _name: string;
@@ -44,21 +48,48 @@ export class DatabaseOptions {}
 
 export class CollectionOptions {}
 
-export class DropDatabaseResponse {
+export class TigrisResponse {
 	private readonly _status: string;
-	private readonly _message: string;
 
-	constructor(status: string, message: string) {
+	constructor(status: string) {
 		this._status = status;
-		this._message = message;
 	}
 
 	get status(): string {
 		return this._status;
 	}
+}
+
+export class CreateBranchResponse extends TigrisResponse {
+	private readonly _message: string;
+
+	constructor(status: string, message: string) {
+		super(status);
+		this._message = message;
+	}
 
 	get message(): string {
 		return this._message;
+	}
+
+	static from(response: ProtoCreateBranchResponse): CreateBranchResponse {
+		return new this(response.getStatus(), response.getMessage());
+	}
+}
+
+export class DeleteBranchResponse extends TigrisResponse {
+	private readonly _message: string;
+	constructor(status: string, message: string) {
+		super(status);
+		this._message = message;
+	}
+
+	get message(): string {
+		return this._message;
+	}
+
+	static from(response: ProtoDeleteBranchResponse): DeleteBranchResponse {
+		return new this(response.getStatus(), response.getMessage());
 	}
 }
 
@@ -82,19 +113,29 @@ export class DropCollectionResponse {
 
 export class DatabaseDescription {
 	private readonly _metadata: DatabaseMetadata;
-	private readonly _collectionsDescription: Array<CollectionDescription>;
+	private readonly _collectionsDescription: ReadonlyArray<CollectionDescription>;
+	private readonly _branches: ReadonlyArray<string>;
 
-	constructor(metadata: DatabaseMetadata, collectionsDescription: Array<CollectionDescription>) {
+	constructor(
+		metadata: DatabaseMetadata,
+		collectionsDescription: Array<CollectionDescription>,
+		branches: Array<string>
+	) {
 		this._metadata = metadata;
 		this._collectionsDescription = collectionsDescription;
+		this._branches = branches;
 	}
 
 	get metadata(): DatabaseMetadata {
 		return this._metadata;
 	}
 
-	get collectionsDescription(): Array<CollectionDescription> {
+	get collectionsDescription(): ReadonlyArray<CollectionDescription> {
 		return this._collectionsDescription;
+	}
+
+	get branches(): ReadonlyArray<string> {
+		return this._branches;
 	}
 }
 
@@ -119,18 +160,6 @@ export class CollectionDescription {
 
 	get schema(): string {
 		return this._schema;
-	}
-}
-
-export class TigrisResponse {
-	private readonly _status: string;
-
-	constructor(status: string) {
-		this._status = status;
-	}
-
-	get status(): string {
-		return this._status;
 	}
 }
 
