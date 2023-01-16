@@ -3,6 +3,7 @@ import {
 	CreateBranchResponse as ProtoCreateBranchResponse,
 	DeleteBranchResponse as ProtoDeleteBranchResponse,
 } from "./proto/server/v1/api_pb";
+import { Status } from "./constants";
 
 export class DatabaseInfo {
 	private readonly _name: string;
@@ -48,23 +49,16 @@ export class DatabaseOptions {}
 
 export class CollectionOptions {}
 
-export class TigrisResponse {
-	private readonly _status: string;
-
-	constructor(status: string) {
-		this._status = status;
-	}
-
-	get status(): string {
-		return this._status;
-	}
+export interface TigrisResponse {
+	status: Status;
+	message?: string;
 }
 
-export class CreateBranchResponse extends TigrisResponse {
+export class CreateBranchResponse implements TigrisResponse {
+	status: Status = Status.Created;
 	private readonly _message: string;
 
-	constructor(status: string, message: string) {
-		super(status);
+	constructor(message: string) {
 		this._message = message;
 	}
 
@@ -73,14 +67,14 @@ export class CreateBranchResponse extends TigrisResponse {
 	}
 
 	static from(response: ProtoCreateBranchResponse): CreateBranchResponse {
-		return new this(response.getStatus(), response.getMessage());
+		return new this(response.getMessage());
 	}
 }
 
-export class DeleteBranchResponse extends TigrisResponse {
+export class DeleteBranchResponse implements TigrisResponse {
+	status: Status = Status.Deleted;
 	private readonly _message: string;
-	constructor(status: string, message: string) {
-		super(status);
+	constructor(message: string) {
 		this._message = message;
 	}
 
@@ -89,21 +83,16 @@ export class DeleteBranchResponse extends TigrisResponse {
 	}
 
 	static from(response: ProtoDeleteBranchResponse): DeleteBranchResponse {
-		return new this(response.getStatus(), response.getMessage());
+		return new this(response.getMessage());
 	}
 }
 
-export class DropCollectionResponse {
-	private readonly _status: string;
+export class DropCollectionResponse implements TigrisResponse {
+	status: Status = Status.Dropped;
 	private readonly _message: string;
 
-	constructor(status: string, message: string) {
-		this._status = status;
+	constructor(message: string) {
 		this._message = message;
-	}
-
-	get status(): string {
-		return this._status;
 	}
 
 	get message(): string {
@@ -181,11 +170,15 @@ export class DMLMetadata {
 	}
 }
 
-export class DMLResponse extends TigrisResponse {
+export interface DMLResponse {
+	metadata: DMLMetadata;
+}
+
+export class DeleteResponse implements TigrisResponse, DMLResponse {
+	status: Status = Status.Deleted;
 	private readonly _metadata: DMLMetadata;
 
-	constructor(status: string, metadata: DMLMetadata) {
-		super(status);
+	constructor(metadata: DMLMetadata) {
 		this._metadata = metadata;
 	}
 
@@ -194,21 +187,22 @@ export class DMLResponse extends TigrisResponse {
 	}
 }
 
-export class DeleteResponse extends DMLResponse {
-	constructor(status: string, metadata: DMLMetadata) {
-		super(status, metadata);
-	}
-}
-
-export class UpdateResponse extends DMLResponse {
+export class UpdateResponse implements TigrisResponse, DMLResponse {
+	status: Status = Status.Updated;
+	private readonly _metadata: DMLMetadata;
 	private readonly _modifiedCount: number;
-	constructor(status: string, modifiedCount: number, metadata: DMLMetadata) {
-		super(status, metadata);
+
+	constructor(modifiedCount: number, metadata: DMLMetadata) {
 		this._modifiedCount = modifiedCount;
+		this._metadata = metadata;
 	}
 
 	get modifiedCount(): number {
 		return this._modifiedCount;
+	}
+
+	get metadata(): DMLMetadata {
+		return this._metadata;
 	}
 }
 
@@ -320,22 +314,16 @@ export class FindQueryOptions {
 
 export class TransactionOptions {}
 
-export class CommitTransactionResponse extends TigrisResponse {
-	constructor(status: string) {
-		super(status);
-	}
+export class CommitTransactionResponse implements TigrisResponse {
+	status: Status = Status.Success;
 }
 
-export class RollbackTransactionResponse extends TigrisResponse {
-	public constructor(status: string) {
-		super(status);
-	}
+export class RollbackTransactionResponse implements TigrisResponse {
+	status: Status = Status.Success;
 }
 
-export class TransactionResponse extends TigrisResponse {
-	constructor(status: string) {
-		super(status);
-	}
+export class TransactionResponse implements TigrisResponse {
+	status: Status = Status.Success;
 }
 
 export class CacheMetadata {
@@ -361,11 +349,11 @@ export class ListCachesResponse {
 	}
 }
 
-export class DeleteCacheResponse extends TigrisResponse {
+export class DeleteCacheResponse implements TigrisResponse {
+	status: Status = Status.Deleted;
 	private readonly _message: string;
 
-	constructor(status: string, message: string) {
-		super(status);
+	constructor(message: string) {
 		this._message = message;
 	}
 
@@ -374,11 +362,11 @@ export class DeleteCacheResponse extends TigrisResponse {
 	}
 }
 
-export class CacheSetResponse extends TigrisResponse {
+export class CacheSetResponse implements TigrisResponse {
+	status: Status = Status.Set;
 	private readonly _message: string;
 
-	constructor(status: string, message: string) {
-		super(status);
+	constructor(message: string) {
 		this._message = message;
 	}
 
@@ -390,8 +378,8 @@ export class CacheSetResponse extends TigrisResponse {
 export class CacheGetSetResponse extends CacheSetResponse {
 	private readonly _old_value: object;
 
-	constructor(status: string, message: string, old_value?: object) {
-		super(status, message);
+	constructor(message: string, old_value?: object) {
+		super(message);
 		if (old_value !== undefined) {
 			this._old_value = old_value;
 		}
@@ -402,11 +390,11 @@ export class CacheGetSetResponse extends CacheSetResponse {
 	}
 }
 
-export class CacheDelResponse extends TigrisResponse {
+export class CacheDelResponse implements TigrisResponse {
+	status: Status = Status.Deleted;
 	private readonly _message: string;
 
 	constructor(status: string, message: string) {
-		super(status);
 		this._message = message;
 	}
 

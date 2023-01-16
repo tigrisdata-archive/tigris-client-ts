@@ -26,6 +26,7 @@ import { SearchIterator } from "../consumables/search-iterator";
 import { CacheService } from "../proto/server/v1/cache_grpc_pb";
 import { DatabaseBranchError } from "../error";
 import { Status } from "@grpc/grpc-js/build/src/constants";
+import { Status as TigrisStatus } from "../constants";
 
 describe("rpc tests", () => {
 	let server: Server;
@@ -326,7 +327,7 @@ describe("rpc tests", () => {
 			},
 		});
 		updatePromise.then((value) => {
-			expect(value.status).toBe('updated: {"id":1}, {"$set":{"title":"New Title"}}');
+			expect(value.status).toBe(TigrisStatus.Updated);
 			expect(value.modifiedCount).toBe(1);
 		});
 		return updatePromise;
@@ -569,7 +570,7 @@ describe("rpc tests", () => {
 		beginTxPromise.then((session) => {
 			const commitTxResponse = session.commit();
 			commitTxResponse.then((value) => {
-				expect(value.status).toBe("committed-test");
+				expect(value.status).toBe(TigrisStatus.Success);
 			});
 			return beginTxPromise;
 		});
@@ -582,7 +583,7 @@ describe("rpc tests", () => {
 		beginTxPromise.then((session) => {
 			const rollbackTransactionResponsePromise = session.rollback();
 			rollbackTransactionResponsePromise.then((value) => {
-				expect(value.status).toBe("rollback-test");
+				expect(value.status).toBe(TigrisStatus.Success);
 			});
 		});
 		return beginTxPromise;

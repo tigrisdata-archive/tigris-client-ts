@@ -300,7 +300,7 @@ export class Tigris {
 					if (error) {
 						reject(error);
 					} else {
-						resolve(new DeleteCacheResponse(response.getStatus(), response.getMessage()));
+						resolve(new DeleteCacheResponse(response.getMessage()));
 					}
 				}
 			);
