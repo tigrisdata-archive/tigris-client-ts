@@ -300,7 +300,7 @@ export class DB {
 					if (error) {
 						reject(error);
 					} else {
-						resolve(new DropCollectionResponse(response.getStatus(), response.getMessage()));
+						resolve(new DropCollectionResponse(response.getMessage()));
 					}
 				}
 			);
@@ -399,7 +399,7 @@ export class DB {
 						// user code successful
 						const commitResponse: CommitTransactionResponse = await session.commit();
 						if (commitResponse) {
-							resolve(new TransactionResponse("transaction successful"));
+							resolve(new TransactionResponse());
 						}
 					} catch (error) {
 						// failed to run user code

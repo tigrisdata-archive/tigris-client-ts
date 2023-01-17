@@ -226,7 +226,7 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 						response.getMetadata().getCreatedAt(),
 						response.getMetadata().getUpdatedAt()
 					);
-					resolve(new UpdateResponse(response.getStatus(), response.getModifiedCount(), metadata));
+					resolve(new UpdateResponse(response.getModifiedCount(), metadata));
 				}
 			});
 		});
@@ -354,7 +354,7 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 						response.getMetadata().getCreatedAt(),
 						response.getMetadata().getUpdatedAt()
 					);
-					resolve(new DeleteResponse(response.getStatus(), metadata));
+					resolve(new DeleteResponse(metadata));
 				}
 			});
 		});

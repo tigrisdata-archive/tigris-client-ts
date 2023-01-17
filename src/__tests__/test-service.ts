@@ -259,7 +259,6 @@ export class TestTigrisService {
 			assert(call.request.getBranch() === TestTigrisService.ExpectedBranch);
 
 			const reply: CommitTransactionResponse = new CommitTransactionResponse();
-			reply.setStatus("committed-test");
 			callback(undefined, reply);
 		},
 		createProject(
@@ -604,7 +603,6 @@ export class TestTigrisService {
 			assert(call.request.getBranch() === TestTigrisService.ExpectedBranch);
 
 			const reply: RollbackTransactionResponse = new RollbackTransactionResponse();
-			reply.setStatus("rollback-test");
 			callback(undefined, reply);
 		},
 		update(
