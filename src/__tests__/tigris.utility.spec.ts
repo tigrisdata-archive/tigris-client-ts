@@ -80,18 +80,25 @@ describe("utility tests", () => {
 
 	describe("createProtoSearchRequest", () => {
 		const dbName = "my_test_db";
+		const branch = "my_test_branch";
 		const collectionName = "my_test_collection";
 
 		it("populates projectName and collection name", () => {
 			const emptyRequest = { q: "" };
-			const generated = Utility.createProtoSearchRequest(dbName, collectionName, emptyRequest);
+			const generated = Utility.createProtoSearchRequest(
+				dbName,
+				branch,
+				collectionName,
+				emptyRequest
+			);
 			expect(generated.getProject()).toBe(dbName);
+			expect(generated.getBranch()).toBe(branch);
 			expect(generated.getCollection()).toBe(collectionName);
 		});
 
 		it("creates default match all query string", () => {
 			const request = { q: undefined };
-			const generated = Utility.createProtoSearchRequest(dbName, collectionName, request);
+			const generated = Utility.createProtoSearchRequest(dbName, branch, collectionName, request);
 			expect(generated.getQ()).toBe(MATCH_ALL_QUERY_STRING);
 		});
 
@@ -102,10 +109,83 @@ describe("utility tests", () => {
 				},
 			};
 			const emptyRequest = { q: "", options: options };
-			const generated = Utility.createProtoSearchRequest(dbName, collectionName, emptyRequest);
+			const generated = Utility.createProtoSearchRequest(
+				dbName,
+				branch,
+				collectionName,
+				emptyRequest
+			);
 			expect(generated.getPage()).toBe(0);
 			expect(generated.getPageSize()).toBe(0);
 			expect(generated.getCollation().getCase()).toBe("ci");
+		});
+
+		const nerfingTestCases = [
+			["main/fork", "main_fork"],
+			["main-fork", "main_fork"],
+			["main?fork", "main_fork"],
+			["sTaging21", "sTaging21"],
+			["hotfix/jira-23$4", "hotfix_jira_23_4"],
+			["", ""],
+			["release", "release"],
+			["zero ops", "zero_ops"],
+			["under_score", "under_score"],
+		];
+
+		test.each(nerfingTestCases)("nerfs the name - '%s'", (original, nerfed) => {
+			expect(Utility.nerfGitBranchName(original)).toBe(nerfed);
+		});
+
+		describe("get branch name from environment", () => {
+			const OLD_ENV = Object.assign({}, process.env);
+
+			beforeEach(() => {
+				jest.resetModules();
+			});
+
+			afterEach(() => {
+				process.env = OLD_ENV;
+			});
+
+			it.each([
+				[
+					"preview_${GIT_BRANCH}",
+					"GIT_BRANCH",
+					"feature_1",
+					{ name: "preview_feature_1", dynamicCreation: true },
+				],
+				["staging", undefined, undefined, { name: "staging", dynamicCreation: false }],
+				["integration_${MY_VAR}_auto", undefined, undefined, undefined],
+				["integration_${MY_VAR}_auto", "NOT_SET", "feature_2", undefined],
+				[
+					"${MY_GIT_BRANCH}",
+					"MY_GIT_BRANCH",
+					"jira/1234",
+					{ name: "jira_1234", dynamicCreation: true },
+				],
+				[
+					"${MY_GIT_BRANCH",
+					"MY_GIT_BRANCH",
+					"jira/1234",
+					{ name: "${MY_GIT_BRANCH", dynamicCreation: false },
+				],
+				[undefined, undefined, undefined, undefined],
+			])("envVar - '%s'", (branchEnvValue, templateEnvKey, templateEnvValue, expected) => {
+				process.env["TIGRIS_DB_BRANCH"] = branchEnvValue;
+				if (templateEnvKey) {
+					process.env[templateEnvKey] = templateEnvValue;
+				}
+				expect(Utility.branchNameFromEnv()).toEqual(expected);
+			});
+
+			it.each([
+				["any_given_branch", "any_given_branch"],
+				["", ""],
+			])("given branch - '%s'", (givenBranch, expected) => {
+				const actual = Utility.branchNameFromEnv(givenBranch);
+				expect(actual.name).toBe(expected);
+				expect(actual.dynamicCreation).toBeFalsy();
+			});
 		});
 	});
 });

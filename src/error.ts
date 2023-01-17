@@ -93,3 +93,18 @@ export class CollectionNotFoundError extends TigrisError {
 		return "CollectionNotFoundError";
 	}
 }
+
+export class DatabaseBranchError extends TigrisError {
+	constructor(name?: string) {
+		const errMsg = name
+			? `Database branch ${name} does not exist.`
+			: "Database branch name environment variable is required. " +
+			  "Run 'export TIGRIS_DB_BRANCH=YOUR_BRANCH_NAME' or include it in your environment file.";
+
+		super(errMsg);
+	}
+
+	override get name(): string {
+		return "DatabaseBranchError";
+	}
+}
