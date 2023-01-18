@@ -43,8 +43,8 @@ export class Cache {
 
 	/**
 	 * Sets the key with value. It will override the value if already exists
-	 * @param key
-	 * @param value
+	 * @param key - key to set
+	 * @param value - value for the key
 	 * @param options - optionally set params.
 	 * @example
 	 * ```
@@ -90,8 +90,9 @@ export class Cache {
 
 	/**
 	 * Sets the key with value. And returns the old value (if exists)
-	 * @param key
-	 * @param value
+	 *
+	 * @param key - key to set
+	 * @param value - value for the key
 	 * @example
 	 * ```
 	 * const c1 = tigris.GetCache("c1);
@@ -130,8 +131,9 @@ export class Cache {
 	}
 
 	/**
-	 * get the value for the key, errors if the key doesn't exist or expired
-	 * @param key
+	 * Get the value for the key, errors if the key doesn't exist or expired
+	 *
+	 * @param key - key to retrieve value for
 	 * @example
 	 * ```
 	 * const c1 = tigris.GetCache("c1);
@@ -159,8 +161,9 @@ export class Cache {
 	}
 
 	/**
-	 * deletes the key
-	 * @param key
+	 * Deletes a key from cache
+	 *
+	 * @param key - key to delete
 	 * @example
 	 * ```
 	 * const c1 = tigris.GetCache("c1);

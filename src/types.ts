@@ -315,15 +315,33 @@ export class FindQueryOptions {
 export class TransactionOptions {}
 
 export class CommitTransactionResponse implements TigrisResponse {
-	status: Status = Status.Success;
+	status: Status = Status.Ok;
+	private readonly _message: string;
+
+	constructor(message: string) {
+		this._message = message;
+	}
+
+	get message(): string {
+		return this._message;
+	}
 }
 
 export class RollbackTransactionResponse implements TigrisResponse {
-	status: Status = Status.Success;
+	status: Status = Status.Ok;
+	private readonly _message: string;
+
+	constructor(message: string) {
+		this._message = message;
+	}
+
+	get message(): string {
+		return this._message;
+	}
 }
 
 export class TransactionResponse implements TigrisResponse {
-	status: Status = Status.Success;
+	status: Status = Status.Ok;
 }
 
 export class CacheMetadata {

@@ -150,8 +150,9 @@ export class Tigris {
 	private readonly pingId: NodeJS.Timeout | number | string | undefined;
 
 	/**
+	 * Create Tigris client
 	 *
-	 * @param  {TigrisClientConfig} config configuration
+	 * @param  config - {@link TigrisClientConfig} configuration
 	 */
 	constructor(config?: TigrisClientConfig) {
 		initializeEnvironment();
@@ -270,18 +271,18 @@ export class Tigris {
 
 	/**
 	 * Creates the cache for this project, if the cache doesn't already exist
-	 * @param cacheName
+	 * @param name - cache identifier
 	 */
-	public createCacheIfNotExists(cacheName: string): Promise<Cache> {
+	public createCacheIfNotExists(name: string): Promise<Cache> {
 		return new Promise<Cache>((resolve, reject) => {
 			this.cacheClient.createCache(
-				new ProtoCreateCacheRequest().setProject(this._config.projectName).setName(cacheName),
+				new ProtoCreateCacheRequest().setProject(this._config.projectName).setName(name),
 				// eslint-disable-next-line @typescript-eslint/no-unused-vars
 				(error, response) => {
 					if (error && error.code != Status.ALREADY_EXISTS) {
 						reject(error);
 					} else {
-						resolve(new Cache(this._config.projectName, cacheName, this.cacheClient, this._config));
+						resolve(new Cache(this._config.projectName, name, this.cacheClient, this._config));
 					}
 				}
 			);
@@ -290,12 +291,12 @@ export class Tigris {
 
 	/**
 	 * Deletes the entire cache from this project.
-	 * @param cacheName
+	 * @param name - cache identifier
 	 */
-	public deleteCache(cacheName: string): Promise<DeleteCacheResponse> {
+	public deleteCache(name: string): Promise<DeleteCacheResponse> {
 		return new Promise<DeleteCacheResponse>((resolve, reject) => {
 			this.cacheClient.deleteCache(
-				new ProtoDeleteCacheRequest().setProject(this._config.projectName).setName(cacheName),
+				new ProtoDeleteCacheRequest().setProject(this._config.projectName).setName(name),
 				(error, response) => {
 					if (error) {
 						reject(error);

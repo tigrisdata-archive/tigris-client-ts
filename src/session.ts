@@ -52,7 +52,7 @@ export class Session {
 				if (error) {
 					reject(error);
 				} else {
-					resolve(new CommitTransactionResponse());
+					resolve(new CommitTransactionResponse(response.getStatus()));
 				}
 			});
 		});
@@ -70,7 +70,7 @@ export class Session {
 					if (error) {
 						reject(error);
 					} else {
-						resolve(new RollbackTransactionResponse());
+						resolve(new RollbackTransactionResponse(response.getStatus()));
 					}
 				}
 			);

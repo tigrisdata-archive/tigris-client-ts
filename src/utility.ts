@@ -205,8 +205,8 @@ export const Utility = {
 	 * JSON serde mechanism - you might want to continue using it as `string`.
 	 *
 	 *
-	 * @param json string representation of JSON object
-	 * @param config Tigris client config instance
+	 * @param json - string representation of JSON object
+	 * @param config - Tigris client config instance
 	 */
 	jsonStringToObj<T>(json: string, config: TigrisClientConfig): T {
 		const JSONbigNative = json_bigint({ useNativeBigInt: true });
