@@ -16,7 +16,6 @@ export class TigrisError extends Error {
  * used
  *
  * @public
- * @category Error
  */
 export class CursorInUseError extends TigrisError {
 	constructor(message = "Cursor is already in use or used. Please reset()") {

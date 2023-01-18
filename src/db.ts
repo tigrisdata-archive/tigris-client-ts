@@ -52,7 +52,8 @@ const BeginTransactionMethodName = "/tigrisdata.v1.Tigris/BeginTransaction";
  *   dynamicCreation: false
  * }
  * ```
- * @example A dynamically generated branch name "my_db_${GIT_BRANCH}" would translate to:
+ *
+ * @example A dynamically generated branch name "my_db_$\{GIT_BRANCH\}" would translate to:
  * ```
  * export GIT_BRANCH=feature_1
  * {
@@ -115,12 +116,12 @@ export class DB {
 	 * Initializes a database branch and returns DB object. A DB shouldn't be used
 	 * until it is initialized.
 	 *
-	 * Calls {@link describe()} to assert that the branch in use already exists. If not, and the
+	 * Calls {@link describe} to assert that the branch in use already exists. If not, and the
 	 * branch name needs to be generated dynamically (ex - `preview_${GIT_BRANCH}`) then try to
 	 * create that branch.
 	 *
 	 * @throws Error if branch doesn't exist and/or cannot be created
-	 * @private
+	 * @internal
 	 */
 	private async initializeDB(): Promise<this> {
 		const branchVar = Utility.branchNameFromEnv(this.config.branch) ?? NoBranch;

@@ -3,6 +3,6 @@ export enum Status {
 	Updated = "updated",
 	Deleted = "deleted",
 	Dropped = "dropped",
-	Success = "success",
+	Ok = "ok",
 	Set = "set",
 }

@@ -53,14 +53,16 @@ export abstract class IterableStream<T, TResp extends proto.Message> {
 	/**
 	 * Returns a {@link Readable} stream of documents to iterate on
 	 *
-	 * Usage:
+	 * @example
+	 * ```
 	 * const cursor = myCollection.find();
 	 * for await (const doc of cursor.stream()) {
 	 *     console.log(doc);
 	 * }
+	 *```
 	 *
 	 * @throws {@link TigrisCursorInUseError} - if cursor is being consumed or has been consumed.
-	 * @see {@link reset()} to re-use a cursor.
+	 * @see {@link reset} to re-use a cursor.
 	 */
 	stream(): Readable {
 		return Readable.from(this.next());
@@ -69,14 +71,16 @@ export abstract class IterableStream<T, TResp extends proto.Message> {
 	/**
 	 * Returns an async iterator to iterate on documents
 	 *
-	 * Usage:
+	 * @example
+	 * ```
 	 * const cursor = myCollection.find();
 	 * for await (const doc of cursor) {
 	 *     console.log(doc);
 	 * }
+	 *```
 	 *
 	 * @throws {@link TigrisCursorInUseError} - if cursor is being consumed or has been consumed.
-	 * @see {@link reset()} to re-use a cursor.
+	 * @see {@link reset} to re-use a cursor.
 	 */
 	[Symbol.asyncIterator](): AsyncIterableIterator<T> {
 		return this.next()[Symbol.asyncIterator]();
@@ -87,7 +91,7 @@ export abstract class IterableStream<T, TResp extends proto.Message> {
 	 * is enough memory to store the results.
 	 *
 	 * @throws {@link TigrisCursorInUseError} - if cursor is being consumed or has been consumed.
-	 * @see {@link reset()} to re-use a cursor.
+	 * @see {@link reset} to re-use a cursor.
 	 */
 	toArray(): Promise<Array<T>> {
 		this._assertNotInUse();
@@ -117,7 +121,7 @@ export abstract class IterableStream<T, TResp extends proto.Message> {
 	 * This essentially sends a new query to server and allows the cursor to be re-used. A new
 	 * query to server is sent even if this cursor is not yet consumed.
 	 *
-	 * Note: A cursor may yield different results after reset()
+	 * <b>Note:</b> A cursor may yield different results after `reset()`
 	 */
 	reset(): void {
 		this[tClosed] = false;

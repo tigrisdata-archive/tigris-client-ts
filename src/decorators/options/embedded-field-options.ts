@@ -9,10 +9,9 @@ export type EmbeddedFieldOptions = {
 	/**
 	 * Optionally used to specify nested arrays (Array of arrays).
 	 *
-	 * @example
-	 * - Array<Item> will have `depth` of 1 (need not be specified)
-	 * - Array<Array<Item>> will have `depth` of 2
-	 * - Array<Array<Array<Item>>> will have `depth` of 3
+	 * - `Array<Item>` will have "depth" of 1 (default)
+	 * - `Array<Array<Item>>` will have "depth" of 2
+	 * - `Array<Array<Array<Item>>>` will have "depth" of 3
 	 */
 	depth?: number;
 };

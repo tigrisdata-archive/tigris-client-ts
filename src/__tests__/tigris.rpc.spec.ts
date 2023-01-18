@@ -570,7 +570,7 @@ describe("rpc tests", () => {
 		beginTxPromise.then((session) => {
 			const commitTxResponse = session.commit();
 			commitTxResponse.then((value) => {
-				expect(value.status).toBe(TigrisStatus.Success);
+				expect(value.status).toBe(TigrisStatus.Ok);
 			});
 			return beginTxPromise;
 		});
@@ -583,7 +583,7 @@ describe("rpc tests", () => {
 		beginTxPromise.then((session) => {
 			const rollbackTransactionResponsePromise = session.rollback();
 			rollbackTransactionResponsePromise.then((value) => {
-				expect(value.status).toBe(TigrisStatus.Success);
+				expect(value.status).toBe(TigrisStatus.Ok);
 			});
 		});
 		return beginTxPromise;
