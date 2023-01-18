@@ -49,7 +49,7 @@ const BeginTransactionMethodName = "/tigrisdata.v1.Tigris/BeginTransaction";
  * ```
  * {
  *   name: "my_database_branch",
- *   isTemplated: false
+ *   dynamicCreation: false
  * }
  * ```
  * @example A dynamically generated branch name "my_db_${GIT_BRANCH}" would translate to:
@@ -57,7 +57,7 @@ const BeginTransactionMethodName = "/tigrisdata.v1.Tigris/BeginTransaction";
  * export GIT_BRANCH=feature_1
  * {
  *   name: "my_db_feature_1",
- *   isTemplated: true
+ *   dynamicCreation: true
  * }
  * ```
  */
@@ -70,7 +70,7 @@ const NoBranch: TemplatedBranchName = { name: "", dynamicCreation: false };
  */
 export class DB {
 	private readonly _db: string;
-	private _branchVar: TemplatedBranchName;
+	private _branch: string;
 	private readonly grpcClient: TigrisClient;
 	private readonly config: TigrisClientConfig;
 	private readonly schemaProcessor: DecoratedSchemaProcessor;
@@ -107,8 +107,7 @@ export class DB {
 		this.config = config;
 		this.schemaProcessor = DecoratedSchemaProcessor.Instance;
 		this._metadataStorage = getDecoratorMetaStorage();
-		// TODO: Should we just default to `main` or empty arg or throw an exception here?
-		this._branchVar = Utility.branchNameFromEnv(config.branch) ?? NoBranch;
+		this._branch = NoBranch.name;
 		this._ready = this.initializeDB();
 	}
 
@@ -124,27 +123,29 @@ export class DB {
 	 * @private
 	 */
 	private async initializeDB(): Promise<this> {
-		if (this._branchVar.name === NoBranch.name) {
+		const branchVar = Utility.branchNameFromEnv(this.config.branch) ?? NoBranch;
+		if (branchVar.name === NoBranch.name) {
 			return this;
 		}
 		const description = await this.describe();
-		const branchExists = description.branches.includes(this.branch);
+		const branchExists = description.branches.includes(branchVar.name);
 
 		if (!branchExists) {
-			if (this._branchVar.dynamicCreation) {
+			if (branchVar.dynamicCreation) {
 				try {
-					await this.createBranch(this.branch);
+					await this.createBranch(branchVar.name);
 				} catch (error) {
 					if ((error as ServiceError).code !== Status.ALREADY_EXISTS) {
 						throw error;
 					}
 				}
-				Log.event(`Created database branch: ${this.branch}`);
+				Log.event(`Created database branch: ${branchVar.name}`);
 			} else {
-				throw new DatabaseBranchError(this.branch);
+				throw new DatabaseBranchError(branchVar.name);
 			}
 		}
-		Log.info(`Using database branch: '${this.branch}'`);
+		Log.info(`Using database branch: '${branchVar.name}'`);
+		this._branch = branchVar.name;
 		return this;
 	}
 
@@ -300,7 +301,7 @@ export class DB {
 					if (error) {
 						reject(error);
 					} else {
-						resolve(new DropCollectionResponse(response.getStatus(), response.getMessage()));
+						resolve(new DropCollectionResponse(response.getMessage()));
 					}
 				}
 			);
@@ -399,7 +400,7 @@ export class DB {
 						// user code successful
 						const commitResponse: CommitTransactionResponse = await session.commit();
 						if (commitResponse) {
-							resolve(new TransactionResponse("transaction successful"));
+							resolve(new TransactionResponse());
 						}
 					} catch (error) {
 						// failed to run user code
@@ -482,7 +483,7 @@ export class DB {
 	}
 
 	get branch(): string {
-		return this._branchVar.name;
+		return this._branch;
 	}
 
 	get ready(): Promise<this> {

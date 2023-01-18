@@ -4,6 +4,7 @@ export * from "./session";
 export * from "./tigris";
 export * from "./types";
 export * from "./search/types";
+export * from "./constants";
 export { Field } from "./decorators/tigris-field";
 export { PrimaryKey } from "./decorators/tigris-primary-key";
 export { TigrisCollection } from "./decorators/tigris-collection";

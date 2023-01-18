@@ -82,7 +82,7 @@ export class Cache {
 				if (error) {
 					reject(error);
 				} else {
-					resolve(new CacheSetResponse(response.getStatus(), response.getMessage()));
+					resolve(new CacheSetResponse(response.getMessage()));
 				}
 			});
 		});
@@ -117,13 +117,12 @@ export class Cache {
 					if (response.getOldValue() !== undefined && response.getOldValue_asU8().length > 0) {
 						resolve(
 							new CacheGetSetResponse(
-								response.getStatus(),
 								response.getMessage(),
 								Utility._base64DecodeToObject(response.getOldValue_asB64(), this._config)
 							)
 						);
 					} else {
-						resolve(new CacheGetSetResponse(response.getStatus(), response.getMessage()));
+						resolve(new CacheGetSetResponse(response.getMessage()));
 					}
 				}
 			});
