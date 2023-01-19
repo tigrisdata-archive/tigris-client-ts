@@ -35,7 +35,7 @@ import { DecoratedSchemaProcessor } from "./schema/decorated-schema-processor";
 import { Log } from "./utils/logger";
 import { DecoratorMetaStorage } from "./decorators/metadata/decorator-meta-storage";
 import { getDecoratorMetaStorage } from "./globals";
-import { CollectionNotFoundError, DatabaseBranchError } from "./error";
+import { CollectionNotFoundError, BranchNotFoundError } from "./error";
 import { Status } from "@grpc/grpc-js/build/src/constants";
 
 const SetCookie = "Set-Cookie";
@@ -52,7 +52,8 @@ const BeginTransactionMethodName = "/tigrisdata.v1.Tigris/BeginTransaction";
  *   dynamicCreation: false
  * }
  * ```
- * @example A dynamically generated branch name "my_db_${GIT_BRANCH}" would translate to:
+ *
+ * @example A dynamically generated branch name "my_db_$\{GIT_BRANCH\}" would translate to:
  * ```
  * export GIT_BRANCH=feature_1
  * {
@@ -62,20 +63,19 @@ const BeginTransactionMethodName = "/tigrisdata.v1.Tigris/BeginTransaction";
  * ```
  */
 export type TemplatedBranchName = { name: string; dynamicCreation: boolean };
-const NoBranch: TemplatedBranchName = { name: "", dynamicCreation: false };
+const DefaultBranch: TemplatedBranchName = { name: "main", dynamicCreation: false };
 
 /**
  * Tigris Database class to manage database branches, collections and execute
  * transactions.
  */
 export class DB {
-	private readonly _db: string;
-	private _branch: string;
+	private readonly _name: string;
+	private readonly _branchVar: TemplatedBranchName;
 	private readonly grpcClient: TigrisClient;
 	private readonly config: TigrisClientConfig;
 	private readonly schemaProcessor: DecoratedSchemaProcessor;
 	private readonly _metadataStorage: DecoratorMetaStorage;
-	private readonly _ready: Promise<this>;
 
 	/**
 	 * Create an instance of Tigris Database class.
@@ -83,70 +83,16 @@ export class DB {
 	 * @example Recommended way to create instance using {@link TigrisClient.getDatabase}
 	 * ```
 	 * const client = new TigrisClient();
-	 * const db = await client.getDatabase();
-	 * ```
-	 *
-	 * @remarks
-	 * Highly recommend to use {@link TigrisClient.getDatabase} to create instance of this class and
-	 * not attempt to instantiate this class directly, it can have potential side effects
-	 * if database branch is not initialized properly.
-	 *
-	 * @privateRemarks
-	 * Object of this class depends on readiness state for proper initialization of database
-	 * and branch. To ensure object is ready to use:
-	 * ```
-	 * const instance = new DB(name, client, config);
-	 * const db: DB = await instance.ready;
-	 *
-	 * db.describe();
+	 * const db = client.getDatabase();
 	 * ```
 	 */
 	constructor(db: string, grpcClient: TigrisClient, config: TigrisClientConfig) {
-		this._db = db;
+		this._name = db;
 		this.grpcClient = grpcClient;
 		this.config = config;
 		this.schemaProcessor = DecoratedSchemaProcessor.Instance;
 		this._metadataStorage = getDecoratorMetaStorage();
-		this._branch = NoBranch.name;
-		this._ready = this.initializeDB();
-	}
-
-	/**
-	 * Initializes a database branch and returns DB object. A DB shouldn't be used
-	 * until it is initialized.
-	 *
-	 * Calls {@link describe()} to assert that the branch in use already exists. If not, and the
-	 * branch name needs to be generated dynamically (ex - `preview_${GIT_BRANCH}`) then try to
-	 * create that branch.
-	 *
-	 * @throws Error if branch doesn't exist and/or cannot be created
-	 * @private
-	 */
-	private async initializeDB(): Promise<this> {
-		const branchVar = Utility.branchNameFromEnv(this.config.branch) ?? NoBranch;
-		if (branchVar.name === NoBranch.name) {
-			return this;
-		}
-		const description = await this.describe();
-		const branchExists = description.branches.includes(branchVar.name);
-
-		if (!branchExists) {
-			if (branchVar.dynamicCreation) {
-				try {
-					await this.createBranch(branchVar.name);
-				} catch (error) {
-					if ((error as ServiceError).code !== Status.ALREADY_EXISTS) {
-						throw error;
-					}
-				}
-				Log.event(`Created database branch: ${branchVar.name}`);
-			} else {
-				throw new DatabaseBranchError(branchVar.name);
-			}
-		}
-		Log.info(`Using database branch: '${branchVar.name}'`);
-		this._branch = branchVar.name;
-		return this;
+		this._branchVar = Utility.branchNameFromEnv(config.branch) ?? DefaultBranch;
 	}
 
 	/**
@@ -219,7 +165,7 @@ export class DB {
 		return this.createOrUpdate(
 			collectionName,
 			schema,
-			() => new Collection(collectionName, this._db, this.branch, this.grpcClient, this.config)
+			() => new Collection(collectionName, this._name, this.branch, this.grpcClient, this.config)
 		);
 	}
 
@@ -231,13 +177,13 @@ export class DB {
 		return new Promise<R>((resolve, reject) => {
 			const rawJSONSchema: string = Utility._toJSONSchema(name, schema);
 			const createOrUpdateCollectionRequest = new ProtoCreateOrUpdateCollectionRequest()
-				.setProject(this._db)
+				.setProject(this._name)
 				.setBranch(this.branch)
 				.setCollection(name)
 				.setOnlyCreate(false)
 				.setSchema(Utility.stringToUint8Array(rawJSONSchema));
 
-			Log.event(`Creating collection: '${name}' in project: '${this._db}'`);
+			Log.event(`Creating collection: '${name}' in project: '${this._name}'`);
 			this.grpcClient.createOrUpdateCollection(
 				createOrUpdateCollectionRequest,
 				// eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -254,7 +200,9 @@ export class DB {
 
 	public listCollections(options?: CollectionOptions): Promise<Array<CollectionInfo>> {
 		return new Promise<Array<CollectionInfo>>((resolve, reject) => {
-			const request = new ProtoListCollectionsRequest().setProject(this.db).setBranch(this.branch);
+			const request = new ProtoListCollectionsRequest()
+				.setProject(this.name)
+				.setBranch(this.branch);
 			if (typeof options !== "undefined") {
 				return request.setOptions(new ProtoCollectionOptions());
 			}
@@ -294,7 +242,7 @@ export class DB {
 		return new Promise<DropCollectionResponse>((resolve, reject) => {
 			this.grpcClient.dropCollection(
 				new ProtoDropCollectionRequest()
-					.setProject(this.db)
+					.setProject(this.name)
 					.setBranch(this.branch)
 					.setCollection(collectionName),
 				(error, response) => {
@@ -324,7 +272,7 @@ export class DB {
 	public describe(): Promise<DatabaseDescription> {
 		return new Promise<DatabaseDescription>((resolve, reject) => {
 			this.grpcClient.describeDatabase(
-				new ProtoDescribeDatabaseRequest().setProject(this.db).setBranch(this.branch),
+				new ProtoDescribeDatabaseRequest().setProject(this.name).setBranch(this.branch),
 				(error, response) => {
 					if (error) {
 						reject(error);
@@ -370,7 +318,7 @@ export class DB {
 
 	public getCollection<T extends TigrisCollectionType>(nameOrClass: T | string): Collection<T> {
 		const collectionName = this.resolveNameFromCollectionClass(nameOrClass);
-		return new Collection<T>(collectionName, this.db, this.branch, this.grpcClient, this.config);
+		return new Collection<T>(collectionName, this.name, this.branch, this.grpcClient, this.config);
 	}
 
 	private resolveNameFromCollectionClass(nameOrClass: TigrisCollectionType | string) {
@@ -417,7 +365,7 @@ export class DB {
 	public beginTransaction(_options?: TransactionOptions): Promise<Session> {
 		return new Promise<Session>((resolve, reject) => {
 			const beginTxRequest = new ProtoBeginTransactionRequest()
-				.setProject(this._db)
+				.setProject(this._name)
 				.setBranch(this.branch);
 			const cookie: Metadata = new Metadata();
 			const call = this.grpcClient.makeUnaryRequest(
@@ -436,7 +384,7 @@ export class DB {
 								response.getTxCtx().getId(),
 								response.getTxCtx().getOrigin(),
 								this.grpcClient,
-								this.db,
+								this.name,
 								this.branch,
 								cookie
 							)
@@ -454,7 +402,7 @@ export class DB {
 
 	public createBranch(name: string): Promise<CreateBranchResponse> {
 		return new Promise((resolve, reject) => {
-			const req = new ProtoCreateBranchRequest().setProject(this.db).setBranch(name);
+			const req = new ProtoCreateBranchRequest().setProject(this.name).setBranch(name);
 			this.grpcClient.createBranch(req, (error, response) => {
 				if (error) {
 					reject(error);
@@ -467,7 +415,7 @@ export class DB {
 
 	public deleteBranch(name: string): Promise<DeleteBranchResponse> {
 		return new Promise((resolve, reject) => {
-			const req = new ProtoDeleteBranchRequest().setProject(this.db).setBranch(name);
+			const req = new ProtoDeleteBranchRequest().setProject(this.name).setBranch(name);
 			this.grpcClient.deleteBranch(req, (error, response) => {
 				if (error) {
 					reject(error);
@@ -478,15 +426,52 @@ export class DB {
 		});
 	}
 
-	get db(): string {
-		return this._db;
+	/**
+	 * Initializes a database branch if it needs to be dynamically created.
+	 *
+	 * Calls {@link describe|describe()} to assert that the branch in use already exists. If not, and the
+	 * branch name needs to be generated dynamically (ex - `preview_${GIT_BRANCH}`) then try to
+	 * create that branch.
+	 *
+	 * @example
+	 * ```
+	 * const client = new TigrisClient();
+	 * const db = client.getDatabase();
+	 * await db.initializeBranch();
+	 * ```
+	 *
+	 * @throws {@link Promise.reject} - Error if branch doesn't exist and/or cannot be created
+	 */
+	public async initializeBranch(): Promise<void> {
+		if (!this.usingDefaultBranch) {
+			try {
+				if (this._branchVar.dynamicCreation) {
+					await this.createBranch(this.branch);
+					Log.event(`Created database branch: ${this.branch}`);
+				} else {
+					const description: DatabaseDescription = await this.describe();
+					if (!description.branches.includes(this.branch)) {
+						throw new BranchNotFoundError(this.branch);
+					}
+				}
+			} catch (error) {
+				if ((error as ServiceError).code !== Status.ALREADY_EXISTS) {
+					throw new BranchNotFoundError(this.branch);
+				}
+			}
+			Log.info(`Using database branch: '${this.branch}'`);
+		}
+	}
+
+	get name(): string {
+		return this._name;
 	}
 
 	get branch(): string {
-		return this._branch;
+		return this._branchVar.name;
 	}
 
-	get ready(): Promise<this> {
-		return this._ready;
+	get usingDefaultBranch(): boolean {
+		return this.branch === DefaultBranch.name;
 	}
 }

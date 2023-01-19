@@ -7,11 +7,11 @@ import { GetInfoRequest as ProtoGetInfoRequest } from "./proto/server/v1/observa
 import { HealthCheckInput as ProtoHealthCheckInput } from "./proto/server/v1/health_pb";
 
 import {
+	CacheMetadata,
 	DeleteCacheResponse,
 	ListCachesResponse,
 	ServerMetadata,
 	TigrisCollectionType,
-	CacheMetadata,
 } from "./types";
 
 import {
@@ -27,9 +27,11 @@ import { DecoratorMetaStorage } from "./decorators/metadata/decorator-meta-stora
 import { getDecoratorMetaStorage } from "./globals";
 import { Cache } from "./cache";
 import { CacheClient } from "./proto/server/v1/cache_grpc_pb";
-import { CreateCacheRequest as ProtoCreateCacheRequest } from "./proto/server/v1/cache_pb";
-import { DeleteCacheRequest as ProtoDeleteCacheRequest } from "./proto/server/v1/cache_pb";
-import { ListCachesRequest as ProtoListCachesRequest } from "./proto/server/v1/cache_pb";
+import {
+	CreateCacheRequest as ProtoCreateCacheRequest,
+	DeleteCacheRequest as ProtoDeleteCacheRequest,
+	ListCachesRequest as ProtoListCachesRequest,
+} from "./proto/server/v1/cache_pb";
 
 import { Status } from "@grpc/grpc-js/build/src/constants";
 import { initializeEnvironment } from "./utils/env-loader";
@@ -150,8 +152,9 @@ export class Tigris {
 	private readonly pingId: NodeJS.Timeout | number | string | undefined;
 
 	/**
+	 * Create Tigris client
 	 *
-	 * @param  {TigrisClientConfig} config configuration
+	 * @param  config - {@link TigrisClientConfig} configuration
 	 */
 	constructor(config?: TigrisClientConfig) {
 		initializeEnvironment();
@@ -263,25 +266,24 @@ export class Tigris {
 		Log.info(`Using Tigris at: ${config.serverUrl}`);
 	}
 
-	public getDatabase(): Promise<DB> {
-		const db = new DB(this._config.projectName, this.grpcClient, this._config);
-		return db.ready;
+	public getDatabase(): DB {
+		return new DB(this._config.projectName, this.grpcClient, this._config);
 	}
 
 	/**
 	 * Creates the cache for this project, if the cache doesn't already exist
-	 * @param cacheName
+	 * @param name - cache identifier
 	 */
-	public createCacheIfNotExists(cacheName: string): Promise<Cache> {
+	public createCacheIfNotExists(name: string): Promise<Cache> {
 		return new Promise<Cache>((resolve, reject) => {
 			this.cacheClient.createCache(
-				new ProtoCreateCacheRequest().setProject(this._config.projectName).setName(cacheName),
+				new ProtoCreateCacheRequest().setProject(this._config.projectName).setName(name),
 				// eslint-disable-next-line @typescript-eslint/no-unused-vars
 				(error, response) => {
 					if (error && error.code != Status.ALREADY_EXISTS) {
 						reject(error);
 					} else {
-						resolve(new Cache(this._config.projectName, cacheName, this.cacheClient, this._config));
+						resolve(new Cache(this._config.projectName, name, this.cacheClient, this._config));
 					}
 				}
 			);
@@ -290,12 +292,12 @@ export class Tigris {
 
 	/**
 	 * Deletes the entire cache from this project.
-	 * @param cacheName
+	 * @param name - cache identifier
 	 */
-	public deleteCache(cacheName: string): Promise<DeleteCacheResponse> {
+	public deleteCache(name: string): Promise<DeleteCacheResponse> {
 		return new Promise<DeleteCacheResponse>((resolve, reject) => {
 			this.cacheClient.deleteCache(
-				new ProtoDeleteCacheRequest().setProject(this._config.projectName).setName(cacheName),
+				new ProtoDeleteCacheRequest().setProject(this._config.projectName).setName(name),
 				(error, response) => {
 					if (error) {
 						reject(error);
@@ -367,7 +369,7 @@ export class Tigris {
 	 * ```
 	 */
 	public async registerSchemas(collections: Array<TigrisCollectionType>) {
-		const tigrisDb = await this.getDatabase();
+		const tigrisDb = this.getDatabase();
 
 		for (const coll of collections) {
 			const found = this._metadataStorage.getCollectionByTarget(coll as Function);

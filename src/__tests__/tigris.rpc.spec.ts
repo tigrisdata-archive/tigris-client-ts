@@ -1,5 +1,5 @@
 import { Server, ServerCredentials, ServiceError } from "@grpc/grpc-js";
-import { TigrisClient, TigrisService } from "../proto/server/v1/api_grpc_pb";
+import { TigrisService } from "../proto/server/v1/api_grpc_pb";
 import TestService, { Branch, TestTigrisService } from "./test-service";
 import TestServiceCache, { TestCacheService } from "./test-cache-service";
 
@@ -24,7 +24,7 @@ import { PrimaryKey } from "../decorators/tigris-primary-key";
 import { Field } from "../decorators/tigris-field";
 import { SearchIterator } from "../consumables/search-iterator";
 import { CacheService } from "../proto/server/v1/cache_grpc_pb";
-import { DatabaseBranchError } from "../error";
+import { BranchNotFoundError } from "../error";
 import { Status } from "@grpc/grpc-js/build/src/constants";
 import { Status as TigrisStatus } from "../constants";
 
@@ -63,15 +63,15 @@ describe("rpc tests", () => {
 		done();
 	});
 
-	it("getDatabase", async () => {
+	it("getDatabase", () => {
 		const tigris = new Tigris(testConfig);
-		const db1 = await tigris.getDatabase();
-		expect(db1.db).toBe("db1");
+		const db1 = tigris.getDatabase();
+		expect(db1.name).toBe("db1");
 	});
 
 	it("listCollections1", async () => {
 		const tigris = new Tigris(testConfig);
-		const db1 = await tigris.getDatabase();
+		const db1 = tigris.getDatabase();
 
 		const listCollectionPromise = db1.listCollections();
 		listCollectionPromise.then((value) => {
@@ -87,7 +87,7 @@ describe("rpc tests", () => {
 
 	it("listCollections2", async () => {
 		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
-		const db1 = await tigris.getDatabase();
+		const db1 = tigris.getDatabase();
 
 		const listCollectionPromise = db1.listCollections();
 		listCollectionPromise.then((value) => {
@@ -103,7 +103,7 @@ describe("rpc tests", () => {
 
 	it("describeDatabase", async () => {
 		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
-		const db1 = await tigris.getDatabase();
+		const db1 = tigris.getDatabase();
 
 		const databaseDescriptionPromise = db1.describe();
 		databaseDescriptionPromise.then((value) => {
@@ -119,7 +119,7 @@ describe("rpc tests", () => {
 
 	it("dropCollection", async () => {
 		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
-		const db1 = await tigris.getDatabase();
+		const db1 = tigris.getDatabase();
 
 		const dropCollectionPromise = db1.dropCollection("db3_coll_2");
 		dropCollectionPromise.then((value) => {
@@ -131,14 +131,14 @@ describe("rpc tests", () => {
 
 	it("getCollection", async () => {
 		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
-		const db1 = await tigris.getDatabase();
+		const db1 = tigris.getDatabase();
 		const books = db1.getCollection<IBook>("books");
 		expect(books.collectionName).toBe("books");
 	});
 
 	it("insert", async () => {
 		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
-		const db1 = await tigris.getDatabase();
+		const db1 = tigris.getDatabase();
 		const insertionPromise = db1.getCollection<IBook>("books").insertOne({
 			author: "author name",
 			id: 0,
@@ -153,7 +153,7 @@ describe("rpc tests", () => {
 
 	it("insert2", async () => {
 		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
-		const db1 = await tigris.getDatabase();
+		const db1 = tigris.getDatabase();
 		const insertionPromise = db1.getCollection<IBook2>("books").insertOne({
 			id: 0,
 			title: "science book",
@@ -170,7 +170,7 @@ describe("rpc tests", () => {
 
 	it("insert_multi_pk", async () => {
 		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
-		const db1 = await tigris.getDatabase();
+		const db1 = tigris.getDatabase();
 		const insertionPromise = db1.getCollection<IBookMPK>("books-multi-pk").insertOne({
 			id: 0,
 			id2: 0,
@@ -189,7 +189,7 @@ describe("rpc tests", () => {
 
 	it("insert_multi_pk_many", async () => {
 		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
-		const db1 = await tigris.getDatabase();
+		const db1 = tigris.getDatabase();
 		const insertionPromise = db1.getCollection<IBookMPK>("books-multi-pk").insertMany([
 			{
 				id: 0,
@@ -222,7 +222,7 @@ describe("rpc tests", () => {
 
 	it("insertWithOptionalField", async () => {
 		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
-		const db1 = await tigris.getDatabase();
+		const db1 = tigris.getDatabase();
 		const randomNumber: number = Math.floor(Math.random() * 100);
 		// pass the random number in author field. mock server reads author and sets as the
 		// primaryKey field.
@@ -239,7 +239,7 @@ describe("rpc tests", () => {
 
 	it("insertOrReplace", async () => {
 		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
-		const db1 = await tigris.getDatabase();
+		const db1 = tigris.getDatabase();
 		const insertOrReplacePromise = db1.getCollection<IBook>("books").insertOrReplaceOne({
 			author: "author name",
 			id: 0,
@@ -254,7 +254,7 @@ describe("rpc tests", () => {
 
 	it("insertOrReplaceWithOptionalField", async () => {
 		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
-		const db1 = await tigris.getDatabase();
+		const db1 = tigris.getDatabase();
 		const randomNumber: number = Math.floor(Math.random() * 100);
 		// pass the random number in author field. mock server reads author and sets as the
 		// primaryKey field.
@@ -273,7 +273,7 @@ describe("rpc tests", () => {
 
 	it("delete", async () => {
 		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
-		const db1 = await tigris.getDatabase();
+		const db1 = tigris.getDatabase();
 		const deletionPromise = db1.getCollection<IBook>(IBook).deleteMany({
 			filter: { id: 1 },
 		});
@@ -287,7 +287,7 @@ describe("rpc tests", () => {
 
 	it("deleteOne", async () => {
 		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
-		const collection = (await tigris.getDatabase()).getCollection<IBook>("books");
+		const collection = tigris.getDatabase().getCollection<IBook>("books");
 		const spyCollection = spy(collection);
 
 		const expectedFilter = { id: 1 };
@@ -311,7 +311,7 @@ describe("rpc tests", () => {
 
 	it("update", async () => {
 		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
-		const db1 = await tigris.getDatabase();
+		const db1 = tigris.getDatabase();
 		const updatePromise = db1.getCollection<IBook>("books").updateMany({
 			filter: {
 				op: SelectorFilterOperator.EQ,
@@ -335,7 +335,7 @@ describe("rpc tests", () => {
 
 	it("updateOne", async () => {
 		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
-		const collection = (await tigris.getDatabase()).getCollection<IBook>("books");
+		const collection = tigris.getDatabase().getCollection<IBook>("books");
 		const spyCollection = spy(collection);
 
 		const expectedFilter = { id: 1 };
@@ -366,7 +366,7 @@ describe("rpc tests", () => {
 
 	it("readOne", async () => {
 		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
-		const db1 = await tigris.getDatabase();
+		const db1 = tigris.getDatabase();
 		const readOnePromise = db1.getCollection<IBook>("books").findOne({
 			filter: {
 				op: SelectorFilterOperator.EQ,
@@ -387,7 +387,7 @@ describe("rpc tests", () => {
 
 	it("readOneRecordNotFound", async () => {
 		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
-		const db1 = await tigris.getDatabase();
+		const db1 = tigris.getDatabase();
 		const readOnePromise = db1.getCollection<IBook>("books").findOne({
 			filter: {
 				op: SelectorFilterOperator.EQ,
@@ -404,7 +404,7 @@ describe("rpc tests", () => {
 
 	it("readOneWithLogicalFilter", async () => {
 		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
-		const db1 = await tigris.getDatabase();
+		const db1 = tigris.getDatabase();
 		const readOnePromise: Promise<IBook | void> = db1.getCollection<IBook>("books").findOne({
 			filter: {
 				op: LogicalOperator.AND,
@@ -438,7 +438,7 @@ describe("rpc tests", () => {
 		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
 
 		it("with filter using for await on cursor", async () => {
-			const db = await tigris.getDatabase();
+			const db = tigris.getDatabase();
 			const cursor = db.getCollection<IBook>("books").findMany({
 				filter: {
 					op: SelectorFilterOperator.EQ,
@@ -457,7 +457,7 @@ describe("rpc tests", () => {
 		});
 
 		it("finds all and retrieves results as array", async () => {
-			const db = await tigris.getDatabase();
+			const db = tigris.getDatabase();
 			const cursor = db.getCollection<IBook>("books").findMany();
 			const booksPromise = cursor.toArray();
 
@@ -466,7 +466,7 @@ describe("rpc tests", () => {
 		});
 
 		it("finds all and streams through results", async () => {
-			const db = await tigris.getDatabase();
+			const db = tigris.getDatabase();
 			const cursor = db.getCollection<IBook>("books").findMany();
 			const booksIterator = cursor.stream();
 
@@ -479,7 +479,7 @@ describe("rpc tests", () => {
 		});
 
 		it("throws an error", async () => {
-			const db = await tigris.getDatabase();
+			const db = tigris.getDatabase();
 			const cursor = db.getCollection<IBook>("books").findMany({
 				filter: {
 					op: SelectorFilterOperator.EQ,
@@ -507,7 +507,7 @@ describe("rpc tests", () => {
 			const pageNumber = 2;
 
 			it("returns a promise", async () => {
-				const db = await tigris.getDatabase();
+				const db = tigris.getDatabase();
 				const query: SearchQuery<IBook> = {
 					q: "philosophy",
 					facets: {
@@ -529,7 +529,7 @@ describe("rpc tests", () => {
 
 		describe("without explicit page number", () => {
 			it("returns an iterator", async () => {
-				const db = await tigris.getDatabase();
+				const db = tigris.getDatabase();
 				const query: SearchQuery<IBook> = {
 					q: "philosophy",
 					facets: {
@@ -554,7 +554,7 @@ describe("rpc tests", () => {
 
 	it("beginTx", async () => {
 		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
-		const db3 = await tigris.getDatabase();
+		const db3 = tigris.getDatabase();
 		const beginTxPromise = db3.beginTransaction();
 		beginTxPromise.then((value) => {
 			expect(value.id).toBe("id-test");
@@ -565,12 +565,12 @@ describe("rpc tests", () => {
 
 	it("commitTx", async () => {
 		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
-		const db3 = await tigris.getDatabase();
+		const db3 = tigris.getDatabase();
 		const beginTxPromise = db3.beginTransaction();
 		beginTxPromise.then((session) => {
 			const commitTxResponse = session.commit();
 			commitTxResponse.then((value) => {
-				expect(value.status).toBe(TigrisStatus.Success);
+				expect(value.status).toBe(TigrisStatus.Ok);
 			});
 			return beginTxPromise;
 		});
@@ -578,12 +578,12 @@ describe("rpc tests", () => {
 
 	it("rollbackTx", async () => {
 		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
-		const db3 = await tigris.getDatabase();
+		const db3 = tigris.getDatabase();
 		const beginTxPromise = db3.beginTransaction();
 		beginTxPromise.then((session) => {
 			const rollbackTransactionResponsePromise = session.rollback();
 			rollbackTransactionResponsePromise.then((value) => {
-				expect(value.status).toBe(TigrisStatus.Success);
+				expect(value.status).toBe(TigrisStatus.Ok);
 			});
 		});
 		return beginTxPromise;
@@ -591,7 +591,7 @@ describe("rpc tests", () => {
 
 	it("transact", async () => {
 		const tigris = new Tigris({ projectName: "test-tx", ...testConfig });
-		const txDB = await tigris.getDatabase();
+		const txDB = tigris.getDatabase();
 		const books = txDB.getCollection<IBook>("books");
 		return txDB.transact((tx) => {
 			books
@@ -658,7 +658,7 @@ describe("rpc tests", () => {
 
 	it("createOrUpdateCollections", async () => {
 		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
-		const db3 = await tigris.getDatabase();
+		const db3 = tigris.getDatabase();
 		const bookSchema: TigrisSchema<IBook> = {
 			id: {
 				type: TigrisDataTypes.INT64,
@@ -819,7 +819,7 @@ describe("rpc tests", () => {
 
 		it("creates a new branch", async () => {
 			expect.hasAssertions();
-			const db = await tigris.getDatabase();
+			const db = tigris.getDatabase();
 			const createResp = db.createBranch("staging");
 
 			return createResp.then((r) => expect(r.status).toBe("created"));
@@ -827,7 +827,7 @@ describe("rpc tests", () => {
 
 		it("fails to create existing branch", async () => {
 			expect.assertions(2);
-			const db = await tigris.getDatabase();
+			const db = tigris.getDatabase();
 			const createResp = db.createBranch(Branch.Existing);
 			createResp.catch((r) => {
 				expect((r as ServiceError).code).toEqual(Status.ALREADY_EXISTS);
@@ -838,7 +838,7 @@ describe("rpc tests", () => {
 
 		it("deletes a branch successfully", async () => {
 			expect.hasAssertions();
-			const db = await tigris.getDatabase();
+			const db = tigris.getDatabase();
 			const deleteResp = db.deleteBranch("staging");
 
 			return deleteResp.then((r) => expect(r.status).toBe("deleted"));
@@ -846,7 +846,7 @@ describe("rpc tests", () => {
 
 		it("fails to delete a branch if not existing already", async () => {
 			expect.assertions(2);
-			const db = await tigris.getDatabase();
+			const db = tigris.getDatabase();
 			const deleteResp = db.deleteBranch(Branch.NotFound);
 			deleteResp.catch((r) => {
 				expect((r as ServiceError).code).toEqual(Status.NOT_FOUND);
@@ -856,7 +856,7 @@ describe("rpc tests", () => {
 		});
 	});
 
-	describe("initializeDB() tests", () => {
+	describe("initializeBranch()", () => {
 		let mockedUtil;
 		let config: TigrisClientConfig = {
 			serverUrl: testConfig.serverUrl,
@@ -870,38 +870,29 @@ describe("rpc tests", () => {
 			reset(mockedUtil);
 		});
 
-		it("uses 'default branch' when no branch name given", async () => {
+		it("succeeds when no branch name given", async () => {
 			expect(config["branch"]).toBeUndefined();
 			when(mockedUtil.branchNameFromEnv(anything())).thenReturn(undefined);
 			const tigris = new Tigris(config);
-			const dbPromise = tigris.getDatabase();
-			const db = await dbPromise;
-			expect(db.branch).toBe("");
-			return dbPromise;
-		});
+			const db = tigris.getDatabase();
 
-		it("accepts empty string for branch name", async () => {
-			when(mockedUtil.branchNameFromEnv(anything())).thenReturn({
-				name: "",
-				dynamicCreation: false,
-			});
-			const tigris = new Tigris({ ...config, branch: "" });
-			const dbPromise = tigris.getDatabase();
-			const db = await dbPromise;
-			expect(db.branch).toBe("");
-			return dbPromise;
+			expect(db.branch).toBe("main");
+			expect(db.usingDefaultBranch).toBeTruthy();
+
+			return db.initializeBranch();
 		});
 
 		it("skips creating branch for existing", async () => {
 			when(mockedUtil.branchNameFromEnv(anything())).thenReturn({
-				name: "staging",
+				name: Branch.Existing,
 				dynamicCreation: true,
 			});
 			const tigris = new Tigris(config);
-			const dbPromise = tigris.getDatabase();
-			const db = await dbPromise;
-			expect(db.branch).toBe("staging");
-			return dbPromise;
+			const db = tigris.getDatabase();
+
+			expect(db.branch).toBe(Branch.Existing);
+
+			return db.initializeBranch();
 		});
 
 		it("creates templated branch if not exist", async () => {
@@ -910,10 +901,10 @@ describe("rpc tests", () => {
 				dynamicCreation: true,
 			});
 			const tigris = new Tigris(config);
-			const dbPromise = tigris.getDatabase();
-			const db = await dbPromise;
+			const db = tigris.getDatabase();
+
 			expect(db.branch).toBe("fork_feature_1");
-			return dbPromise;
+			return db.initializeBranch();
 		});
 
 		it("throws error if non-templated branch does not exist", async () => {
@@ -922,8 +913,9 @@ describe("rpc tests", () => {
 				dynamicCreation: false,
 			});
 			const tigris = new Tigris(config);
-			const dbPromise = tigris.getDatabase();
-			return await expect(dbPromise).rejects.toThrow(DatabaseBranchError);
+			const db = tigris.getDatabase();
+
+			return await expect(db.initializeBranch()).rejects.toThrow(BranchNotFoundError);
 		});
 
 		it("fails to create branch if project does not exist", async () => {
@@ -932,27 +924,9 @@ describe("rpc tests", () => {
 				dynamicCreation: true,
 			});
 			const tigris = new Tigris(config);
-			const dbPromise = tigris.getDatabase();
-			try {
-				await dbPromise;
-			} catch (error) {
-				expect(error).toBeInstanceOf(Error);
-				expect((error as ServiceError).code).toEqual(Status.NOT_FOUND);
-			}
+			const db = tigris.getDatabase();
 
-			return await expect(dbPromise).rejects.toThrow(Error);
-		});
-
-		it("initializer succeeds if branch already exists", async () => {
-			when(mockedUtil.branchNameFromEnv(anything())).thenReturn({
-				name: Branch.Existing,
-				dynamicCreation: true,
-			});
-			const tigris = new Tigris(config);
-			const dbPromise = tigris.getDatabase();
-			const db = await dbPromise;
-			expect(db.branch).toBe(Branch.Existing);
-			return dbPromise;
+			return await expect(db.initializeBranch()).rejects.toThrow(BranchNotFoundError);
 		});
 	});
 });

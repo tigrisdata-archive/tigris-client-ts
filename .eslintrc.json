@@ -14,7 +14,7 @@
 		"ecmaVersion": "latest",
 		"sourceType": "module"
 	},
-	"plugins": ["@typescript-eslint", "functional", "unused-imports"],
+	"plugins": ["@typescript-eslint", "functional", "unused-imports", "eslint-plugin-tsdoc"],
 	"rules": {
 		"unicorn/prevent-abbreviations": "off",
 		"@typescript-eslint/no-empty-interface": "warn",
@@ -28,7 +28,8 @@
 		"@typescript-eslint/semi": ["error"],
 		"unused-imports/no-unused-imports": "error",
 		"quotes": "off",
-		"@typescript-eslint/quotes": ["error"]
+		"@typescript-eslint/quotes": ["error"],
+		"tsdoc/syntax": "error"
 	},
 	"ignorePatterns": ["src/__tests__/*", "dist/*"]
 }
