@@ -13,7 +13,7 @@ describe("FindCursor", () => {
 	const SERVER_PORT = 5003;
 	let db: DB;
 
-	beforeAll(async () => {
+	beforeAll(() => {
 		server = new Server();
 		TestTigrisService.reset();
 		server.addService(TigrisService, TestService.handler.impl);
@@ -35,9 +35,7 @@ describe("FindCursor", () => {
 			projectName: "db3",
 			branch: TestTigrisService.ExpectedBranch,
 		});
-		const dbPromise = tigris.getDatabase();
-		db = await dbPromise;
-		return dbPromise;
+		db = tigris.getDatabase();
 	});
 
 	beforeEach(() => {
