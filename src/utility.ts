@@ -37,7 +37,6 @@ import {
 	UpdateRequestOptions as ProtoUpdateRequestOptions,
 } from "./proto/server/v1/api_pb";
 import { TigrisClientConfig } from "./tigris";
-import { TemplatedBranchName } from "./db";
 
 export const Utility = {
 	stringToUint8Array(input: string): Uint8Array {
@@ -49,7 +48,7 @@ export const Utility = {
 	},
 
 	/** @see tests for usage */
-	branchNameFromEnv(given?: string): TemplatedBranchName {
+	branchNameFromEnv(given?: string): string | undefined {
 		const maybeBranchName = typeof given !== "undefined" ? given : process.env.TIGRIS_DB_BRANCH;
 		if (typeof maybeBranchName === "undefined") {
 			return undefined;
@@ -57,16 +56,13 @@ export const Utility = {
 		const isTemplate = Utility.getTemplatedVar(maybeBranchName);
 		if (isTemplate) {
 			return isTemplate.extracted in process.env
-				? {
-						name: maybeBranchName.replace(
-							isTemplate.matched,
-							this.nerfGitBranchName(process.env[isTemplate.extracted])
-						),
-						dynamicCreation: true,
-				  }
+				? maybeBranchName.replace(
+						isTemplate.matched,
+						this.nerfGitBranchName(process.env[isTemplate.extracted])
+				  )
 				: undefined;
 		} else {
-			return { name: maybeBranchName, dynamicCreation: false };
+			return maybeBranchName;
 		}
 	},
 
