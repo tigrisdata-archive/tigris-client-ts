@@ -9,12 +9,13 @@ import { CacheClient } from "./proto/server/v1/cache_grpc_pb";
 import {
 	DelRequest as ProtoDelRequest,
 	GetRequest as ProtoGetRequest,
+	GetSetRequest as ProtoGetSetRequest,
 	KeysRequest as ProtoKeysRequest,
 	SetRequest as ProtoSetRequest,
-	GetSetRequest as ProtoGetSetRequest,
 } from "./proto/server/v1/cache_pb";
 import { Utility } from "./utility";
 import { TigrisClientConfig } from "./tigris";
+import { CacheKeysCursor, CacheKeysCursorInitializer } from "./consumables/cursor";
 
 export class Cache {
 	private readonly _projectName: string;
@@ -192,23 +193,19 @@ export class Cache {
 	 * @example
 	 * ```
 	 * const c1 = tigris.GetCache("c1);
-	 * const keys = await c1.keys();
-	 * console.log(keys);
+	 * const keysCursor = await c1.keys();
+	 * for await (const keys of keysCursor) {
+	 *	console.log(keys);
+	 * }
 	 * ```
 	 */
-	public keys(pattern?: string): Promise<string[]> {
-		return new Promise<string[]>((resolve, reject) => {
-			const req = new ProtoKeysRequest().setProject(this._projectName).setName(this._cacheName);
-			if (pattern !== undefined) {
-				req.setPattern(pattern);
-			}
-			this._cacheClient.keys(req, (error, response) => {
-				if (error) {
-					reject(error);
-				} else {
-					resolve(response.getKeysList());
-				}
-			});
-		});
+	public keys(pattern?: string): CacheKeysCursor {
+		const req = new ProtoKeysRequest().setProject(this._projectName).setName(this._cacheName);
+		if (pattern !== undefined) {
+			req.setPattern(pattern);
+		}
+		this._cacheClient.keys(req);
+		const initializer = new CacheKeysCursorInitializer(this._cacheClient, req);
+		return new CacheKeysCursor(initializer);
 	}
 }

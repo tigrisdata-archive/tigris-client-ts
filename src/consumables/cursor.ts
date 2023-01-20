@@ -5,6 +5,8 @@ import { Session } from "../session";
 import { Utility } from "../utility";
 import { ClientReadableStream } from "@grpc/grpc-js";
 import { TigrisClientConfig } from "../tigris";
+import { KeysRequest, KeysResponse } from "../proto/server/v1/cache_pb";
+import { CacheClient } from "../proto/server/v1/cache_grpc_pb";
 
 /** @internal */
 export class ReadCursorInitializer implements Initializer<ReadResponse> {
@@ -23,6 +25,21 @@ export class ReadCursorInitializer implements Initializer<ReadResponse> {
 	}
 }
 
+/** @internal */
+export class CacheKeysCursorInitializer implements Initializer<KeysResponse> {
+	private readonly _client: CacheClient;
+	private readonly _request: KeysRequest;
+
+	constructor(client: CacheClient, request: KeysRequest) {
+		this._client = client;
+		this._request = request;
+	}
+
+	init(): ClientReadableStream<KeysResponse> {
+		return this._client.keys(this._request);
+	}
+}
+
 /**
  * Cursor to supplement find() queries
  */
@@ -38,5 +55,21 @@ export class Cursor<T> extends IterableStream<T, ReadResponse> {
 	/** @override */
 	protected _transform(message: ReadResponse): T {
 		return Utility.jsonStringToObj<T>(Utility._base64Decode(message.getData_asB64()), this._config);
+	}
+}
+
+/**
+ * Cursor to supplement keys() call for cache
+ */
+export class CacheKeysCursor extends IterableStream<string[], KeysResponse> {
+	/** @internal */
+
+	constructor(initializer: CacheKeysCursorInitializer) {
+		super(initializer);
+	}
+
+	/** @override */
+	protected _transform(message: KeysResponse): string[] {
+		return message.getKeysList();
 	}
 }
