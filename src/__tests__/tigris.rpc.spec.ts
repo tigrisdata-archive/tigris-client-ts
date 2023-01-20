@@ -24,7 +24,7 @@ import { PrimaryKey } from "../decorators/tigris-primary-key";
 import { Field } from "../decorators/tigris-field";
 import { SearchIterator } from "../consumables/search-iterator";
 import { CacheService } from "../proto/server/v1/cache_grpc_pb";
-import { BranchNotFoundError } from "../error";
+import { BranchNameRequiredError } from "../error";
 import { Status } from "@grpc/grpc-js/build/src/constants";
 import { Status as TigrisStatus } from "../constants";
 
@@ -870,23 +870,15 @@ describe("rpc tests", () => {
 			reset(mockedUtil);
 		});
 
-		it("succeeds when no branch name given", async () => {
+		it("throws error no branch name given", () => {
 			expect(config["branch"]).toBeUndefined();
 			when(mockedUtil.branchNameFromEnv(anything())).thenReturn(undefined);
 			const tigris = new Tigris(config);
-			const db = tigris.getDatabase();
-
-			expect(db.branch).toBe("main");
-			expect(db.usingDefaultBranch).toBeTruthy();
-
-			return db.initializeBranch();
+			expect(() => tigris.getDatabase()).toThrow(BranchNameRequiredError);
 		});
 
-		it("skips creating branch for existing", async () => {
-			when(mockedUtil.branchNameFromEnv(anything())).thenReturn({
-				name: Branch.Existing,
-				dynamicCreation: true,
-			});
+		it("creating branch for existing succeeds", async () => {
+			when(mockedUtil.branchNameFromEnv(anything())).thenReturn(Branch.Existing);
 			const tigris = new Tigris(config);
 			const db = tigris.getDatabase();
 
@@ -895,11 +887,8 @@ describe("rpc tests", () => {
 			return db.initializeBranch();
 		});
 
-		it("creates templated branch if not exist", async () => {
-			when(mockedUtil.branchNameFromEnv(anything())).thenReturn({
-				name: "fork_feature_1",
-				dynamicCreation: true,
-			});
+		it("create a branch if not exist", async () => {
+			when(mockedUtil.branchNameFromEnv(anything())).thenReturn("fork_feature_1");
 			const tigris = new Tigris(config);
 			const db = tigris.getDatabase();
 
@@ -907,26 +896,12 @@ describe("rpc tests", () => {
 			return db.initializeBranch();
 		});
 
-		it("throws error if non-templated branch does not exist", async () => {
-			when(mockedUtil.branchNameFromEnv(anything())).thenReturn({
-				name: "fork_feature_1",
-				dynamicCreation: false,
-			});
-			const tigris = new Tigris(config);
-			const db = tigris.getDatabase();
-
-			return await expect(db.initializeBranch()).rejects.toThrow(BranchNotFoundError);
-		});
-
 		it("fails to create branch if project does not exist", async () => {
-			when(mockedUtil.branchNameFromEnv(anything())).thenReturn({
-				name: Branch.NotFound,
-				dynamicCreation: true,
-			});
+			when(mockedUtil.branchNameFromEnv(anything())).thenReturn(Branch.NotFound);
 			const tigris = new Tigris(config);
 			const db = tigris.getDatabase();
 
-			return await expect(db.initializeBranch()).rejects.toThrow(BranchNotFoundError);
+			return await expect(db.initializeBranch()).rejects.toThrow(Error);
 		});
 	});
 });

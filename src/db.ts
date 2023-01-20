@@ -35,35 +35,13 @@ import { DecoratedSchemaProcessor } from "./schema/decorated-schema-processor";
 import { Log } from "./utils/logger";
 import { DecoratorMetaStorage } from "./decorators/metadata/decorator-meta-storage";
 import { getDecoratorMetaStorage } from "./globals";
-import { CollectionNotFoundError, BranchNotFoundError } from "./error";
+import { CollectionNotFoundError, BranchNameRequiredError } from "./error";
 import { Status } from "@grpc/grpc-js/build/src/constants";
 
 const SetCookie = "Set-Cookie";
 const Cookie = "Cookie";
 const BeginTransactionMethodName = "/tigrisdata.v1.Tigris/BeginTransaction";
-
-/**
- * A branch name could be dynamically generated from environment variables.
- *
- * @example Simple name "my_database_branch" would translate to:
- * ```
- * {
- *   name: "my_database_branch",
- *   dynamicCreation: false
- * }
- * ```
- *
- * @example A dynamically generated branch name "my_db_$\{GIT_BRANCH\}" would translate to:
- * ```
- * export GIT_BRANCH=feature_1
- * {
- *   name: "my_db_feature_1",
- *   dynamicCreation: true
- * }
- * ```
- */
-export type TemplatedBranchName = { name: string; dynamicCreation: boolean };
-const DefaultBranch: TemplatedBranchName = { name: "main", dynamicCreation: false };
+const DefaultBranch = "main";
 
 /**
  * Tigris Database class to manage database branches, collections and execute
@@ -71,7 +49,7 @@ const DefaultBranch: TemplatedBranchName = { name: "main", dynamicCreation: fals
  */
 export class DB {
 	private readonly _name: string;
-	private readonly _branchVar: TemplatedBranchName;
+	private readonly _branch: string;
 	private readonly grpcClient: TigrisClient;
 	private readonly config: TigrisClientConfig;
 	private readonly schemaProcessor: DecoratedSchemaProcessor;
@@ -92,7 +70,10 @@ export class DB {
 		this.config = config;
 		this.schemaProcessor = DecoratedSchemaProcessor.Instance;
 		this._metadataStorage = getDecoratorMetaStorage();
-		this._branchVar = Utility.branchNameFromEnv(config.branch) ?? DefaultBranch;
+		this._branch = Utility.branchNameFromEnv(config.branch);
+		if (!this._branch) {
+			throw new BranchNameRequiredError();
+		}
 	}
 
 	/**
@@ -427,11 +408,7 @@ export class DB {
 	}
 
 	/**
-	 * Initializes a database branch if it needs to be dynamically created.
-	 *
-	 * Calls {@link describe|describe()} to assert that the branch in use already exists. If not, and the
-	 * branch name needs to be generated dynamically (ex - `preview_${GIT_BRANCH}`) then try to
-	 * create that branch.
+	 * Creates a database branch, if not existing already.
 	 *
 	 * @example
 	 * ```
@@ -440,27 +417,22 @@ export class DB {
 	 * await db.initializeBranch();
 	 * ```
 	 *
-	 * @throws {@link Promise.reject} - Error if branch doesn't exist and/or cannot be created
+	 * @throws {@link Promise.reject} - Error if branch cannot be created
 	 */
 	public async initializeBranch(): Promise<void> {
 		if (!this.usingDefaultBranch) {
 			try {
-				if (this._branchVar.dynamicCreation) {
-					await this.createBranch(this.branch);
-					Log.event(`Created database branch: ${this.branch}`);
-				} else {
-					const description: DatabaseDescription = await this.describe();
-					if (!description.branches.includes(this.branch)) {
-						throw new BranchNotFoundError(this.branch);
-					}
-				}
+				await this.createBranch(this.branch);
+				Log.event(`Created database branch: '${this.branch}'`);
 			} catch (error) {
-				if ((error as ServiceError).code !== Status.ALREADY_EXISTS) {
-					throw new BranchNotFoundError(this.branch);
+				if ((error as ServiceError).code === Status.ALREADY_EXISTS) {
+					Log.event(`'${this.branch}' branch already exists`);
+				} else {
+					throw error;
 				}
 			}
-			Log.info(`Using database branch: '${this.branch}'`);
 		}
+		Log.info(`Using database branch: '${this.branch}'`);
 	}
 
 	get name(): string {
@@ -468,10 +440,10 @@ export class DB {
 	}
 
 	get branch(): string {
-		return this._branchVar.name;
+		return this._branch;
 	}
 
 	get usingDefaultBranch(): boolean {
-		return this.branch === DefaultBranch.name;
+		return this.branch === DefaultBranch;
 	}
 }
