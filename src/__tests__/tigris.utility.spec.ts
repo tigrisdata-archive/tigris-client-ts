@@ -148,27 +148,12 @@ describe("utility tests", () => {
 			});
 
 			it.each([
-				[
-					"preview_${GIT_BRANCH}",
-					"GIT_BRANCH",
-					"feature_1",
-					{ name: "preview_feature_1", dynamicCreation: true },
-				],
-				["staging", undefined, undefined, { name: "staging", dynamicCreation: false }],
+				["preview_${GIT_BRANCH}", "GIT_BRANCH", "feature_1", "preview_feature_1"],
+				["staging", undefined, undefined, "staging"],
 				["integration_${MY_VAR}_auto", undefined, undefined, undefined],
 				["integration_${MY_VAR}_auto", "NOT_SET", "feature_2", undefined],
-				[
-					"${MY_GIT_BRANCH}",
-					"MY_GIT_BRANCH",
-					"jira/1234",
-					{ name: "jira_1234", dynamicCreation: true },
-				],
-				[
-					"${MY_GIT_BRANCH",
-					"MY_GIT_BRANCH",
-					"jira/1234",
-					{ name: "${MY_GIT_BRANCH", dynamicCreation: false },
-				],
+				["${MY_GIT_BRANCH}", "MY_GIT_BRANCH", "jira/1234", "jira_1234"],
+				["${MY_GIT_BRANCH", "MY_GIT_BRANCH", "jira/1234", "${MY_GIT_BRANCH"],
 				[undefined, undefined, undefined, undefined],
 			])("envVar - '%s'", (branchEnvValue, templateEnvKey, templateEnvValue, expected) => {
 				process.env["TIGRIS_DB_BRANCH"] = branchEnvValue;
@@ -181,10 +166,10 @@ describe("utility tests", () => {
 			it.each([
 				["any_given_branch", "any_given_branch"],
 				["", ""],
+				[undefined, undefined],
 			])("given branch - '%s'", (givenBranch, expected) => {
 				const actual = Utility.branchNameFromEnv(givenBranch);
-				expect(actual.name).toBe(expected);
-				expect(actual.dynamicCreation).toBeFalsy();
+				expect(actual).toBe(expected);
 			});
 		});
 	});
