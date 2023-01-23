@@ -1,4 +1,4 @@
-import { Filter, TigrisCollectionType } from "../types";
+import { Filter, SortOrder, TigrisCollectionType } from "../types";
 import {
 	FacetCount as ProtoFacetCount,
 	FacetStats as ProtoFacetStats,
@@ -37,7 +37,7 @@ export interface SearchQuery<T extends TigrisCollectionType> {
 	/**
 	 * Sort the search results in indicated order
 	 */
-	sort?: Ordering;
+	sort?: SortOrder;
 	/**
 	 * Document fields to include when returning search results
 	 */
@@ -100,31 +100,6 @@ export type FacetQueryOptions = {
 
 export enum FacetQueryFieldType {
 	VALUE = "value",
-}
-
-/**
- * List of fields and their corresponding sort orders to order the search results.
- */
-export type Ordering = Array<SortField>;
-
-/**
- * Collection field name and sort order
- */
-export type SortField = {
-	field: string;
-	order: SortOrder;
-};
-
-export enum SortOrder {
-	/**
-	 * Ascending order
-	 */
-	ASC = "$asc",
-
-	/**
-	 * Descending order
-	 */
-	DESC = "$desc",
 }
 
 export enum Case {

@@ -6,10 +6,9 @@ import {
 	FacetFieldsQuery,
 	FacetQueryFieldType,
 	MATCH_ALL_QUERY_STRING,
-	Ordering,
 	SearchQueryOptions,
-	SortOrder,
 } from "../search/types";
+import { Order } from "../types";
 
 describe("utility tests", () => {
 	it("base64encode", () => {
@@ -65,17 +64,18 @@ describe("utility tests", () => {
 		expect(serializedFields).toBe(Utility.facetQueryToString(fieldOptions));
 	});
 
-	it("serializes empty sort order", () => {
-		expect(Utility.sortOrderingToString([])).toBe("[]");
-	});
-
-	it("serializes sort orders to string", () => {
-		const ordering: Ordering = [
-			{ field: "field_1", order: SortOrder.ASC },
-			{ field: "parent.field_2", order: SortOrder.DESC },
-		];
-		const expected = '[{"field_1":"$asc"},{"parent.field_2":"$desc"}]';
-		expect(Utility.sortOrderingToString(ordering)).toBe(expected);
+	it.each([
+		["undefined", undefined, "[]"],
+		[
+			"multiple fields",
+			[
+				{ field: "field_1", order: Order.ASC },
+				{ field: "parent.field_2", order: Order.DESC },
+			],
+			'[{"field_1":"$asc"},{"parent.field_2":"$desc"}]',
+		],
+	])("serializing sort ordering - '%s'", (testName, input, expected) => {
+		expect(Utility._sortOrderingToString(input)).toBe(expected);
 	});
 
 	describe("createProtoSearchRequest", () => {

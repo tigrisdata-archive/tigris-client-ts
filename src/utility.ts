@@ -8,6 +8,7 @@ import {
 	FindQueryOptions,
 	LogicalFilter,
 	LogicalOperator,
+	SortOrder,
 	ReadFields,
 	Selector,
 	SelectorFilter,
@@ -26,7 +27,6 @@ import {
 	FacetQueryFieldType,
 	FacetQueryOptions,
 	MATCH_ALL_QUERY_STRING,
-	Ordering,
 	SearchQuery,
 } from "./search/types";
 import {
@@ -521,7 +521,7 @@ export const Utility = {
 		}
 	},
 
-	sortOrderingToString(ordering: Ordering): string {
+	_sortOrderingToString(ordering: SortOrder): string {
 		if (ordering === undefined || ordering.length === 0) {
 			return "[]";
 		}
@@ -559,7 +559,7 @@ export const Utility = {
 		}
 
 		if (query.sort !== undefined) {
-			searchRequest.setSort(Utility.stringToUint8Array(Utility.sortOrderingToString(query.sort)));
+			searchRequest.setSort(Utility.stringToUint8Array(Utility._sortOrderingToString(query.sort)));
 		}
 
 		if (query.includeFields !== undefined) {
