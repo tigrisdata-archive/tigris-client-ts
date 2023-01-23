@@ -67,13 +67,15 @@ describe("utility tests", () => {
 	it.each([
 		["undefined", undefined, "[]"],
 		[
-			"multiple fields",
+			"multiple sort fields",
 			[
 				{ field: "field_1", order: Order.ASC },
 				{ field: "parent.field_2", order: Order.DESC },
 			],
 			'[{"field_1":"$asc"},{"parent.field_2":"$desc"}]',
 		],
+		["single sort field", { field: "field_3", order: Order.DESC }, '[{"field_3":"$desc"}]'],
+		["empty array", [], "[]"],
 	])("serializing sort ordering - '%s'", (testName, input, expected) => {
 		expect(Utility._sortOrderingToString(input)).toBe(expected);
 	});

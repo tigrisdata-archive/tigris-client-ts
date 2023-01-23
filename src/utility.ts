@@ -522,11 +522,14 @@ export const Utility = {
 	},
 
 	_sortOrderingToString(ordering: SortOrder): string {
-		if (ordering === undefined || ordering.length === 0) {
+		if (typeof ordering === "undefined") {
 			return "[]";
 		}
 
 		const sortOrders = [];
+		if (!Array.isArray(ordering)) {
+			ordering = [ordering];
+		}
 		for (const o of ordering) {
 			sortOrders.push({ [o.field]: o.order });
 		}

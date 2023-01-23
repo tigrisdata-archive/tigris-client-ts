@@ -497,7 +497,7 @@ export type SimpleUpdateField = {
 /**
  * List of fields and their corresponding sort order to order the search results.
  */
-export type SortOrder = Array<SortField>;
+export type SortOrder = SortField | Array<SortField>;
 
 /**
  * Collection field name and sort order
