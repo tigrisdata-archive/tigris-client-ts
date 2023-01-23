@@ -495,6 +495,31 @@ export type SimpleUpdateField = {
 };
 
 /**
+ * List of fields and their corresponding sort order to order the search results.
+ */
+export type SortOrder = SortField | Array<SortField>;
+
+/**
+ * Collection field name and sort order
+ */
+export type SortField = {
+	field: string;
+	order: Order;
+};
+
+export enum Order {
+	/**
+	 * Ascending order
+	 */
+	ASC = "$asc",
+
+	/**
+	 * Descending order
+	 */
+	DESC = "$desc",
+}
+
+/**
  * Query builder for reading documents from a collection
  * @public
  */
@@ -509,6 +534,12 @@ export interface FindQuery<T> {
 	 * all document fields are returned.
 	 */
 	readFields?: ReadFields;
+
+	/**
+	 * Sort the query results as per indicated order
+	 */
+	sort?: SortOrder;
+
 	/**
 	 * Optional params
 	 */
