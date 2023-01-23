@@ -320,10 +320,7 @@ describe("rpc tests", () => {
 				},
 			},
 			fields: {
-				op: UpdateFieldsOperator.SET,
-				fields: {
-					title: "New Title",
-				},
+				title: "New Title",
 			},
 		});
 		updatePromise.then((value) => {
@@ -628,10 +625,7 @@ describe("rpc tests", () => {
 											},
 										},
 										fields: {
-											op: UpdateFieldsOperator.SET,
-											fields: {
-												author: "Dr. Author",
-											},
+											author: "Dr. Author",
 										},
 									},
 									tx

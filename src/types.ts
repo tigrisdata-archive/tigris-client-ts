@@ -479,20 +479,32 @@ export enum UpdateFieldsOperator {
 	SET = "$set",
 }
 
-export type FieldTypes = string | number | boolean | bigint | BigInteger;
+export type NumericType = number | bigint;
+export type FieldTypes = string | boolean | NumericType | BigInteger | Date;
 
 export type ReadFields = {
 	include?: Array<string>;
 	exclude?: Array<string>;
 };
 
-export type UpdateFields = {
-	op: UpdateFieldsOperator;
-	fields: SimpleUpdateField;
-};
-export type SimpleUpdateField = {
-	[key: string]: FieldTypes | undefined;
-};
+export type SimpleUpdateField<T> = Partial<{
+	[K in Paths<T>]: FieldTypes | undefined;
+}>;
+
+export type NumericUpdateField<T> = Partial<{
+	[K in Paths<T>]: NumericType;
+}>;
+
+export type UpdateFields<T> =
+	| {
+			$set?: SimpleUpdateField<T>;
+			$unset?: Partial<Paths<T>>[];
+			$inc?: NumericUpdateField<T>;
+			$dec?: NumericUpdateField<T>;
+			$multiply?: NumericUpdateField<T>;
+			$divide?: NumericUpdateField<T>;
+	  }
+	| SimpleUpdateField<T>;
 
 /**
  * List of fields and their corresponding sort order to order the search results.
@@ -575,7 +587,7 @@ export interface UpdateQuery<T> {
 	/**
 	 * Document fields to update and the update operation
 	 */
-	fields: UpdateFields | SimpleUpdateField;
+	fields: UpdateFields<T>;
 
 	/**
 	 * Optional params
@@ -625,15 +637,7 @@ export type TigrisFieldOptions = {
 	/**
 	 * Default value for the schema field
 	 */
-	default?:
-		| Generated
-		| number
-		| bigint
-		| string
-		| boolean
-		| Date
-		| Array<unknown>
-		| Record<string, unknown>;
+	default?: Generated | FieldTypes | Array<unknown> | Record<string, unknown>;
 
 	/**
 	 * Let DB generate values for `Date` type of fields

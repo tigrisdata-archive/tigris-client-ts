@@ -1,29 +1,92 @@
-import { SimpleUpdateField, UpdateFields, UpdateFieldsOperator } from "../types";
 import { Utility } from "../utility";
+import { TigrisCollection } from "../decorators/tigris-collection";
+import { PrimaryKey } from "../decorators/tigris-primary-key";
+import { Field } from "../decorators/tigris-field";
+import { UpdateFields } from "../types";
 
 describe("updateFields tests", () => {
-	it("updateFields", () => {
-		const updateFields: UpdateFields = {
-			op: UpdateFieldsOperator.SET,
-			fields: {
-				title: "New Title",
+	const testCases: Array<{
+		name: string;
+		input: UpdateFields<Books>;
+		expected: string;
+	}> = [
+		{
+			name: "simple update field",
+			input: {
+				title: "New title",
 				price: 499,
 				active: true,
 			},
-		};
-		expect(Utility.updateFieldsString(updateFields)).toBe(
-			'{"$set":{"title":"New Title","price":499,"active":true}}'
-		);
-	});
+			expected: '{"$set":{"title":"New title","price":499,"active":true}}',
+		},
+		{
+			name: "nested schema",
+			input: {
+				$inc: {
+					"publisher.totalPublished": 1,
+				},
+				"publisher.name": "Wonderbooks",
+			},
+			expected:
+				'{"$increment":{"publisher.totalPublished":1},"$set":{"publisher.name":"Wonderbooks"}}',
+		},
+		{
+			name: "all operators",
+			input: {
+				$set: { category: "New category" },
+				$unset: ["publisher.name", "active"],
+				$multiply: { rating: 2.2 },
+				$dec: { quantity: 1, price: 3.53 },
+				$inc: { "publisher.totalPublished": 1, price: 4.1 },
+			},
+			expected:
+				'{"$set":{"category":"New category"},"$unset":["publisher.name","active"],"$multiple":{"rating":2.2},"$decrement":{"quantity":1,"price":3.53},"$increment":{"publisher.totalPublished":1,"price":4.1}}',
+		},
+		{
+			name: "division update only",
+			input: {
+				$divide: { rating: 2.34 },
+			},
+			expected: '{"$divide":{"rating":2.34}}',
+		},
+	];
 
-	it("simpleUpdateField", () => {
-		const updateFields: SimpleUpdateField = {
-			title: "New Title",
-			price: 499,
-			active: true,
-		};
-		expect(Utility.updateFieldsString(updateFields)).toBe(
-			'{"$set":{"title":"New Title","price":499,"active":true}}'
-		);
+	it.each(testCases)("Serializing '$name' to string", (fixture) => {
+		expect(Utility.updateFieldsString(fixture.input)).toBe(fixture.expected);
 	});
 });
+
+class Publisher {
+	@Field()
+	totalPublished: number;
+
+	@Field()
+	name: string;
+}
+
+@TigrisCollection("books")
+class Books {
+	@PrimaryKey({ order: 1 })
+	id: string;
+
+	@Field()
+	title: string;
+
+	@Field()
+	price: number;
+
+	@Field()
+	active: boolean;
+
+	@Field()
+	quantity: number;
+
+	@Field()
+	category: string;
+
+	@Field()
+	rating: number;
+
+	@Field()
+	publisher: Publisher;
+}
