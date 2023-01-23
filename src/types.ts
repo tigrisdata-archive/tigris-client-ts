@@ -534,6 +534,12 @@ export interface FindQuery<T> {
 	 * all document fields are returned.
 	 */
 	readFields?: ReadFields;
+
+	/**
+	 * Sort the query results as per indicated order
+	 */
+	sort?: SortOrder;
+
 	/**
 	 * Optional params
 	 */
