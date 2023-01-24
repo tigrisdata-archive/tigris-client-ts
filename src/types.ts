@@ -483,11 +483,11 @@ export type ReadFields = {
 	exclude?: Array<string>;
 };
 
-export type SimpleUpdateField<T> = Partial<{
+type SimpleUpdateField<T> = Partial<{
 	[K in Paths<T>]: FieldTypes | undefined;
 }>;
 
-export type NumericUpdateField<T> = Partial<{
+type NumericUpdateField<T> = Partial<{
 	[K in Paths<T>]: NumericType;
 }>;
 
@@ -495,8 +495,8 @@ export type UpdateFields<T> =
 	| {
 			$set?: SimpleUpdateField<T>;
 			$unset?: Partial<Paths<T>>[];
-			$inc?: NumericUpdateField<T>;
-			$dec?: NumericUpdateField<T>;
+			$increment?: NumericUpdateField<T>;
+			$decrement?: NumericUpdateField<T>;
 			$multiply?: NumericUpdateField<T>;
 			$divide?: NumericUpdateField<T>;
 	  }

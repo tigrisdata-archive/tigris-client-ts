@@ -175,16 +175,10 @@ export const Utility = {
 				case "$set":
 				case "$unset":
 				case "$divide":
-					updateBuilder[key] = value;
-					break;
-				case "$inc":
-					updateBuilder["$increment"] = value;
-					break;
-				case "$dec":
-					updateBuilder["$decrement"] = value;
-					break;
+				case "$increment":
+				case "$decrement":
 				case "$multiply":
-					updateBuilder["$multiply"] = value;
+					updateBuilder[key] = value;
 					break;
 				default:
 					// by default everything else is a "$set" update
