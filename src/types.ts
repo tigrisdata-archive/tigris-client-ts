@@ -475,10 +475,6 @@ export enum SelectorFilterOperator {
 	NONE = "$none",
 }
 
-export enum UpdateFieldsOperator {
-	SET = "$set",
-}
-
 export type NumericType = number | bigint;
 export type FieldTypes = string | boolean | NumericType | BigInteger | Date;
 

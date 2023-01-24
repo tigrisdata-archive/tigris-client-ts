@@ -10,7 +10,6 @@ import {
 	TigrisCollectionType,
 	TigrisDataTypes,
 	TigrisSchema,
-	UpdateFieldsOperator,
 	UpdateQueryOptions,
 } from "../types";
 import { Tigris, TigrisClientConfig } from "../tigris";

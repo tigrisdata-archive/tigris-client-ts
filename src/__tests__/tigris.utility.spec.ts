@@ -8,7 +8,7 @@ import {
 	MATCH_ALL_QUERY_STRING,
 	SearchQueryOptions,
 } from "../search/types";
-import { Order, UpdateFieldsOperator } from "../types";
+import { Order } from "../types";
 
 describe("utility tests", () => {
 	it("base64encode", () => {
