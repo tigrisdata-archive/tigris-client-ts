@@ -184,7 +184,7 @@ export const Utility = {
 					updateBuilder["$decrement"] = value;
 					break;
 				case "$multiply":
-					updateBuilder["$multiple"] = value;
+					updateBuilder["$multiply"] = value;
 					break;
 				default:
 					// by default everything else is a "$set" update

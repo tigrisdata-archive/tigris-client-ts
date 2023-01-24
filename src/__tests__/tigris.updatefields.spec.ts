@@ -40,7 +40,7 @@ describe("updateFields tests", () => {
 				$inc: { "publisher.totalPublished": 1, price: 4.1 },
 			},
 			expected:
-				'{"$set":{"category":"New category"},"$unset":["publisher.name","active"],"$multiple":{"rating":2.2},"$decrement":{"quantity":1,"price":3.53},"$increment":{"publisher.totalPublished":1,"price":4.1}}',
+				'{"$set":{"category":"New category"},"$unset":["publisher.name","active"],"$multiply":{"rating":2.2},"$decrement":{"quantity":1,"price":3.53},"$increment":{"publisher.totalPublished":1,"price":4.1}}',
 		},
 		{
 			name: "division update only",
