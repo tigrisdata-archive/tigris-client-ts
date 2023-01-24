@@ -483,24 +483,20 @@ export type ReadFields = {
 	exclude?: Array<string>;
 };
 
-type SimpleUpdateField<T> = Partial<{
-	[K in Paths<T>]: FieldTypes | undefined;
-}>;
-
-type NumericUpdateField<T> = Partial<{
-	[K in Paths<T>]: NumericType;
+type DocumentFields<T, V> = Partial<{
+	[K in Paths<T>]: V;
 }>;
 
 export type UpdateFields<T> =
 	| {
-			$set?: SimpleUpdateField<T>;
+			$set?: DocumentFields<T, FieldTypes | undefined>;
 			$unset?: Partial<Paths<T>>[];
-			$increment?: NumericUpdateField<T>;
-			$decrement?: NumericUpdateField<T>;
-			$multiply?: NumericUpdateField<T>;
-			$divide?: NumericUpdateField<T>;
+			$increment?: DocumentFields<T, NumericType>;
+			$decrement?: DocumentFields<T, NumericType>;
+			$multiply?: DocumentFields<T, NumericType>;
+			$divide?: DocumentFields<T, NumericType>;
 	  }
-	| SimpleUpdateField<T>;
+	| DocumentFields<T, FieldTypes | undefined>;
 
 /**
  * List of fields and their corresponding sort order to order the search results.
