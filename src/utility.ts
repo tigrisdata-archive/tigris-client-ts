@@ -13,12 +13,10 @@ import {
 	Selector,
 	SelectorFilter,
 	SelectorFilterOperator,
-	SimpleUpdateField,
 	TigrisCollectionType,
 	TigrisDataTypes,
 	TigrisSchema,
 	UpdateFields,
-	UpdateFieldsOperator,
 	UpdateQueryOptions,
 } from "./types";
 import * as fs from "node:fs";
@@ -169,23 +167,30 @@ export const Utility = {
 		return this.objToJsonString({ ...include, ...exclude });
 	},
 
-	updateFieldsString(updateFields: UpdateFields | SimpleUpdateField) {
+	updateFieldsString<T>(updateFields: UpdateFields<T>) {
 		// UpdateFields
-		// eslint-disable-next-line no-prototype-builtins
-		if (updateFields.hasOwnProperty("op")) {
-			const { op, fields } = updateFields as UpdateFields;
-
-			return this.objToJsonString({
-				[op]: fields,
-			});
-		} else {
-			// SimpleUpdateField
-			return Utility.updateFieldsString({
-				op: UpdateFieldsOperator.SET,
-				fields: updateFields as SimpleUpdateField,
-			});
+		const updateBuilder: object = {};
+		for (const [key, value] of Object.entries(updateFields)) {
+			switch (key) {
+				case "$set":
+				case "$unset":
+				case "$divide":
+				case "$increment":
+				case "$decrement":
+				case "$multiply":
+					updateBuilder[key] = value;
+					break;
+				default:
+					// by default everything else is a "$set" update
+					if (!("$set" in updateBuilder)) {
+						updateBuilder["$set"] = {};
+					}
+					updateBuilder["$set"][key] = value;
+			}
 		}
+		return this.objToJsonString(updateBuilder);
 	},
+
 	// eslint-disable-next-line @typescript-eslint/ban-types
 	objToJsonString(obj: object): string {
 		const JSONbigNative = json_bigint({ useNativeBigInt: true });

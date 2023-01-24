@@ -58,7 +58,6 @@ const schemas: Array<SchemaTestCase<any>> = [
 /*
  * TODO: Add following tests
  *
- * add a constructor to class and subclasses
  * readonly properties (getter/setter)
  * custom constructor
  * embedded definitions are empty

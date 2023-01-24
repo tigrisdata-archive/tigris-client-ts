@@ -341,7 +341,7 @@ export interface IUser extends TigrisCollectionType {
 }
 
 @TigrisCollection("user1")
-export class IUser1 implements TigrisCollectionType {
+export class IUser1 {
 	@PrimaryKey({ order: 1 })
 	id: bigint;
 	@Field()

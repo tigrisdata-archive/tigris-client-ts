@@ -76,7 +76,7 @@ describe("utility tests", () => {
 		],
 		["single sort field", { field: "field_3", order: Order.DESC }, '[{"field_3":"$desc"}]'],
 		["empty array", [], "[]"],
-	])("serializing sort ordering - '%s'", (testName, input, expected) => {
+	])("_sortOrderingToString() with '%s'", (testName, input, expected) => {
 		expect(Utility._sortOrderingToString(input)).toBe(expected);
 	});
 
