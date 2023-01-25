@@ -54,10 +54,13 @@ export const Utility = {
 		const isTemplate = Utility.getTemplatedVar(maybeBranchName);
 		if (isTemplate) {
 			return isTemplate.extracted in process.env
-				? maybeBranchName.replace(isTemplate.matched, process.env[isTemplate.extracted])
+				? maybeBranchName.replace(
+						isTemplate.matched,
+						this.nerfGitBranchName(process.env[isTemplate.extracted])
+				  )
 				: undefined;
 		} else {
-			return maybeBranchName;
+			return this.nerfGitBranchName(maybeBranchName);
 		}
 	},
 
@@ -65,6 +68,12 @@ export const Utility = {
 	getTemplatedVar(input: string): { matched: string; extracted: string } {
 		const output = input.match(/\${(.*?)}/);
 		return output ? { matched: output[0], extracted: output[1] } : undefined;
+	},
+
+	/** @see tests for usage */
+	nerfGitBranchName(original: string) {
+		// only replace '/', '#', ' ' to avoid malformed urls
+		return original.replace(/[ #/]/g, "_");
 	},
 
 	filterToString<T>(filter: Filter<T>): string {

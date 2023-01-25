@@ -122,6 +122,23 @@ describe("utility tests", () => {
 			expect(generated.getCollation().getCase()).toBe("ci");
 		});
 
+		const nerfingTestCases = [
+			["main/fork", "main_fork"],
+			["main-fork", "main-fork"],
+			["main?fork", "main?fork"],
+			["sTaging21", "sTaging21"],
+			["hotfix/jira-23$4", "hotfix_jira-23$4"],
+			["", ""],
+			["release", "release"],
+			["zero ops", "zero_ops"],
+			["under_score", "under_score"],
+			["bot/fork1.2#server/main_beta new", "bot_fork1.2_server_main_beta_new"],
+		];
+
+		test.each(nerfingTestCases)("nerfs the name - '%s'", (original, nerfed) => {
+			expect(Utility.nerfGitBranchName(original)).toBe(nerfed);
+		});
+
 		describe("get branch name from environment", () => {
 			const OLD_ENV = Object.assign({}, process.env);
 
@@ -138,7 +155,7 @@ describe("utility tests", () => {
 				["staging", undefined, undefined, "staging"],
 				["integration_${MY_VAR}_auto", undefined, undefined, undefined],
 				["integration_${MY_VAR}_auto", "NOT_SET", "feature_2", undefined],
-				["${MY_GIT_BRANCH}", "MY_GIT_BRANCH", "jira/1234", "jira/1234"],
+				["${MY_GIT_BRANCH}", "MY_GIT_BRANCH", "jira/1234", "jira_1234"],
 				["${MY_GIT_BRANCH", "MY_GIT_BRANCH", "jira/1234", "${MY_GIT_BRANCH"],
 				[undefined, undefined, undefined, undefined],
 			])("envVar - '%s'", (branchEnvValue, templateEnvKey, templateEnvValue, expected) => {
