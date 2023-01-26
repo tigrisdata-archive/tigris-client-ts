@@ -355,6 +355,7 @@ export class CacheMetadata {
 		return this._name;
 	}
 }
+
 export class ListCachesResponse {
 	private readonly _caches: CacheMetadata[];
 
@@ -474,24 +475,53 @@ export enum SelectorFilterOperator {
 	NONE = "$none",
 }
 
-export enum UpdateFieldsOperator {
-	SET = "$set",
-}
-
-export type FieldTypes = string | number | boolean | bigint | BigInteger;
+export type NumericType = number | bigint;
+export type FieldTypes = string | boolean | NumericType | BigInteger | Date;
 
 export type ReadFields = {
 	include?: Array<string>;
 	exclude?: Array<string>;
 };
 
-export type UpdateFields = {
-	op: UpdateFieldsOperator;
-	fields: SimpleUpdateField;
+type DocumentFields<T, V> = Partial<{
+	[K in Paths<T>]: V;
+}>;
+
+export type UpdateFields<T> =
+	| {
+			$set?: DocumentFields<T, FieldTypes | undefined>;
+			$unset?: Partial<Paths<T>>[];
+			$increment?: DocumentFields<T, NumericType>;
+			$decrement?: DocumentFields<T, NumericType>;
+			$multiply?: DocumentFields<T, NumericType>;
+			$divide?: DocumentFields<T, NumericType>;
+	  }
+	| DocumentFields<T, FieldTypes | undefined>;
+
+/**
+ * List of fields and their corresponding sort order to order the search results.
+ */
+export type SortOrder = SortField | Array<SortField>;
+
+/**
+ * Collection field name and sort order
+ */
+export type SortField = {
+	field: string;
+	order: Order;
 };
-export type SimpleUpdateField = {
-	[key: string]: FieldTypes | undefined;
-};
+
+export enum Order {
+	/**
+	 * Ascending order
+	 */
+	ASC = "$asc",
+
+	/**
+	 * Descending order
+	 */
+	DESC = "$desc",
+}
 
 /**
  * Query builder for reading documents from a collection
@@ -508,6 +538,12 @@ export interface FindQuery<T> {
 	 * all document fields are returned.
 	 */
 	readFields?: ReadFields;
+
+	/**
+	 * Sort the query results as per indicated order
+	 */
+	sort?: SortOrder;
+
 	/**
 	 * Optional params
 	 */
@@ -543,7 +579,7 @@ export interface UpdateQuery<T> {
 	/**
 	 * Document fields to update and the update operation
 	 */
-	fields: UpdateFields | SimpleUpdateField;
+	fields: UpdateFields<T>;
 
 	/**
 	 * Optional params
@@ -593,15 +629,7 @@ export type TigrisFieldOptions = {
 	/**
 	 * Default value for the schema field
 	 */
-	default?:
-		| Generated
-		| number
-		| bigint
-		| string
-		| boolean
-		| Date
-		| Array<unknown>
-		| Record<string, unknown>;
+	default?: Generated | FieldTypes | Array<unknown> | Record<string, unknown>;
 
 	/**
 	 * Let DB generate values for `Date` type of fields

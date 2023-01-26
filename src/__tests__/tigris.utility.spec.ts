@@ -6,10 +6,9 @@ import {
 	FacetFieldsQuery,
 	FacetQueryFieldType,
 	MATCH_ALL_QUERY_STRING,
-	Ordering,
 	SearchQueryOptions,
-	SortOrder,
 } from "../search/types";
+import { Order } from "../types";
 
 describe("utility tests", () => {
 	it("base64encode", () => {
@@ -65,17 +64,20 @@ describe("utility tests", () => {
 		expect(serializedFields).toBe(Utility.facetQueryToString(fieldOptions));
 	});
 
-	it("serializes empty sort order", () => {
-		expect(Utility.sortOrderingToString([])).toBe("[]");
-	});
-
-	it("serializes sort orders to string", () => {
-		const ordering: Ordering = [
-			{ field: "field_1", order: SortOrder.ASC },
-			{ field: "parent.field_2", order: SortOrder.DESC },
-		];
-		const expected = '[{"field_1":"$asc"},{"parent.field_2":"$desc"}]';
-		expect(Utility.sortOrderingToString(ordering)).toBe(expected);
+	it.each([
+		["undefined", undefined, "[]"],
+		[
+			"multiple sort fields",
+			[
+				{ field: "field_1", order: Order.ASC },
+				{ field: "parent.field_2", order: Order.DESC },
+			],
+			'[{"field_1":"$asc"},{"parent.field_2":"$desc"}]',
+		],
+		["single sort field", { field: "field_3", order: Order.DESC }, '[{"field_3":"$desc"}]'],
+		["empty array", [], "[]"],
+	])("_sortOrderingToString() with '%s'", (testName, input, expected) => {
+		expect(Utility._sortOrderingToString(input)).toBe(expected);
 	});
 
 	describe("createProtoSearchRequest", () => {
@@ -122,14 +124,15 @@ describe("utility tests", () => {
 
 		const nerfingTestCases = [
 			["main/fork", "main_fork"],
-			["main-fork", "main_fork"],
-			["main?fork", "main_fork"],
+			["main-fork", "main-fork"],
+			["main?fork", "main?fork"],
 			["sTaging21", "sTaging21"],
-			["hotfix/jira-23$4", "hotfix_jira_23_4"],
+			["hotfix/jira-23$4", "hotfix_jira-23$4"],
 			["", ""],
 			["release", "release"],
 			["zero ops", "zero_ops"],
 			["under_score", "under_score"],
+			["bot/fork1.2#server/main_beta new", "bot_fork1.2_server_main_beta_new"],
 		];
 
 		test.each(nerfingTestCases)("nerfs the name - '%s'", (original, nerfed) => {

@@ -516,6 +516,10 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 			readRequest.setFields(Utility.stringToUint8Array(Utility.readFieldString(query.readFields)));
 		}
 
+		if (query.sort) {
+			readRequest.setSort(Utility.stringToUint8Array(Utility._sortOrderingToString(query.sort)));
+		}
+
 		if (query.options) {
 			readRequest.setOptions(Utility._readRequestOptionsToProtoReadRequestOptions(query.options));
 		}

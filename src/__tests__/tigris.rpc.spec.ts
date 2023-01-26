@@ -10,7 +10,6 @@ import {
 	TigrisCollectionType,
 	TigrisDataTypes,
 	TigrisSchema,
-	UpdateFieldsOperator,
 	UpdateQueryOptions,
 } from "../types";
 import { Tigris, TigrisClientConfig } from "../tigris";
@@ -320,10 +319,7 @@ describe("rpc tests", () => {
 				},
 			},
 			fields: {
-				op: UpdateFieldsOperator.SET,
-				fields: {
-					title: "New Title",
-				},
+				title: "New Title",
 			},
 		});
 		updatePromise.then((value) => {
@@ -628,10 +624,7 @@ describe("rpc tests", () => {
 											},
 										},
 										fields: {
-											op: UpdateFieldsOperator.SET,
-											fields: {
-												author: "Dr. Author",
-											},
+											author: "Dr. Author",
 										},
 									},
 									tx
@@ -774,12 +767,15 @@ describe("rpc tests", () => {
 		await c1.set("k4", { a: "b", n: 12 });
 		expect((await c1.get("k4")).value).toEqual({ a: "b", n: 12 });
 
-		const keys = await c1.keys();
+		const keysArrays = await c1.keys().toArray();
+		const keys: Array<string> = new Array<string>();
+		keysArrays.forEach((keysArray) => keysArray.forEach((key) => keys.push(key)));
+
+		expect(keys).toHaveLength(4);
 		expect(keys).toContain("k1");
 		expect(keys).toContain("k2");
 		expect(keys).toContain("k3");
 		expect(keys).toContain("k4");
-		expect(keys).toHaveLength(4);
 
 		await c1.del("k1");
 		let errored = false;
@@ -792,11 +788,13 @@ describe("rpc tests", () => {
 		expect(errored).toBe(true);
 
 		// k1 is deleted
-		const keysNew = await c1.keys();
+		const keysNewArray = await c1.keys().toArray();
+		const keysNew: Array<string> = new Array<string>();
+		keysNewArray.forEach((keysArray) => keysArray.forEach((key) => keysNew.push(key)));
+		expect(keysNew).toHaveLength(3);
 		expect(keysNew).toContain("k2");
 		expect(keysNew).toContain("k3");
 		expect(keysNew).toContain("k4");
-		expect(keysNew).toHaveLength(3);
 
 		// getset
 		let getSetResp = await c1.getSet("k2", 123_456);

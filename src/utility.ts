@@ -8,16 +8,15 @@ import {
 	FindQueryOptions,
 	LogicalFilter,
 	LogicalOperator,
+	SortOrder,
 	ReadFields,
 	Selector,
 	SelectorFilter,
 	SelectorFilterOperator,
-	SimpleUpdateField,
 	TigrisCollectionType,
 	TigrisDataTypes,
 	TigrisSchema,
 	UpdateFields,
-	UpdateFieldsOperator,
 	UpdateQueryOptions,
 } from "./types";
 import * as fs from "node:fs";
@@ -26,7 +25,6 @@ import {
 	FacetQueryFieldType,
 	FacetQueryOptions,
 	MATCH_ALL_QUERY_STRING,
-	Ordering,
 	SearchQuery,
 } from "./search/types";
 import {
@@ -62,7 +60,7 @@ export const Utility = {
 				  )
 				: undefined;
 		} else {
-			return maybeBranchName;
+			return this.nerfGitBranchName(maybeBranchName);
 		}
 	},
 
@@ -74,7 +72,8 @@ export const Utility = {
 
 	/** @see tests for usage */
 	nerfGitBranchName(original: string) {
-		return original.replace(/[^\d\n.A-Za-z]/g, "_");
+		// only replace '/', '#', ' ' to avoid malformed urls
+		return original.replace(/[ #/]/g, "_");
 	},
 
 	filterToString<T>(filter: Filter<T>): string {
@@ -169,23 +168,30 @@ export const Utility = {
 		return this.objToJsonString({ ...include, ...exclude });
 	},
 
-	updateFieldsString(updateFields: UpdateFields | SimpleUpdateField) {
+	updateFieldsString<T>(updateFields: UpdateFields<T>) {
 		// UpdateFields
-		// eslint-disable-next-line no-prototype-builtins
-		if (updateFields.hasOwnProperty("op")) {
-			const { op, fields } = updateFields as UpdateFields;
-
-			return this.objToJsonString({
-				[op]: fields,
-			});
-		} else {
-			// SimpleUpdateField
-			return Utility.updateFieldsString({
-				op: UpdateFieldsOperator.SET,
-				fields: updateFields as SimpleUpdateField,
-			});
+		const updateBuilder: object = {};
+		for (const [key, value] of Object.entries(updateFields)) {
+			switch (key) {
+				case "$set":
+				case "$unset":
+				case "$divide":
+				case "$increment":
+				case "$decrement":
+				case "$multiply":
+					updateBuilder[key] = value;
+					break;
+				default:
+					// by default everything else is a "$set" update
+					if (!("$set" in updateBuilder)) {
+						updateBuilder["$set"] = {};
+					}
+					updateBuilder["$set"][key] = value;
+			}
 		}
+		return this.objToJsonString(updateBuilder);
 	},
+
 	// eslint-disable-next-line @typescript-eslint/ban-types
 	objToJsonString(obj: object): string {
 		const JSONbigNative = json_bigint({ useNativeBigInt: true });
@@ -521,12 +527,15 @@ export const Utility = {
 		}
 	},
 
-	sortOrderingToString(ordering: Ordering): string {
-		if (ordering === undefined || ordering.length === 0) {
+	_sortOrderingToString(ordering: SortOrder): string {
+		if (typeof ordering === "undefined") {
 			return "[]";
 		}
 
 		const sortOrders = [];
+		if (!Array.isArray(ordering)) {
+			ordering = [ordering];
+		}
 		for (const o of ordering) {
 			sortOrders.push({ [o.field]: o.order });
 		}
@@ -559,7 +568,7 @@ export const Utility = {
 		}
 
 		if (query.sort !== undefined) {
-			searchRequest.setSort(Utility.stringToUint8Array(Utility.sortOrderingToString(query.sort)));
+			searchRequest.setSort(Utility.stringToUint8Array(Utility._sortOrderingToString(query.sort)));
 		}
 
 		if (query.includeFields !== undefined) {
