@@ -21,13 +21,6 @@ import {
 } from "./types";
 import * as fs from "node:fs";
 import {
-	FacetFieldsQuery,
-	FacetQueryFieldType,
-	FacetQueryOptions,
-	MATCH_ALL_QUERY_STRING,
-	SearchQuery,
-} from "./search/types";
-import {
 	Collation as ProtoCollation,
 	DeleteRequestOptions as ProtoDeleteRequestOptions,
 	ReadRequestOptions as ProtoReadRequestOptions,
@@ -35,6 +28,13 @@ import {
 	UpdateRequestOptions as ProtoUpdateRequestOptions,
 } from "./proto/server/v1/api_pb";
 import { TigrisClientConfig } from "./tigris";
+import {
+	FacetFieldsQuery,
+	FacetQueryFieldType,
+	FacetQueryOptions,
+	MATCH_ALL_QUERY_STRING,
+	SearchQuery,
+} from "./search/query";
 
 export const Utility = {
 	stringToUint8Array(input: string): Uint8Array {

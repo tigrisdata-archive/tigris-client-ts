@@ -28,8 +28,9 @@ import { Utility } from "./utility";
 import { TigrisClientConfig } from "./tigris";
 import { MissingArgumentError } from "./error";
 import { Cursor, ReadCursorInitializer } from "./consumables/cursor";
-import { SearchQuery, SearchResult } from "./search/types";
 import { SearchIterator, SearchIteratorInitializer } from "./consumables/search-iterator";
+import { SearchQuery } from "./search/query";
+import { SearchResult } from "./search/result";
 
 interface ICollection {
 	readonly collectionName: string;

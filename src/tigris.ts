@@ -36,6 +36,9 @@ import {
 import { Status } from "@grpc/grpc-js/build/src/constants";
 import { initializeEnvironment } from "./utils/env-loader";
 
+import { SearchClient } from "./proto/server/v1/search_grpc_pb";
+import { Search } from "./search/search";
+
 const AuthorizationHeaderName = "authorization";
 const AuthorizationBearer = "Bearer ";
 
@@ -145,6 +148,7 @@ export class Tigris {
 	private readonly grpcClient: TigrisClient;
 	private readonly observabilityClient: ObservabilityClient;
 	private readonly cacheClient: CacheClient;
+	private readonly searchClient: SearchClient;
 	private readonly healthAPIClient: HealthAPIClient;
 	private readonly _config: TigrisClientConfig;
 	private readonly _metadataStorage: DecoratorMetaStorage;
@@ -215,6 +219,7 @@ export class Tigris {
 			this.grpcClient = new TigrisClient(config.serverUrl, insecureCreds);
 			this.observabilityClient = new ObservabilityClient(config.serverUrl, insecureCreds);
 			this.cacheClient = new CacheClient(config.serverUrl, insecureCreds);
+			this.searchClient = new SearchClient(config.serverUrl, insecureCreds);
 			this.healthAPIClient = new HealthAPIClient(config.serverUrl, insecureCreds);
 		} else if (config.clientId === undefined || config.clientSecret === undefined) {
 			throw new Error("Both `clientId` and `clientSecret` are required");
@@ -240,6 +245,7 @@ export class Tigris {
 			this.grpcClient = new TigrisClient(config.serverUrl, channelCreds);
 			this.observabilityClient = new ObservabilityClient(config.serverUrl, channelCreds);
 			this.cacheClient = new CacheClient(config.serverUrl, channelCreds);
+			this.searchClient = new SearchClient(config.serverUrl, channelCreds);
 			this.healthAPIClient = new HealthAPIClient(config.serverUrl, channelCreds);
 			this._ping = () => {
 				this.healthAPIClient.health(new ProtoHealthCheckInput(), (error, response) => {
@@ -332,6 +338,10 @@ export class Tigris {
 
 	public getCache(cacheName: string): Cache {
 		return new Cache(this._config.projectName, cacheName, this.cacheClient, this._config);
+	}
+
+	public getSearch(): Search {
+		return new Search(this.searchClient, this._config);
 	}
 
 	public getServerMetadata(): Promise<ServerMetadata> {

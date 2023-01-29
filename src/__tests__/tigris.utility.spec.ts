@@ -1,4 +1,5 @@
 import { Utility } from "../utility";
+import { Order } from "../types";
 import {
 	Case,
 	FacetFieldOptions,
@@ -7,8 +8,7 @@ import {
 	FacetQueryFieldType,
 	MATCH_ALL_QUERY_STRING,
 	SearchQueryOptions,
-} from "../search/types";
-import { Order } from "../types";
+} from "../search";
 
 describe("utility tests", () => {
 	it("base64encode", () => {
