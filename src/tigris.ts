@@ -71,6 +71,13 @@ export interface TigrisClientConfig {
 	 * Database branch name
 	 */
 	branch?: string;
+
+	/**
+	 * Database schema version
+	 * Should be incremented when data models has changed.
+	 * If not set schema version 1 is implied.
+	 */
+	schemaVersion?: number;
 }
 
 class TokenSupplier {
@@ -137,6 +144,7 @@ const DEFAULT_URL = "api.preview.tigrisdata.cloud";
 const USER_AGENT_KEY = "user-agent";
 const USER_AGENT_VAL = "tigris-client-ts.grpc";
 const DEST_NAME_KEY = "destination-name";
+const SCHEMA_VERSION_KEY = "tigris-schema-version";
 
 /**
  * Tigris client
@@ -202,6 +210,10 @@ export class Tigris {
 		defaultMetadata.set(USER_AGENT_KEY, USER_AGENT_VAL);
 		defaultMetadata.set(DEST_NAME_KEY, config.serverUrl);
 
+		if (config.schemaVersion > 0) {
+			defaultMetadata.set(SCHEMA_VERSION_KEY, config.schemaVersion.toString());
+		}
+
 		if (
 			(config.serverUrl.includes("localhost") ||
 				config.serverUrl.startsWith("tigris-local-server:") ||
@@ -262,6 +274,7 @@ export class Tigris {
 				});
 			}
 		}
+
 		this._metadataStorage = getDecoratorMetaStorage();
 		Log.info(`Using Tigris at: ${config.serverUrl}`);
 	}

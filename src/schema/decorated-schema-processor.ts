@@ -4,6 +4,7 @@ import { TigrisCollectionType, TigrisDataTypes, TigrisSchema } from "../types";
 
 export type CollectionSchema<T extends TigrisCollectionType> = {
 	name: string;
+	version?: number;
 	schema: TigrisSchema<T>;
 };
 

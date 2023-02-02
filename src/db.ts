@@ -142,6 +142,7 @@ export class DB {
 			);
 			collectionName = generatedColl.name;
 			schema = generatedColl.schema as TigrisSchema<T>;
+			schema["version"] = this.config.schemaVersion;
 		}
 		return this.createOrUpdate(
 			collectionName,
