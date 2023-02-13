@@ -139,6 +139,17 @@ describe("utility tests", () => {
 			expect(Utility.nerfGitBranchName(original)).toBe(nerfed);
 		});
 
+		describe("character encoding", () => {
+			it("read back data into utf-8", () => {
+				expect(Utility._base64Decode("4KSo4KSu4KS44KWN4KSk4KWH")).toBe("नमस्ते");
+				expect(Utility._base64Decode("0L/RgNC40LLQtdGC")).toBe("привет");
+				expect(Utility._base64Decode("44GT44KT44Gr44Gh44Gv")).toBe("こんにちは");
+				expect(Utility._base64Decode("7JWI64WV7ZWY7IS47JqU")).toBe("안녕하세요");
+				expect(Utility._base64Decode("8J+Zjw==")).toBe("🙏");
+				expect(Utility._base64Decode("8J+YgQ==")).toBe("😁");
+			});
+		});
+
 		describe("get branch name from environment", () => {
 			const OLD_ENV = Object.assign({}, process.env);
 

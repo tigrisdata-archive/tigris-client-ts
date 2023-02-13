@@ -499,15 +499,15 @@ export const Utility = {
 	},
 
 	_base64Encode(input: string): string {
-		return Buffer.from(input, "binary").toString("base64");
+		return Buffer.from(input, "utf8").toString("base64");
 	},
 
 	_base64Decode(b64String: string): string {
-		return Buffer.from(b64String, "base64").toString("binary");
+		return Buffer.from(b64String, "base64").toString("utf8");
 	},
 
 	_base64DecodeToObject(b64String: string, config: TigrisClientConfig): object {
-		return this.jsonStringToObj(Buffer.from(b64String, "base64").toString("binary"), config);
+		return this.jsonStringToObj(Buffer.from(b64String, "base64").toString("utf8"), config);
 	},
 
 	createFacetQueryOptions(options?: Partial<FacetQueryOptions>): FacetQueryOptions {
