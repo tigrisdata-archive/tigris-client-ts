@@ -4,7 +4,7 @@
 [![ts-ci](https://github.com/tigrisdata/tigris-client-ts/actions/workflows/ts-ci.yml/badge.svg?branch=main)](https://github.com/tigrisdata/tigris-client-ts/actions/workflows/ts-ci.yml)
 [![codecov](https://codecov.io/gh/tigrisdata/tigris-client-ts/branch/main/graph/badge.svg)](https://codecov.io/gh/tigrisdata/tigris-client-ts)
 ![LGTM Grade](https://img.shields.io/lgtm/grade/javascript/github/tigrisdata/tigris-client-ts)
-[![slack](https://img.shields.io/badge/slack-tigrisdata-34D058.svg?logo=slack)](https://tigrisdata.slack.com)
+[![discord](https://img.shields.io/badge/discord-tigrisdata-34D058.svg?logo=discord)](https://www.tigrisdata.com/discord/)
 [![GitHub](https://img.shields.io/github/license/tigrisdata/tigris-client-ts)](https://github.com/tigrisdata/tigris-client-ts/blob/main/LICENSE)
 
 # Documentation
