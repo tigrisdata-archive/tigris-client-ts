@@ -9,11 +9,11 @@ import {
 import { Field } from "../decorators/tigris-field";
 import { IncompleteArrayTypeDefError } from "../error";
 import { TigrisCollection } from "../decorators/tigris-collection";
-import fs from "node:fs";
 import { Utility } from "../utility";
 import { Order, ORDERS_COLLECTION_NAME, OrderSchema } from "./fixtures/schema/orders";
 import { Movie, MOVIES_COLLECTION_NAME, MovieSchema } from "./fixtures/schema/movies";
 import { MATRICES_COLLECTION_NAME, Matrix, MatrixSchema } from "./fixtures/schema/matrices";
+import { readJSONFileAsObj } from "./utils";
 
 type SchemaTestCase<T extends TigrisCollectionType> = {
 	schemaClass: T;
@@ -66,13 +66,13 @@ describe.each(schemas)("Schema conversion for: '$name'", (tc) => {
 	const processor = DecoratedSchemaProcessor.Instance;
 
 	test("Convert decorated class to TigrisSchema", () => {
-		const generated: CollectionSchema<unknown> = processor.process(tc.schemaClass);
+		const generated: CollectionSchema<unknown> = processor.processCollection(tc.schemaClass);
 		expect(generated.schema).toStrictEqual(tc.expectedSchema);
 	});
 
 	test("Convert TigrisSchema to JSON spec", () => {
-		expect(Utility._toJSONSchema(tc.name, tc.expectedSchema)).toBe(
-			_readTestDataFile(tc.expectedJson)
+		expect(Utility._schematoJSON(tc.name, tc.expectedSchema)).toBe(
+			readJSONFileAsObj("src/__tests__/fixtures/json-schema/" + tc.expectedJson)
 		);
 	});
 });
@@ -91,14 +91,3 @@ test("throws error when Arrays are not properly decorated", () => {
 	}
 	expect(caught).toBeInstanceOf(IncompleteArrayTypeDefError);
 });
-
-function _readTestDataFile(fileName: string): string {
-	return Utility.objToJsonString(
-		Utility.jsonStringToObj(
-			fs.readFileSync("src/__tests__/fixtures/json-schema/" + fileName, "utf8"),
-			{
-				serverUrl: "test",
-			}
-		)
-	);
-}

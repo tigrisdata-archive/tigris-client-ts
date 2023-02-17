@@ -1,0 +1,51 @@
+{
+	"title": "orders",
+	"additionalProperties": false,
+	"type": "object",
+	"properties": {
+		"orderId": {
+			"type": "string",
+			"format": "uuid",
+			"sort": true
+		},
+		"customerId": {
+			"type": "string",
+			"facet": false
+		},
+		"products": {
+			"type": "array",
+			"items": {
+				"type": "object",
+				"properties": {
+					"name": {
+						"type": "string"
+					},
+					"brand": {
+						"type": "object",
+						"properties": {
+							"name": {
+								"type": "string"
+							},
+							"tags": {
+								"type": "array",
+								"items": {
+									"type": "string"
+								},
+								"index": false
+							}
+						}
+					},
+					"upc": {
+						"type": "integer",
+						"sort": false
+					},
+					"price": {
+						"type": "number",
+						"sort": true,
+						"facet": false
+					}
+				}
+			}
+		}
+	}
+}

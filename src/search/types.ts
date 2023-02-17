@@ -1,4 +1,4 @@
-import { TigrisArrayItem, TigrisDataTypes, TigrisResponse } from "../types";
+import { SortField, TigrisArrayItem, TigrisDataTypes, TigrisResponse } from "../types";
 
 import { Utility } from "../utility";
 import {
@@ -9,13 +9,20 @@ import {
 import { Status } from "../constants";
 import { TigrisError } from "../error";
 
+export type TigrisIndexFieldOptions = {
+	index?: boolean;
+	sort?: boolean;
+	facet?: boolean;
+};
+
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface TigrisIndexType {}
-export type TigrisIndex<T extends TigrisIndexType> = {
+export type TigrisIndexSchema<T extends TigrisIndexType> = {
 	[K in keyof T]: {
-		type: TigrisDataTypes | TigrisIndex<unknown>;
+		type: TigrisDataTypes | TigrisIndexSchema<unknown>;
 		items?: TigrisArrayItem;
-	};
+		default_sort_by?: SortField;
+	} & TigrisIndexFieldOptions;
 };
 
 export class IndexInfo {

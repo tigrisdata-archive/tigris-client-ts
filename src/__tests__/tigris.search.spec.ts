@@ -1,7 +1,7 @@
 import { TigrisDataTypes } from "../types";
 import { Tigris } from "../tigris";
 import { Status } from "../constants";
-import { TigrisIndex, TigrisIndexType } from "../search";
+import { TigrisIndexSchema, TigrisIndexType } from "../search";
 import { Server, ServerCredentials } from "@grpc/grpc-js";
 import TestSearchService, { SearchServiceFixtures } from "./test-search-service";
 import { SearchService } from "../proto/server/v1/search_grpc_pb";
@@ -177,7 +177,7 @@ interface Book extends TigrisIndexType {
 	tags?: string[];
 }
 
-const bookSchema: TigrisIndex<Book> = {
+const bookSchema: TigrisIndexSchema<Book> = {
 	title: {
 		type: TigrisDataTypes.STRING,
 	},

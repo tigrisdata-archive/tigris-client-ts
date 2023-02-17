@@ -1,6 +1,6 @@
 import { SearchClient } from "../proto/server/v1/search_grpc_pb";
 import { TigrisClientConfig } from "../tigris";
-import { DeleteIndexResponse, IndexInfo, TigrisIndex, TigrisIndexType } from "./types";
+import { DeleteIndexResponse, IndexInfo, TigrisIndexSchema, TigrisIndexType } from "./types";
 import { SearchIndex } from "./search-index";
 import { Utility } from "../utility";
 import {
@@ -21,9 +21,9 @@ export class Search {
 
 	public createOrUpdateIndex<T extends TigrisIndexType>(
 		name: string,
-		schema: TigrisIndex<T>
+		schema: TigrisIndexSchema<T>
 	): Promise<SearchIndex<T>> {
-		const rawJSONSchema: string = Utility._toJSONSchema(name, schema);
+		const rawJSONSchema: string = Utility._schematoJSON(name, schema);
 		// TODO: Add only create boolean
 		const createOrUpdateIndexRequest = new ProtoCreateIndexRequest()
 			.setProject(this.projectName)
