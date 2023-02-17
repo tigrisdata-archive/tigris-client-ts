@@ -1,9 +1,10 @@
-import { Collation } from "./search/types";
+/* eslint-disable @typescript-eslint/no-empty-interface */
 import {
 	CreateBranchResponse as ProtoCreateBranchResponse,
 	DeleteBranchResponse as ProtoDeleteBranchResponse,
 } from "./proto/server/v1/api_pb";
 import { Status } from "./constants";
+import { Collation } from "./search/query";
 
 export class DatabaseInfo {
 	private readonly _name: string;
@@ -457,9 +458,10 @@ export class ServerMetadata {
 	}
 }
 
-// Marker interface
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface TigrisCollectionType {}
+// Marker interfaces
+export interface TigrisCollectionType {
+	// TODO: add a discriminator here
+}
 
 export enum LogicalOperator {
 	AND = "$and",

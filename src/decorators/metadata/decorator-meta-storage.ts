@@ -1,6 +1,7 @@
 import { CollectionMetadata } from "./collection-metadata";
 import { FieldMetadata } from "./field-metadata";
 import { PrimaryKeyMetadata } from "./primary-key-metadata";
+import { IndexMetadata } from "./index-metadata";
 
 /**
  * Temporary storage for storing metadata processed by decorators. Classes can
@@ -11,6 +12,7 @@ import { PrimaryKeyMetadata } from "./primary-key-metadata";
  */
 export class DecoratorMetaStorage {
 	readonly collections: Map<string, CollectionMetadata> = new Map();
+	readonly indices: Array<IndexMetadata> = new Array<IndexMetadata>();
 	readonly fields: Array<FieldMetadata> = new Array<FieldMetadata>();
 	readonly primaryKeys: Array<PrimaryKeyMetadata> = new Array<PrimaryKeyMetadata>();
 
