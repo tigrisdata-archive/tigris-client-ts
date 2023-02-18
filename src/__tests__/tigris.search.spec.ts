@@ -1,15 +1,20 @@
 import { TigrisDataTypes } from "../types";
 import { Tigris } from "../tigris";
 import { Status } from "../constants";
-import { TigrisIndexSchema, TigrisIndexType } from "../search";
+import {
+	Hit,
+	MATCH_ALL_QUERY_STRING,
+	SearchIndex,
+	SearchIterator,
+	TigrisIndexSchema,
+	TigrisIndexType,
+} from "../search";
 import { Server, ServerCredentials } from "@grpc/grpc-js";
 import TestSearchService, { SearchServiceFixtures } from "./test-search-service";
 import { SearchService } from "../proto/server/v1/search_grpc_pb";
-import { SearchIndex } from "../search";
-import { MATCH_ALL_QUERY_STRING } from "../search";
-import { SearchIterator } from "../search";
-import { Hit } from "../search";
 import { Search } from "../search/search";
+import { IndexField } from "../decorators/tigris-index-field";
+import { TigrisIndex } from "../decorators/tigris-index";
 
 describe("Search Indexing", () => {
 	let tigris: Search;
@@ -41,6 +46,10 @@ describe("Search Indexing", () => {
 	describe("createOrUpdateIndex", () => {
 		it("creates index if not exists", async () => {
 			const createPromise = tigris.createOrUpdateIndex(SearchServiceFixtures.Success, bookSchema);
+			await expect(createPromise).resolves.toBeInstanceOf(SearchIndex);
+		});
+		it("creates index from decorated schema model", async () => {
+			const createPromise = tigris.createOrUpdateIndex(BlogPost);
 			await expect(createPromise).resolves.toBeInstanceOf(SearchIndex);
 		});
 		it("fails when index already exists", async () => {
@@ -188,3 +197,18 @@ const bookSchema: TigrisIndexSchema<Book> = {
 		},
 	},
 };
+
+@TigrisIndex(SearchServiceFixtures.CreateIndex.Blog)
+class BlogPost {
+	@IndexField()
+	text: string;
+
+	@IndexField({ elements: TigrisDataTypes.STRING })
+	comments: Array<string>;
+
+	@IndexField()
+	author: string;
+
+	@IndexField({ sort: true })
+	createdAt: Date;
+}

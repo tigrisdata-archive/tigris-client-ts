@@ -1,4 +1,4 @@
-import { SortField, TigrisArrayItem, TigrisDataTypes, TigrisResponse } from "../types";
+import { TigrisArrayItem, TigrisDataTypes, TigrisResponse } from "../types";
 
 import { Utility } from "../utility";
 import {
@@ -21,7 +21,6 @@ export type TigrisIndexSchema<T extends TigrisIndexType> = {
 	[K in keyof T]: {
 		type: TigrisDataTypes | TigrisIndexSchema<unknown>;
 		items?: TigrisArrayItem;
-		default_sort_by?: SortField;
 	} & TigrisIndexFieldOptions;
 };
 
