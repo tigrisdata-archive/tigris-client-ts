@@ -156,7 +156,7 @@ export class DB {
 		resolver: () => R
 	): Promise<R> {
 		return new Promise<R>((resolve, reject) => {
-			const rawJSONSchema: string = Utility._schematoJSON(name, schema);
+			const rawJSONSchema: string = Utility._collectionSchematoJSON(name, schema);
 			const createOrUpdateCollectionRequest = new ProtoCreateOrUpdateCollectionRequest()
 				.setProject(this._name)
 				.setBranch(this.branch)

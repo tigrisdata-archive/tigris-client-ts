@@ -277,7 +277,13 @@ export const Utility = {
 		return toReturn;
 	},
 
-	_schematoJSON<T>(collectionName: string, schema: TigrisSchema<T>): string {
+	_indexSchematoJSON<T>(indexName: string, schema: TigrisIndexSchema<T>): string {
+		const root = { title: indexName, type: "object" };
+		root["properties"] = this._getSchemaProperties(schema, {}, {});
+		return Utility.objToJsonString(root);
+	},
+
+	_collectionSchematoJSON<T>(collectionName: string, schema: TigrisSchema<T>): string {
 		const root = {};
 		const pkeyMap = {};
 		const keyMap = {};

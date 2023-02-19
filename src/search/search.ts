@@ -46,7 +46,7 @@ export class Search {
 			schema = generatedIndex.schema as TigrisIndexSchema<T>;
 		}
 
-		const rawJSONSchema: string = Utility._schematoJSON(indexName, schema);
+		const rawJSONSchema: string = Utility._indexSchematoJSON(indexName, schema);
 		const createOrUpdateIndexRequest = new ProtoCreateIndexRequest()
 			.setProject(this.projectName)
 			.setName(indexName)

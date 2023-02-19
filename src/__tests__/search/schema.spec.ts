@@ -29,7 +29,7 @@ describe.each(schemas)("Schema conversion for: '$name'", (tc) => {
 	});
 
 	test("Convert TigrisIndexSchema to JSON spec", () => {
-		expect(Utility._schematoJSON(tc.name, tc.expectedSchema)).toBe(
+		expect(Utility._indexSchematoJSON(tc.name, tc.expectedSchema)).toBe(
 			readJSONFileAsObj("src/__tests__/fixtures/json-schema/search/" + tc.expectedJSON)
 		);
 	});

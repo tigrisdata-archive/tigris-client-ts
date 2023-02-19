@@ -48,7 +48,7 @@ export class Order {
 }
 
 /**
- * `TigrisIndexSchema` representation of the collection class above.
+ * `TigrisIndexSchema` representation of the Order class above.
  *
  * NOTE: This is only an illustration; you don't have to write this definition,
  * it will be auto generated.

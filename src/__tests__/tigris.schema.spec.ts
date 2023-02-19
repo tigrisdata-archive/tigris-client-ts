@@ -71,7 +71,7 @@ describe.each(schemas)("Schema conversion for: '$name'", (tc) => {
 	});
 
 	test("Convert TigrisSchema to JSON spec", () => {
-		expect(Utility._schematoJSON(tc.name, tc.expectedSchema)).toBe(
+		expect(Utility._collectionSchematoJSON(tc.name, tc.expectedSchema)).toBe(
 			readJSONFileAsObj("src/__tests__/fixtures/json-schema/" + tc.expectedJson)
 		);
 	});

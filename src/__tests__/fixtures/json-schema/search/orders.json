@@ -1,6 +1,5 @@
 {
 	"title": "orders",
-	"additionalProperties": false,
 	"type": "object",
 	"properties": {
 		"orderId": {
