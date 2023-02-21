@@ -1,6 +1,6 @@
 import { SearchClient } from "../proto/server/v1/search_grpc_pb";
 import { TigrisClientConfig } from "../tigris";
-import { DeleteIndexResponse, IndexInfo, TigrisIndex, TigrisIndexType } from "./types";
+import { DeleteIndexResponse, IndexInfo, TigrisIndexSchema, TigrisIndexType } from "./types";
 import { SearchIndex } from "./search-index";
 import { Utility } from "../utility";
 import {
@@ -9,25 +9,47 @@ import {
 	GetIndexRequest as ProtoGetIndexRequest,
 	ListIndexesRequest as ProtoListIndexesRequest,
 } from "../proto/server/v1/search_pb";
+import { DecoratedSchemaProcessor } from "../schema/decorated-schema-processor";
 
 export class Search {
 	private readonly client: SearchClient;
 	private readonly config: TigrisClientConfig;
+	private readonly schemaProcessor: DecoratedSchemaProcessor;
 
 	constructor(client: SearchClient, config: TigrisClientConfig) {
 		this.client = client;
 		this.config = config;
+		this.schemaProcessor = DecoratedSchemaProcessor.Instance;
 	}
 
 	public createOrUpdateIndex<T extends TigrisIndexType>(
+		cls: new () => TigrisIndexType
+	): Promise<SearchIndex<T>>;
+
+	public createOrUpdateIndex<T extends TigrisIndexType>(
 		name: string,
-		schema: TigrisIndex<T>
+		schema: TigrisIndexSchema<T>
+	): Promise<SearchIndex<T>>;
+
+	public createOrUpdateIndex<T extends TigrisIndexType>(
+		nameOrClass: string | TigrisIndexType,
+		schema?: TigrisIndexSchema<T>
 	): Promise<SearchIndex<T>> {
-		const rawJSONSchema: string = Utility._toJSONSchema(name, schema);
-		// TODO: Add only create boolean
+		let indexName: string;
+		if (typeof nameOrClass === "string") {
+			indexName = nameOrClass as string;
+		} else {
+			const generatedIndex = this.schemaProcessor.processIndex(
+				nameOrClass as new () => TigrisIndexType
+			);
+			indexName = generatedIndex.name;
+			schema = generatedIndex.schema as TigrisIndexSchema<T>;
+		}
+
+		const rawJSONSchema: string = Utility._indexSchematoJSON(indexName, schema);
 		const createOrUpdateIndexRequest = new ProtoCreateIndexRequest()
 			.setProject(this.projectName)
-			.setName(name)
+			.setName(indexName)
 			.setSchema(Utility.stringToUint8Array(rawJSONSchema));
 		return new Promise<SearchIndex<T>>((resolve, reject) => {
 			this.client.createOrUpdateIndex(createOrUpdateIndexRequest, (error, response) => {
@@ -36,7 +58,7 @@ export class Search {
 					return;
 				}
 				console.log(`Created index: ${response.getMessage()}`);
-				resolve(new SearchIndex(this.client, name, this.config));
+				resolve(new SearchIndex(this.client, indexName, this.config));
 			});
 		});
 	}

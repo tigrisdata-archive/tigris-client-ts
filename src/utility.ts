@@ -35,6 +35,7 @@ import {
 	MATCH_ALL_QUERY_STRING,
 	SearchQuery,
 } from "./search/query";
+import { TigrisIndexSchema } from "./search";
 
 export const Utility = {
 	stringToUint8Array(input: string): Uint8Array {
@@ -276,7 +277,13 @@ export const Utility = {
 		return toReturn;
 	},
 
-	_toJSONSchema<T>(collectionName: string, schema: TigrisSchema<T>): string {
+	_indexSchematoJSON<T>(indexName: string, schema: TigrisIndexSchema<T>): string {
+		const root = { title: indexName, type: "object" };
+		root["properties"] = this._getSchemaProperties(schema, {}, {});
+		return Utility.objToJsonString(root);
+	},
+
+	_collectionSchematoJSON<T>(collectionName: string, schema: TigrisSchema<T>): string {
 		const root = {};
 		const pkeyMap = {};
 		const keyMap = {};
@@ -294,6 +301,9 @@ export const Utility = {
 	 - this can be extended for other schema massaging
 	 */
 	_postProcessDocumentSchema(result: object, pkeyMap: object): object {
+		if (Object.keys(pkeyMap).length === 0) {
+			return result;
+		}
 		result["primary_key"] = [];
 		// add primary_key in order
 		for (let i = 1; i <= Object.keys(pkeyMap).length; i++) {
@@ -302,19 +312,11 @@ export const Utility = {
 		return result;
 	},
 
-	_postProcessMessageSchema(result: object, keyMap: object): object {
-		const len = Object.keys(keyMap).length;
-		if (len > 0) {
-			result["key"] = [];
-			// add key in order
-			for (let i = 1; i <= len; i++) {
-				result["key"].push(keyMap[i.toString()]);
-			}
-		}
-		return result;
-	},
-
-	_getSchemaProperties<T>(schema: TigrisSchema<T>, pkeyMap: object, keyMap: object): object {
+	_getSchemaProperties<T>(
+		schema: TigrisSchema<T> | TigrisIndexSchema<T>,
+		pkeyMap: object,
+		keyMap: object
+	): object {
 		const properties = {};
 
 		for (const property of Object.keys(schema)) {
@@ -349,6 +351,8 @@ export const Utility = {
 					}
 				}
 
+				// TODO: Add default_sort_by field
+
 				// flat property could be a partition key
 				if (schema[property].key) {
 					keyMap[schema[property].key["order"]] = property;
@@ -367,6 +371,7 @@ export const Utility = {
 			} else if (schema[property].type === TigrisDataTypes.ARRAY.valueOf()) {
 				thisProperty = this._getArrayBlock(schema[property], pkeyMap, keyMap);
 			}
+
 			properties[property] = thisProperty;
 
 			// 'default' values for schema fields, if any
@@ -379,6 +384,17 @@ export const Utility = {
 					default:
 						thisProperty["default"] = schema[property].default;
 				}
+			}
+
+			// indexing optionals
+			if ("index" in schema[property]) {
+				thisProperty["index"] = schema[property]["index"];
+			}
+			if ("sort" in schema[property]) {
+				thisProperty["sort"] = schema[property]["sort"];
+			}
+			if ("facet" in schema[property]) {
+				thisProperty["facet"] = schema[property]["facet"];
 			}
 
 			// 'timestamp' values for schema fields

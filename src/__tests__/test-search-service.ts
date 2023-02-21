@@ -42,6 +42,9 @@ export const SearchServiceFixtures = {
 		["1", { title: "नमस्ते to India", tags: ["travel"] }],
 		["2", { title: "reliable systems 🙏", tags: ["it"] }],
 	]),
+	CreateIndex: {
+		Blog: "blogPosts",
+	},
 };
 const enc = new TextEncoder();
 
@@ -132,11 +135,20 @@ class TestSearchService {
 		): void {
 			switch (call.request.getName()) {
 				case SearchServiceFixtures.Success:
-					// TODO: validate incoming schema
 					const response = new CreateOrUpdateIndexResponse()
 						.setStatus("created")
 						.setMessage("index created");
 					callback(undefined, response);
+					return;
+				case SearchServiceFixtures.CreateIndex.Blog:
+					const schema = Buffer.from(call.request.getSchema_asB64(), "base64").toString();
+					expect(schema).toBe(
+						'{"title":"blogPosts","type":"object","properties":{"text":{"type":"string"},"comments":{"type":"array","items":{"type":"string"}},"author":{"type":"string"},"createdAt":{"type":"string","format":"date-time","sort":true}}}'
+					);
+					const resp = new CreateOrUpdateIndexResponse()
+						.setStatus("created")
+						.setMessage("index created");
+					callback(undefined, resp);
 					return;
 				case SearchServiceFixtures.AlreadyExists:
 					callback(new Error("already exists"));

@@ -25,8 +25,8 @@ import { CacheService } from "../proto/server/v1/cache_grpc_pb";
 import { BranchNameRequiredError } from "../error";
 import { Status } from "@grpc/grpc-js/build/src/constants";
 import { Status as TigrisStatus } from "../constants";
-import { Case, Collation, SearchQuery } from "../search/query";
-import { SearchResult } from "../search/result";
+import { Case, Collation, SearchQuery } from "../search";
+import { SearchResult } from "../search";
 
 describe("rpc tests", () => {
 	let server: Server;

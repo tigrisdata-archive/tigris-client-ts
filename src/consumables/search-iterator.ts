@@ -12,7 +12,7 @@ import {
 	SearchIndexRequest as ProtoSearchIndexRequest,
 } from "../proto/server/v1/search_pb";
 import { SearchClient } from "../proto/server/v1/search_grpc_pb";
-import { SearchResult } from "../search/result";
+import { SearchResult } from "../search";
 
 /** @internal */
 export class SearchIteratorInitializer implements Initializer<ProtoSearchResponse> {
