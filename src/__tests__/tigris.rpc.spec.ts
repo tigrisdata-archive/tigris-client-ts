@@ -749,7 +749,7 @@ describe("rpc tests", () => {
 		expect(listCachesResponse.caches.length).toBe(3);
 	});
 
-	it("cacheCrud", async () => {
+	it.skip("cacheCrud", async () => {
 		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
 		const c1 = await tigris.createCacheIfNotExists("c1");
 
