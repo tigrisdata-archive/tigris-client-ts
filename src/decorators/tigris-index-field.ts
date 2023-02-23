@@ -1,67 +1,35 @@
 import "reflect-metadata";
-import { TigrisDataTypes, TigrisFieldOptions } from "../types";
+import { TigrisDataTypes } from "../types";
 import { EmbeddedFieldOptions } from "./options/embedded-field-options";
+import { TigrisIndexFieldOptions } from "../search";
+import { getTigrisTypeFromReflectedType, isEmbeddedOption } from "./utils";
+import { Log } from "../utils/logger";
 import {
 	CannotInferFieldTypeError,
 	IncompleteArrayTypeDefError,
 	ReflectionNotEnabled,
 } from "../error";
 import { getDecoratorMetaStorage } from "../globals";
-import { FieldMetadata } from "./metadata/field-metadata";
-import { Log } from "../utils/logger";
-import { getTigrisTypeFromReflectedType, isEmbeddedOption } from "./utils";
+import { IndexFieldMetadata } from "./metadata/index-field-metadata";
 
-/**
- * Field decorator is used to mark a class property as Collection field. Only properties
- * decorated with `@Field` will be used in Schema.
- *
- * Uses `Reflection` to determine the data type of schema Field.
- */
-export function Field(): PropertyDecorator;
-/**
- * Field decorator is used to mark a class property as Collection field. Only properties
- * decorated with `@Field` will be used in Schema.
- *
- * @param type - Schema field's data type
- */
-export function Field(type: TigrisDataTypes): PropertyDecorator;
-/**
- * Field decorator is used to mark a class property as Collection field. Only properties
- * decorated with `@Field` will be used in Schema.
- *
- * Uses `Reflection` to determine the data type of schema Field.
- *
- * @param options - `EmbeddedFieldOptions` are only applicable to Array and Object types
- * 									of schema field.
- */
-export function Field(options: EmbeddedFieldOptions & TigrisFieldOptions): PropertyDecorator;
-/**
- * Field decorator is used to mark a class property as Collection field. Only properties
- * decorated with `@Field` will be used in Schema.
- *
- * Uses `Reflection` to determine the data type of schema Field.
- *
- * @param type - Schema field's data type
- * @param options - `EmbeddedFieldOptions` are only applicable to Array and Object types
- * 									of schema field.
- */
-export function Field(
+export function IndexField(): PropertyDecorator;
+export function IndexField(type: TigrisDataTypes): PropertyDecorator;
+export function IndexField(
+	options: EmbeddedFieldOptions & TigrisIndexFieldOptions
+): PropertyDecorator;
+export function IndexField(
 	type: TigrisDataTypes,
-	options?: EmbeddedFieldOptions & TigrisFieldOptions
+	options: EmbeddedFieldOptions & TigrisIndexFieldOptions
 ): PropertyDecorator;
 
-/**
- * Field decorator is used to mark a class property as Collection field. Only properties
- * decorated with `@Field` will be used in Schema.
- */
-export function Field(
-	typeOrOptions?: TigrisDataTypes | (TigrisFieldOptions & EmbeddedFieldOptions),
-	options?: TigrisFieldOptions & EmbeddedFieldOptions
+export function IndexField(
+	typeOrOptions?: TigrisDataTypes | (TigrisIndexFieldOptions & EmbeddedFieldOptions),
+	options?: TigrisIndexFieldOptions & EmbeddedFieldOptions
 ): PropertyDecorator {
 	return function (target, propertyName) {
 		propertyName = propertyName.toString();
 		let propertyType: TigrisDataTypes | undefined;
-		let fieldOptions: TigrisFieldOptions;
+		let fieldOptions: TigrisIndexFieldOptions;
 		let embedOptions: EmbeddedFieldOptions;
 
 		if (typeof typeOrOptions === "string") {
@@ -70,14 +38,14 @@ export function Field(
 			if (isEmbeddedOption(typeOrOptions)) {
 				embedOptions = typeOrOptions as EmbeddedFieldOptions;
 			}
-			fieldOptions = typeOrOptions as TigrisFieldOptions;
+			fieldOptions = typeOrOptions as TigrisIndexFieldOptions;
 		}
 
 		if (typeof options === "object") {
 			if (isEmbeddedOption(options)) {
 				embedOptions = options as EmbeddedFieldOptions;
 			}
-			fieldOptions = options as TigrisFieldOptions;
+			fieldOptions = options as TigrisIndexFieldOptions;
 		}
 
 		// if type or options are not specified, infer using reflection
@@ -114,8 +82,7 @@ export function Field(
 		if (propertyType === TigrisDataTypes.ARRAY && embedOptions?.elements === undefined) {
 			throw new IncompleteArrayTypeDefError(target, propertyName);
 		}
-
-		getDecoratorMetaStorage().fields.push({
+		getDecoratorMetaStorage().indexFields.push({
 			name: propertyName,
 			type: propertyType,
 			isArray: propertyType === TigrisDataTypes.ARRAY,
@@ -123,6 +90,6 @@ export function Field(
 			embedType: embedOptions?.elements,
 			arrayDepth: embedOptions?.depth,
 			schemaFieldOptions: fieldOptions,
-		} as FieldMetadata);
+		} as IndexFieldMetadata);
 	};
 }

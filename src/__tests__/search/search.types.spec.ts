@@ -8,10 +8,10 @@ import {
 	SearchMetadata as ProtoSearchMetadata,
 	SearchResponse as ProtoSearchResponse,
 } from "../../proto/server/v1/api_pb";
-import { SearchResult } from "../../search/types";
 import { TestTigrisService } from "../test-service";
 import { IBook } from "../tigris.rpc.spec";
 import * as google_protobuf_timestamp_pb from "google-protobuf/google/protobuf/timestamp_pb";
+import { SearchResult } from "../../search/result";
 
 describe("SearchResponse parsing", () => {
 	it("generates search hits appropriately", () => {

@@ -137,7 +137,7 @@ export class DB {
 		if (typeof nameOrClass === "string") {
 			collectionName = nameOrClass as string;
 		} else {
-			const generatedColl = this.schemaProcessor.process(
+			const generatedColl = this.schemaProcessor.processCollection(
 				nameOrClass as new () => TigrisCollectionType
 			);
 			collectionName = generatedColl.name;
@@ -156,7 +156,7 @@ export class DB {
 		resolver: () => R
 	): Promise<R> {
 		return new Promise<R>((resolve, reject) => {
-			const rawJSONSchema: string = Utility._toJSONSchema(name, schema);
+			const rawJSONSchema: string = Utility._collectionSchematoJSON(name, schema);
 			const createOrUpdateCollectionRequest = new ProtoCreateOrUpdateCollectionRequest()
 				.setProject(this._name)
 				.setBranch(this.branch)

@@ -9,10 +9,10 @@
 
 # Documentation
 
-- [Tigris Overview](https://docs.tigrisdata.com/overview/)
-- [Getting Started](https://docs.tigrisdata.com/typescript/getting-started)
-- [CRUD operations API](https://docs.tigrisdata.com/typescript/documents)
-- [Event Streaming API](https://docs.tigrisdata.com/typescript/event_streaming)
+- [Tigris Overview](https://www.tigrisdata.com/docs/concepts/)
+- [Getting Started](https://www.tigrisdata.com/docs/quickstarts/)
+- [Database](https://www.tigrisdata.com/docs/sdkstools/typescript/database/)
+- [Search](https://www.tigrisdata.com/docs/sdkstools/typescript/database/search/)
 
 # Building
 

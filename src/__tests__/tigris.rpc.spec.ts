@@ -13,7 +13,6 @@ import {
 	UpdateQueryOptions,
 } from "../types";
 import { Tigris, TigrisClientConfig } from "../tigris";
-import { Case, Collation, SearchQuery, SearchResult } from "../search/types";
 import { Utility } from "../utility";
 import { ObservabilityService } from "../proto/server/v1/observability_grpc_pb";
 import TestObservabilityService from "./test-observability-service";
@@ -26,6 +25,8 @@ import { CacheService } from "../proto/server/v1/cache_grpc_pb";
 import { BranchNameRequiredError } from "../error";
 import { Status } from "@grpc/grpc-js/build/src/constants";
 import { Status as TigrisStatus } from "../constants";
+import { Case, Collation, SearchQuery } from "../search";
+import { SearchResult } from "../search";
 
 describe("rpc tests", () => {
 	let server: Server;
@@ -899,7 +900,7 @@ describe("rpc tests", () => {
 			const tigris = new Tigris(config);
 			const db = tigris.getDatabase();
 
-			return await expect(db.initializeBranch()).rejects.toThrow(Error);
+			return expect(db.initializeBranch()).rejects.toThrow(Error);
 		});
 	});
 });
