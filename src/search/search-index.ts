@@ -16,7 +16,7 @@ import { Filter } from "../types";
 import { SearchIndexIteratorInitializer, SearchIterator } from "../consumables/search-iterator";
 import * as grpc from "@grpc/grpc-js";
 import { Collation as ProtoCollation } from "../proto/server/v1/api_pb";
-import { SearchQuery } from "./query";
+import { MATCH_ALL_QUERY_STRING, SearchQuery } from "./query";
 import { SearchResult } from "./result";
 
 interface SearchableIndex<T> {
@@ -240,7 +240,8 @@ export class SearchIndex<T extends TigrisIndexType>
 	search(query: SearchQuery<T>, page?: number): SearchIterator<T> | Promise<SearchResult<T>> {
 		const searchRequest = new ProtoSearchIndexRequest()
 			.setProject(this.config.projectName)
-			.setIndex(this.name);
+			.setIndex(this.name)
+			.setQ(query.q ?? MATCH_ALL_QUERY_STRING);
 
 		if (query.searchFields !== undefined) {
 			searchRequest.setSearchFieldsList(query.searchFields);
