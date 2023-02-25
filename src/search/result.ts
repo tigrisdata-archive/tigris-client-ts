@@ -16,27 +16,25 @@ import { TigrisClientConfig } from "../tigris";
 import { TigrisCollectionType } from "../types";
 import { Utility } from "../utility";
 
+export type Facets = { [key: string]: FacetCountDistribution };
+
 /**
  * Outcome of executing search query
  * @typeParam T - type of Tigris collection
  */
 export class SearchResult<T> {
 	private readonly _hits: ReadonlyArray<Hit<T>>;
-	private readonly _facets: ReadonlyMap<string, FacetCountDistribution>;
+	private readonly _facets: Facets;
 	private readonly _meta: SearchMeta | undefined;
 
-	constructor(
-		hits: Array<Hit<T>>,
-		facets: Map<string, FacetCountDistribution>,
-		meta: SearchMeta | undefined
-	) {
+	constructor(hits: Array<Hit<T>>, facets: Facets, meta: SearchMeta | undefined) {
 		this._hits = hits;
 		this._facets = facets;
 		this._meta = meta;
 	}
 
 	static get empty(): SearchResult<never> {
-		return new SearchResult([], new Map(), SearchMeta.default);
+		return new SearchResult([], {}, SearchMeta.default);
 	}
 
 	/**
@@ -51,7 +49,7 @@ export class SearchResult<T> {
 	 * @returns distribution of facets for fields included in facet query
 	 * @readonly
 	 */
-	get facets(): ReadonlyMap<string, FacetCountDistribution> {
+	get facets(): { [key: string]: FacetCountDistribution } {
 		return this._facets;
 	}
 
@@ -73,15 +71,11 @@ export class SearchResult<T> {
 		const _hits: Array<Hit<T>> = resp
 			.getHitsList()
 			.map((h: ProtoSearchHit | ProtoIndexDoc) => Hit.from<T>(h, config));
-		const _facets: Map<string, FacetCountDistribution> = new Map(
-			resp
-				.getFacetsMap()
-				.toArray()
-				.map(
-					// eslint-disable-next-line @typescript-eslint/no-unused-vars
-					([k, _]) => [k, FacetCountDistribution.from(resp.getFacetsMap().get(k))]
-				)
-		);
+		const _facets: Facets = {};
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
+		for (const [k, _] of resp.getFacetsMap().toArray()) {
+			_facets[k] = FacetCountDistribution.from(resp.getFacetsMap().get(k));
+		}
 		return new SearchResult(_hits, _facets, _meta);
 	}
 }

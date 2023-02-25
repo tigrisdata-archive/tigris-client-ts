@@ -143,7 +143,7 @@ class TestSearchService {
 				case SearchServiceFixtures.CreateIndex.Blog:
 					const schema = Buffer.from(call.request.getSchema_asB64(), "base64").toString();
 					expect(schema).toBe(
-						'{"title":"blogPosts","type":"object","properties":{"text":{"type":"string"},"comments":{"type":"array","items":{"type":"string"}},"author":{"type":"string"},"createdAt":{"type":"string","format":"date-time","sort":true}}}'
+						'{"title":"blogPosts","type":"object","properties":{"text":{"type":"string","facet":true},"comments":{"type":"array","items":{"type":"string"}},"author":{"type":"string"},"createdAt":{"type":"string","format":"date-time","sort":true}}}'
 					);
 					const resp = new CreateOrUpdateIndexResponse()
 						.setStatus("created")

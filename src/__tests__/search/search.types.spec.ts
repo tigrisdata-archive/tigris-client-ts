@@ -54,10 +54,10 @@ describe("SearchResponse parsing", () => {
 		input.getFacetsMap().set("author", searchFacet);
 		const parsed: SearchResult<unknown> = SearchResult.from(input, { serverUrl: "test" });
 
-		expect(parsed.facets.size).toBe(1);
-		expect(parsed.facets.get("author")).toBeDefined();
+		expect(Object.keys(parsed.facets).length).toBe(1);
+		expect(parsed.facets["author"]).toBeDefined();
 
-		const facetDistribution = parsed.facets.get("author");
+		const facetDistribution = parsed.facets["author"];
 		expect(facetDistribution.counts).toHaveLength(1);
 		expect(facetDistribution.counts[0].count).toBe(2);
 		expect(facetDistribution.counts[0].value).toBe("Marcel Proust");
@@ -71,7 +71,7 @@ describe("SearchResponse parsing", () => {
 		input.getFacetsMap().set("author", searchFacet);
 		const parsed: SearchResult<unknown> = SearchResult.from(input, { serverUrl: "test" });
 
-		const facetDistribution = parsed.facets.get("author");
+		const facetDistribution = parsed.facets["author"];
 		expect(facetDistribution.stats).toBeDefined();
 		expect(facetDistribution.stats.avg).toBe(4.5);
 		expect(facetDistribution.stats.min).toBe(0);
@@ -88,7 +88,7 @@ describe("SearchResponse parsing", () => {
 		expect(parsed.hits).toBeDefined();
 		expect(parsed.hits).toHaveLength(0);
 		expect(parsed.facets).toBeDefined();
-		expect(parsed.facets.size).toBe(0);
+		expect(Object.keys(parsed.facets).length).toBe(0);
 		expect(parsed.meta).toBeDefined();
 		expect(parsed.meta.found).toBe(0);
 		expect(parsed.meta.totalPages).toBe(1);
