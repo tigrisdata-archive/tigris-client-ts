@@ -15,6 +15,7 @@ import { SearchService } from "../proto/server/v1/search_grpc_pb";
 import { Search } from "../search/search";
 import { IndexField } from "../decorators/tigris-index-field";
 import { TigrisIndex } from "../decorators/tigris-index";
+import * as repl from "repl";
 
 describe("Search Indexing", () => {
 	let tigris: Search;
@@ -162,8 +163,8 @@ describe("Search Indexing", () => {
 				});
 				expect(searchResult.meta.found).toBe(5);
 				expect(searchResult.meta.totalPages).toBe(5);
-				expect(searchResult.facets.get("title")).toBeDefined();
-				expect(searchResult.facets.get("title").counts).toEqual([
+				expect(searchResult.facets["title"]).toBeDefined();
+				expect(searchResult.facets["title"].counts).toEqual([
 					{
 						_count: 2,
 						_value: "Philosophy",
@@ -200,7 +201,7 @@ const bookSchema: TigrisIndexSchema<Book> = {
 
 @TigrisIndex(SearchServiceFixtures.CreateIndex.Blog)
 class BlogPost {
-	@IndexField()
+	@IndexField({ facet: true })
 	text: string;
 
 	@IndexField({ elements: TigrisDataTypes.STRING })
