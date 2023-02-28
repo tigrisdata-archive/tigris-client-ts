@@ -135,16 +135,25 @@ describe("Search Indexing", () => {
 	describe("getDocuments", () => {
 		it("gets multiple documents", async () => {
 			const index = await tigris.getIndex<Book>(SearchServiceFixtures.Success);
-			const result = await index.getMany(Array.from(SearchServiceFixtures.Docs.keys()));
-			expect(result).toEqual(
-				expect.arrayContaining(Array.from(SearchServiceFixtures.Docs.values()))
-			);
+			const expectedDocs = Array.from(SearchServiceFixtures.Docs.values());
+			const recvdDocs = await index.getMany(Array.from(SearchServiceFixtures.Docs.keys()));
+			for (let i = 0; i < recvdDocs.length; i++) {
+				expect(recvdDocs[i].meta.updatedAt).toBeUndefined();
+				expect(recvdDocs[i].meta.createdAt).toStrictEqual(
+					new Date(SearchServiceFixtures.GetDocs.CreatedAtSeconds * 1000)
+				);
+				expect(recvdDocs[i].document).toEqual(expectedDocs[i]);
+			}
 		});
 
 		it("gets a single document", async () => {
 			const index = await tigris.getIndex<Book>(SearchServiceFixtures.Success);
 			const result = await index.getOne("1");
-			expect(result).toEqual(SearchServiceFixtures.Docs.get("1"));
+			expect(result.document).toEqual(SearchServiceFixtures.Docs.get("1"));
+			expect(result.meta.updatedAt).toBeUndefined();
+			expect(result.meta.createdAt).toStrictEqual(
+				new Date(SearchServiceFixtures.GetDocs.CreatedAtSeconds * 1000)
+			);
 		});
 	});
 
@@ -160,7 +169,7 @@ describe("Search Indexing", () => {
 					expect(expectedDocs).toContainEqual(h.document);
 					expect(h.meta.updatedAt).toBeDefined();
 					expect(h.meta.updatedAt).toStrictEqual(
-						new Date(SearchServiceFixtures.SearchIndex.UpdatedAtSeconds * 1000)
+						new Date(SearchServiceFixtures.SearchDocs.UpdatedAtSeconds * 1000)
 					);
 					expect(h.meta.createdAt).toBeUndefined();
 				});
