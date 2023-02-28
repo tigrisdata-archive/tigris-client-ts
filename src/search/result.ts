@@ -23,11 +23,11 @@ export type Facets = { [key: string]: FacetCountDistribution };
  * @typeParam T - type of Tigris collection
  */
 export class SearchResult<T> {
-	private readonly _hits: ReadonlyArray<Hit<T>>;
+	private readonly _hits: ReadonlyArray<IndexedDoc<T>>;
 	private readonly _facets: Facets;
 	private readonly _meta: SearchMeta | undefined;
 
-	constructor(hits: Array<Hit<T>>, facets: Facets, meta: SearchMeta | undefined) {
+	constructor(hits: Array<IndexedDoc<T>>, facets: Facets, meta: SearchMeta | undefined) {
 		this._hits = hits;
 		this._facets = facets;
 		this._meta = meta;
@@ -41,7 +41,7 @@ export class SearchResult<T> {
 	 * @returns matched documents as a list
 	 * @readonly
 	 */
-	get hits(): ReadonlyArray<Hit<T>> {
+	get hits(): ReadonlyArray<IndexedDoc<T>> {
 		return this._hits;
 	}
 
@@ -68,9 +68,9 @@ export class SearchResult<T> {
 	): SearchResult<T> {
 		const _meta =
 			typeof resp?.getMeta() !== "undefined" ? SearchMeta.from(resp.getMeta()) : SearchMeta.default;
-		const _hits: Array<Hit<T>> = resp
+		const _hits: Array<IndexedDoc<T>> = resp
 			.getHitsList()
-			.map((h: ProtoSearchHit | ProtoIndexDoc) => Hit.from<T>(h, config));
+			.map((h: ProtoSearchHit | ProtoIndexDoc) => IndexedDoc.from<T>(h, config));
 		const _facets: Facets = {};
 		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		for (const [k, _] of resp.getFacetsMap().toArray()) {
@@ -84,11 +84,11 @@ export class SearchResult<T> {
  * Matched document and relevance metadata for a search query
  * @typeParam T - type of Tigris collection
  */
-export class Hit<T extends TigrisCollectionType> {
+export class IndexedDoc<T extends TigrisCollectionType> {
 	private readonly _document: T;
-	private readonly _meta: HitMeta | undefined;
+	private readonly _meta: DocMeta | undefined;
 
-	constructor(document: T, meta: HitMeta | undefined) {
+	constructor(document: T, meta: DocMeta | undefined) {
 		this._document = document;
 		this._meta = meta;
 	}
@@ -105,22 +105,22 @@ export class Hit<T extends TigrisCollectionType> {
 	 * @returns relevance metadata for the matched document
 	 * @readonly
 	 */
-	get meta(): HitMeta | undefined {
+	get meta(): DocMeta | undefined {
 		return this._meta;
 	}
 
-	static from<T>(resp: ProtoSearchHit | ProtoIndexDoc, config: TigrisClientConfig): Hit<T> {
+	static from<T>(resp: ProtoSearchHit | ProtoIndexDoc, config: TigrisClientConfig): IndexedDoc<T> {
 		const docAsB64 = resp instanceof ProtoIndexDoc ? resp.getDoc_asB64() : resp.getData_asB64();
 		const document = Utility.jsonStringToObj<T>(Utility._base64Decode(docAsB64), config);
-		const meta = resp.hasMetadata() ? HitMeta.from(resp.getMetadata()) : undefined;
-		return new Hit<T>(document, meta);
+		const meta = resp.hasMetadata() ? DocMeta.from(resp.getMetadata()) : undefined;
+		return new IndexedDoc<T>(document, meta);
 	}
 }
 
 /**
  * Relevance metadata for a matched document
  */
-export class HitMeta {
+export class DocMeta {
 	private readonly _createdAt: Date | undefined;
 	private readonly _updatedAt: Date | undefined;
 
@@ -145,7 +145,7 @@ export class HitMeta {
 		return this._updatedAt;
 	}
 
-	static from(resp: ProtoSearchHitMeta): HitMeta {
+	static from(resp: ProtoSearchHitMeta): DocMeta {
 		const _createdAt =
 			typeof resp?.getCreatedAt()?.getSeconds() !== "undefined"
 				? new Date(resp.getCreatedAt().getSeconds() * 1000)
@@ -155,7 +155,7 @@ export class HitMeta {
 				? new Date(resp.getUpdatedAt().getSeconds() * 1000)
 				: undefined;
 
-		return new HitMeta(_createdAt, _updatedAt);
+		return new DocMeta(_createdAt, _updatedAt);
 	}
 }
 

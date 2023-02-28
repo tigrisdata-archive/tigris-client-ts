@@ -2,7 +2,7 @@ import { TigrisDataTypes } from "../types";
 import { Tigris } from "../tigris";
 import { Status } from "../constants";
 import {
-	Hit,
+	IndexedDoc,
 	MATCH_ALL_QUERY_STRING,
 	SearchIndex,
 	SearchIterator,
@@ -156,7 +156,7 @@ describe("Search Indexing", () => {
 			const expectedDocs = Array.from(SearchServiceFixtures.Docs.values());
 			// for await loop the iterator
 			for await (const searchResult of maybeIterator) {
-				searchResult.hits.forEach((h: Hit<Book>) => {
+				searchResult.hits.forEach((h: IndexedDoc<Book>) => {
 					expect(expectedDocs).toContainEqual(h.document);
 					expect(h.meta.updatedAt).toBeDefined();
 					expect(h.meta.createdAt).toBeUndefined();
