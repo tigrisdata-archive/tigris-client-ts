@@ -45,6 +45,9 @@ export const SearchServiceFixtures = {
 	CreateIndex: {
 		Blog: "blogPosts",
 	},
+	SearchIndex: {
+		UpdatedAtSeconds: Math.floor(Date.now() / 1000),
+	},
 };
 const enc = new TextEncoder();
 
@@ -102,12 +105,15 @@ class TestSearchService {
 			return;
 		},
 		search(call: ServerWritableStream<SearchIndexRequest, SearchIndexResponse>): void {
+			const expectedUpdatedAt = new google_protobuf_timestamp_pb.Timestamp().setSeconds(
+				SearchServiceFixtures.SearchIndex.UpdatedAtSeconds
+			);
 			const resp = new SearchIndexResponse();
 			SearchServiceFixtures.Docs.forEach((d) =>
 				resp.addHits(
 					new IndexDoc()
 						.setDoc(enc.encode(JSON.stringify(d)))
-						.setMetadata(new DocMeta().setUpdatedAt(new google_protobuf_timestamp_pb.Timestamp()))
+						.setMetadata(new DocMeta().setUpdatedAt(expectedUpdatedAt))
 				)
 			);
 			resp.setMeta(

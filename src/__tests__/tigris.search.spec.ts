@@ -159,6 +159,9 @@ describe("Search Indexing", () => {
 				searchResult.hits.forEach((h: IndexedDoc<Book>) => {
 					expect(expectedDocs).toContainEqual(h.document);
 					expect(h.meta.updatedAt).toBeDefined();
+					expect(h.meta.updatedAt).toStrictEqual(
+						new Date(SearchServiceFixtures.SearchIndex.UpdatedAtSeconds * 1000)
+					);
 					expect(h.meta.createdAt).toBeUndefined();
 				});
 				expect(searchResult.meta.found).toBe(5);
