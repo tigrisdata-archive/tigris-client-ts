@@ -45,6 +45,12 @@ export const SearchServiceFixtures = {
 	CreateIndex: {
 		Blog: "blogPosts",
 	},
+	SearchDocs: {
+		UpdatedAtSeconds: Math.floor(Date.now() / 1000),
+	},
+	GetDocs: {
+		CreatedAtSeconds: 1672574400,
+	},
 };
 const enc = new TextEncoder();
 
@@ -96,18 +102,31 @@ class TestSearchService {
 			const resp = new GetDocumentResponse();
 			call.request.getIdsList().forEach((id) => {
 				const docAsString = JSON.stringify(SearchServiceFixtures.Docs.get(id));
-				resp.addDocuments(new IndexDoc().setDoc(enc.encode(docAsString)));
+				resp.addDocuments(
+					new IndexDoc()
+						.setDoc(enc.encode(docAsString))
+						.setMetadata(
+							new DocMeta().setCreatedAt(
+								new google_protobuf_timestamp_pb.Timestamp().setSeconds(
+									SearchServiceFixtures.GetDocs.CreatedAtSeconds
+								)
+							)
+						)
+				);
 			});
 			callback(undefined, resp);
 			return;
 		},
 		search(call: ServerWritableStream<SearchIndexRequest, SearchIndexResponse>): void {
+			const expectedUpdatedAt = new google_protobuf_timestamp_pb.Timestamp().setSeconds(
+				SearchServiceFixtures.SearchDocs.UpdatedAtSeconds
+			);
 			const resp = new SearchIndexResponse();
 			SearchServiceFixtures.Docs.forEach((d) =>
 				resp.addHits(
 					new IndexDoc()
 						.setDoc(enc.encode(JSON.stringify(d)))
-						.setMetadata(new DocMeta().setUpdatedAt(new google_protobuf_timestamp_pb.Timestamp()))
+						.setMetadata(new DocMeta().setUpdatedAt(expectedUpdatedAt))
 				)
 			);
 			resp.setMeta(

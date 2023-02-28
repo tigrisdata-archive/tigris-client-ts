@@ -17,30 +17,9 @@ import { SearchIndexIteratorInitializer, SearchIterator } from "../consumables/s
 import * as grpc from "@grpc/grpc-js";
 import { Collation as ProtoCollation } from "../proto/server/v1/api_pb";
 import { MATCH_ALL_QUERY_STRING, SearchQuery } from "./query";
-import { SearchResult } from "./result";
+import { IndexedDoc, SearchResult } from "./result";
 
-interface SearchableIndex<T> {
-	search(query: SearchQuery<T>): SearchIterator<T>;
-	search(query: SearchQuery<T>, page: number): Promise<SearchResult<T>>;
-	getMany(ids: Array<string>): Promise<Array<T>>;
-	getOne(id: string): Promise<T>;
-}
-
-interface WritableIndex<T> {
-	createMany(docs: Array<T>): Promise<Array<DocStatus>>;
-	createOne(doc: T): Promise<DocStatus>;
-	createOrReplaceMany(docs: Array<T>): Promise<Array<DocStatus>>;
-	createOrReplaceOne(doc: T): Promise<DocStatus>;
-	deleteMany(ids: Array<string>): Promise<Array<DocStatus>>;
-	deleteOne(id: string): Promise<DocStatus>;
-	deleteByQuery(filter: Filter<T>): Promise<number>;
-	updateMany(docs: Array<T>): Promise<Array<DocStatus>>;
-	updateOne(doc: T): Promise<DocStatus>;
-}
-
-export class SearchIndex<T extends TigrisIndexType>
-	implements SearchableIndex<T>, WritableIndex<T>
-{
+export class SearchIndex<T extends TigrisIndexType> {
 	private readonly grpcClient: SearchClient;
 	private readonly name: string;
 	private readonly config: TigrisClientConfig;
@@ -146,8 +125,8 @@ export class SearchIndex<T extends TigrisIndexType>
 		});
 	}
 
-	getMany(ids: Array<string>): Promise<Array<T>> {
-		return new Promise<Array<T>>((resolve, reject) => {
+	getMany(ids: Array<string>): Promise<Array<IndexedDoc<T>>> {
+		return new Promise<Array<IndexedDoc<T>>>((resolve, reject) => {
 			const getRequest = new ProtoGetDocumentRequest()
 				.setProject(this.config.projectName)
 				.setIndex(this.name)
@@ -157,16 +136,16 @@ export class SearchIndex<T extends TigrisIndexType>
 					reject(error);
 					return;
 				}
-				const docs: T[] = response.getDocumentsList().map((d) => {
-					return Utility.jsonStringToObj<T>(Utility._base64Decode(d.getDoc_asB64()), this.config);
+				const docs: IndexedDoc<T>[] = response.getDocumentsList().map((d) => {
+					return IndexedDoc.from(d, this.config);
 				});
 				resolve(docs);
 			});
 		});
 	}
 
-	getOne(id: string): Promise<T> {
-		return new Promise<T>((resolve, reject) => {
+	getOne(id: string): Promise<IndexedDoc<T>> {
+		return new Promise<IndexedDoc<T>>((resolve, reject) => {
 			this.getMany([id])
 				.then((docs) => resolve(docs[0]))
 				.catch((error) => reject(error));
