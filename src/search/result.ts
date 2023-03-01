@@ -8,10 +8,7 @@ import {
 	SearchMetadata as ProtoSearchMetadata,
 	SearchResponse as ProtoSearchResponse,
 } from "../proto/server/v1/api_pb";
-import {
-	IndexDoc as ProtoIndexDoc,
-	SearchIndexResponse as ProtoSearchIndexResponse,
-} from "../proto/server/v1/search_pb";
+import { SearchIndexResponse as ProtoSearchIndexResponse } from "../proto/server/v1/search_pb";
 import { TigrisClientConfig } from "../tigris";
 import { TigrisCollectionType } from "../types";
 import { Utility } from "../utility";
@@ -70,7 +67,7 @@ export class SearchResult<T> {
 			typeof resp?.getMeta() !== "undefined" ? SearchMeta.from(resp.getMeta()) : SearchMeta.default;
 		const _hits: Array<IndexedDoc<T>> = resp
 			.getHitsList()
-			.map((h: ProtoSearchHit | ProtoIndexDoc) => IndexedDoc.from<T>(h, config));
+			.map((h: ProtoSearchHit) => IndexedDoc.from<T>(h, config));
 		const _facets: Facets = {};
 		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		for (const [k, _] of resp.getFacetsMap().toArray()) {
@@ -109,8 +106,8 @@ export class IndexedDoc<T extends TigrisCollectionType> {
 		return this._meta;
 	}
 
-	static from<T>(resp: ProtoSearchHit | ProtoIndexDoc, config: TigrisClientConfig): IndexedDoc<T> {
-		const docAsB64 = resp instanceof ProtoIndexDoc ? resp.getDoc_asB64() : resp.getData_asB64();
+	static from<T>(resp: ProtoSearchHit, config: TigrisClientConfig): IndexedDoc<T> {
+		const docAsB64 = resp.getData_asB64();
 		const document = Utility.jsonStringToObj<T>(Utility._base64Decode(docAsB64), config);
 		const meta = resp.hasMetadata() ? DocMeta.from(resp.getMetadata()) : undefined;
 		return new IndexedDoc<T>(document, meta);
