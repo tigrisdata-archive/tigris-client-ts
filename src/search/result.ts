@@ -7,6 +7,7 @@ import {
 	SearchHitMeta as ProtoSearchHitMeta,
 	SearchMetadata as ProtoSearchMetadata,
 	SearchResponse as ProtoSearchResponse,
+	Match as ProtoMatch,
 } from "../proto/server/v1/api_pb";
 import { SearchIndexResponse as ProtoSearchIndexResponse } from "../proto/server/v1/search_pb";
 import { TigrisClientConfig } from "../tigris";
@@ -120,10 +121,12 @@ export class IndexedDoc<T extends TigrisCollectionType> {
 export class DocMeta {
 	private readonly _createdAt: Date | undefined;
 	private readonly _updatedAt: Date | undefined;
+	private readonly _textMatch: TextMatchInfo | undefined;
 
-	constructor(createdAt: Date | undefined, updatedAt: Date | undefined) {
+	constructor(createdAt: Date, updatedAt: Date, textMatch: TextMatchInfo) {
 		this._createdAt = createdAt;
 		this._updatedAt = updatedAt;
+		this._textMatch = textMatch;
 	}
 
 	/**
@@ -142,6 +145,13 @@ export class DocMeta {
 		return this._updatedAt;
 	}
 
+	/**
+	 * @returns metadata for matched fields and relevant score
+	 */
+	get textMatch(): TextMatchInfo {
+		return this._textMatch;
+	}
+
 	static from(resp: ProtoSearchHitMeta): DocMeta {
 		const _createdAt =
 			typeof resp?.getCreatedAt()?.getSeconds() !== "undefined"
@@ -151,15 +161,43 @@ export class DocMeta {
 			typeof resp?.getUpdatedAt()?.getSeconds() !== "undefined"
 				? new Date(resp.getUpdatedAt().getSeconds() * 1000)
 				: undefined;
+		const _textMatch =
+			typeof resp?.getMatch() !== "undefined" ? TextMatchInfo.from(resp.getMatch()) : undefined;
 
-		return new DocMeta(_createdAt, _updatedAt);
+		return new DocMeta(_createdAt, _updatedAt, _textMatch);
+	}
+}
+
+/**
+ * Information about the matched document
+ */
+export class TextMatchInfo {
+	private readonly _fields: ReadonlyArray<string>;
+	private readonly _score: string;
+
+	get fields(): ReadonlyArray<string> {
+		return this._fields;
+	}
+
+	get score(): string {
+		return this._score;
+	}
+
+	constructor(fields: ReadonlyArray<string>, score: string) {
+		this._fields = fields;
+		this._score = score;
+	}
+
+	static from(resp: ProtoMatch): TextMatchInfo {
+		const matchFields: Array<string> = resp.getFieldsList().map((f) => f.getName());
+		return new TextMatchInfo(matchFields, resp.getScore());
 	}
 }
 
 /**
  * Distribution of values in a faceted field
  */
-export class FacetCountDistribution {
+class FacetCountDistribution {
 	private readonly _counts: ReadonlyArray<FacetCount>;
 	private readonly _stats: FacetStats | undefined;
 
@@ -313,11 +351,13 @@ export class SearchMeta {
 	private readonly _found: number;
 	private readonly _totalPages: number;
 	private readonly _page: Page;
+	private readonly _matchedFields: ReadonlyArray<string>;
 
-	constructor(found: number, totalPages: number, page: Page) {
+	constructor(found: number, totalPages: number, page: Page, matchedFields: Array<string>) {
 		this._found = found;
 		this._totalPages = totalPages;
 		this._page = page;
+		this._matchedFields = matchedFields;
 	}
 
 	/**
@@ -344,11 +384,19 @@ export class SearchMeta {
 		return this._page;
 	}
 
+	/**
+	 * @returns List of document fields matching the given input
+	 * @readonly
+	 */
+	get matchedFields(): ReadonlyArray<string> {
+		return this._matchedFields;
+	}
+
 	static from(resp: ProtoSearchMetadata): SearchMeta {
 		const found = resp?.getFound() ?? 0;
 		const totalPages = resp?.getTotalPages() ?? 0;
 		const page = typeof resp?.getPage() !== "undefined" ? Page.from(resp.getPage()) : undefined;
-		return new SearchMeta(found, totalPages, page);
+		return new SearchMeta(found, totalPages, page, resp.getMatchedFieldsList());
 	}
 
 	/**
@@ -356,7 +404,7 @@ export class SearchMeta {
 	 * @readonly
 	 */
 	static get default(): SearchMeta {
-		return new SearchMeta(0, 1, Page.default);
+		return new SearchMeta(0, 1, Page.default, []);
 	}
 }
 

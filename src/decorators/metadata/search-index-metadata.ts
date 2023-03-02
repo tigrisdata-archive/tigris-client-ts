@@ -1,5 +1,5 @@
 /**@internal*/
-export interface IndexMetadata {
+export interface SearchIndexMetadata {
 	readonly indexName: string;
 	readonly target: Function;
 }
