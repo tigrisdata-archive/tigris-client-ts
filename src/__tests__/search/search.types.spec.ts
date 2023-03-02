@@ -13,7 +13,7 @@ import {
 import { TestTigrisService } from "../test-service";
 import { IBook } from "../tigris.rpc.spec";
 import * as google_protobuf_timestamp_pb from "google-protobuf/google/protobuf/timestamp_pb";
-import { TextMatchInfo, SearchResult, DocMeta } from "../../search";
+import { TextMatchInfo, SearchResult, DocMeta, SearchMeta } from "../../search";
 
 describe("SearchResponse parsing", () => {
 	it("generates search hits appropriately", () => {
@@ -99,27 +99,6 @@ describe("SearchResponse parsing", () => {
 		expect(parsed.meta.page.size).toBe(20);
 	});
 
-	it("generates default meta values with empty meta", () => {
-		const input: ProtoSearchResponse = new ProtoSearchResponse();
-		input.setMeta(new ProtoSearchMetadata());
-		const parsed: SearchResult<unknown> = SearchResult.from(input, { serverUrl: "test" });
-
-		expect(parsed.meta).toBeDefined();
-		expect(parsed.meta.found).toBe(0);
-		expect(parsed.meta.totalPages).toBe(0);
-		expect(parsed.meta.page).toBeUndefined();
-	});
-
-	it("generates no page values with empty page", () => {
-		const input: ProtoSearchResponse = new ProtoSearchResponse();
-		input.setMeta(new ProtoSearchMetadata().setFound(5));
-		const parsed: SearchResult<unknown> = SearchResult.from(input, { serverUrl: "test" });
-
-		expect(parsed.meta.found).toBe(5);
-		expect(parsed.meta.totalPages).toBe(0);
-		expect(parsed.meta.page).toBeUndefined();
-	});
-
 	it("generates meta appropriately with complete response", () => {
 		const input: ProtoSearchResponse = new ProtoSearchResponse();
 		const page: ProtoPage = new ProtoPage().setSize(3).setCurrent(2);
@@ -129,6 +108,41 @@ describe("SearchResponse parsing", () => {
 		expect(parsed.meta.page.size).toBe(3);
 		expect(parsed.meta.page.current).toBe(2);
 		expect(parsed.meta.totalPages).toBe(100);
+	});
+
+	describe("SearchMeta", () => {
+		it("generates default SearchMeta with empty input", () => {
+			const input: ProtoSearchMetadata = new ProtoSearchMetadata();
+			const parsed = SearchMeta.from(input);
+			expect(parsed.totalPages).toBe(0);
+			expect(parsed.found).toBe(0);
+			expect(parsed.page).toBeUndefined();
+			expect(parsed.matchedFields).toEqual([]);
+		});
+
+		it("generates no page values with empty page", () => {
+			const input = new ProtoSearchMetadata().setFound(5);
+			const parsed = SearchMeta.from(input);
+
+			expect(parsed.found).toBe(5);
+			expect(parsed.totalPages).toBe(0);
+			expect(parsed.page).toBeUndefined();
+			expect(parsed.matchedFields).toEqual([]);
+		});
+
+		it("generates meta with complete input", () => {
+			const page: ProtoPage = new ProtoPage().setSize(3).setCurrent(2);
+			const input: ProtoSearchMetadata = new ProtoSearchMetadata()
+				.setPage(page)
+				.setTotalPages(100)
+				.setMatchedFieldsList(["empId", "name"]);
+			const parsed = SearchMeta.from(input);
+
+			expect(parsed.page.size).toBe(3);
+			expect(parsed.page.current).toBe(2);
+			expect(parsed.totalPages).toBe(100);
+			expect(parsed.matchedFields).toEqual(["empId", "name"]);
+		});
 	});
 
 	describe("DocMeta", () => {

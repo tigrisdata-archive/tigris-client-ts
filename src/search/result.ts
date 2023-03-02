@@ -351,11 +351,13 @@ export class SearchMeta {
 	private readonly _found: number;
 	private readonly _totalPages: number;
 	private readonly _page: Page;
+	private readonly _matchedFields: ReadonlyArray<string>;
 
-	constructor(found: number, totalPages: number, page: Page) {
+	constructor(found: number, totalPages: number, page: Page, matchedFields: Array<string>) {
 		this._found = found;
 		this._totalPages = totalPages;
 		this._page = page;
+		this._matchedFields = matchedFields;
 	}
 
 	/**
@@ -382,11 +384,19 @@ export class SearchMeta {
 		return this._page;
 	}
 
+	/**
+	 * @returns List of document fields matching the given input
+	 * @readonly
+	 */
+	get matchedFields(): ReadonlyArray<string> {
+		return this._matchedFields;
+	}
+
 	static from(resp: ProtoSearchMetadata): SearchMeta {
 		const found = resp?.getFound() ?? 0;
 		const totalPages = resp?.getTotalPages() ?? 0;
 		const page = typeof resp?.getPage() !== "undefined" ? Page.from(resp.getPage()) : undefined;
-		return new SearchMeta(found, totalPages, page);
+		return new SearchMeta(found, totalPages, page, resp.getMatchedFieldsList());
 	}
 
 	/**
@@ -394,7 +404,7 @@ export class SearchMeta {
 	 * @readonly
 	 */
 	static get default(): SearchMeta {
-		return new SearchMeta(0, 1, Page.default);
+		return new SearchMeta(0, 1, Page.default, []);
 	}
 }
 
