@@ -13,7 +13,6 @@ import { SearchIndexResponse as ProtoSearchIndexResponse } from "../proto/server
 import { TigrisClientConfig } from "../tigris";
 import { TigrisCollectionType } from "../types";
 import { Utility } from "../utility";
-import retryTimes = jest.retryTimes;
 
 export type Facets = { [key: string]: FacetCountDistribution };
 

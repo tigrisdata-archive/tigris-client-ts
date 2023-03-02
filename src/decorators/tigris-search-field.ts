@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import { TigrisDataTypes } from "../types";
 import { EmbeddedFieldOptions } from "./options/embedded-field-options";
-import { TigrisIndexFieldOptions } from "../search";
+import { SearchFieldOptions } from "../search";
 import { getTigrisTypeFromReflectedType, isEmbeddedOption } from "./utils";
 import { Log } from "../utils/logger";
 import {
@@ -10,26 +10,24 @@ import {
 	ReflectionNotEnabled,
 } from "../error";
 import { getDecoratorMetaStorage } from "../globals";
-import { IndexFieldMetadata } from "./metadata/index-field-metadata";
+import { SearchFieldMetadata } from "./metadata/search-field-metadata";
 
-export function IndexField(): PropertyDecorator;
-export function IndexField(type: TigrisDataTypes): PropertyDecorator;
-export function IndexField(
-	options: EmbeddedFieldOptions & TigrisIndexFieldOptions
-): PropertyDecorator;
-export function IndexField(
+export function SearchField(): PropertyDecorator;
+export function SearchField(type: TigrisDataTypes): PropertyDecorator;
+export function SearchField(options: EmbeddedFieldOptions & SearchFieldOptions): PropertyDecorator;
+export function SearchField(
 	type: TigrisDataTypes,
-	options: EmbeddedFieldOptions & TigrisIndexFieldOptions
+	options: EmbeddedFieldOptions & SearchFieldOptions
 ): PropertyDecorator;
 
-export function IndexField(
-	typeOrOptions?: TigrisDataTypes | (TigrisIndexFieldOptions & EmbeddedFieldOptions),
-	options?: TigrisIndexFieldOptions & EmbeddedFieldOptions
+export function SearchField(
+	typeOrOptions?: TigrisDataTypes | (SearchFieldOptions & EmbeddedFieldOptions),
+	options?: SearchFieldOptions & EmbeddedFieldOptions
 ): PropertyDecorator {
 	return function (target, propertyName) {
 		propertyName = propertyName.toString();
 		let propertyType: TigrisDataTypes | undefined;
-		let fieldOptions: TigrisIndexFieldOptions;
+		let fieldOptions: SearchFieldOptions;
 		let embedOptions: EmbeddedFieldOptions;
 
 		if (typeof typeOrOptions === "string") {
@@ -38,14 +36,14 @@ export function IndexField(
 			if (isEmbeddedOption(typeOrOptions)) {
 				embedOptions = typeOrOptions as EmbeddedFieldOptions;
 			}
-			fieldOptions = typeOrOptions as TigrisIndexFieldOptions;
+			fieldOptions = typeOrOptions as SearchFieldOptions;
 		}
 
 		if (typeof options === "object") {
 			if (isEmbeddedOption(options)) {
 				embedOptions = options as EmbeddedFieldOptions;
 			}
-			fieldOptions = options as TigrisIndexFieldOptions;
+			fieldOptions = options as SearchFieldOptions;
 		}
 
 		// if type or options are not specified, infer using reflection
@@ -82,7 +80,7 @@ export function IndexField(
 		if (propertyType === TigrisDataTypes.ARRAY && embedOptions?.elements === undefined) {
 			throw new IncompleteArrayTypeDefError(target, propertyName);
 		}
-		getDecoratorMetaStorage().indexFields.push({
+		getDecoratorMetaStorage().searchFields.push({
 			name: propertyName,
 			type: propertyType,
 			isArray: propertyType === TigrisDataTypes.ARRAY,
@@ -90,6 +88,6 @@ export function IndexField(
 			embedType: embedOptions?.elements,
 			arrayDepth: embedOptions?.depth,
 			schemaFieldOptions: fieldOptions,
-		} as IndexFieldMetadata);
+		} as SearchFieldMetadata);
 	};
 }

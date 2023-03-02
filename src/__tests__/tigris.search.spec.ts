@@ -13,9 +13,8 @@ import { Server, ServerCredentials } from "@grpc/grpc-js";
 import TestSearchService, { SearchServiceFixtures } from "./test-search-service";
 import { SearchService } from "../proto/server/v1/search_grpc_pb";
 import { Search } from "../search/search";
-import { IndexField } from "../decorators/tigris-index-field";
-import { TigrisIndex } from "../decorators/tigris-index";
-import * as repl from "repl";
+import { SearchField } from "../decorators/tigris-search-field";
+import { TigrisSearchIndex } from "../decorators/tigris-search-index";
 
 describe("Search Indexing", () => {
 	let tigris: Search;
@@ -211,17 +210,17 @@ const bookSchema: TigrisIndexSchema<Book> = {
 	},
 };
 
-@TigrisIndex(SearchServiceFixtures.CreateIndex.Blog)
+@TigrisSearchIndex(SearchServiceFixtures.CreateIndex.Blog)
 class BlogPost {
-	@IndexField({ facet: true })
+	@SearchField({ facet: true })
 	text: string;
 
-	@IndexField({ elements: TigrisDataTypes.STRING })
+	@SearchField({ elements: TigrisDataTypes.STRING })
 	comments: Array<string>;
 
-	@IndexField()
+	@SearchField()
 	author: string;
 
-	@IndexField({ sort: true })
+	@SearchField({ sort: true })
 	createdAt: Date;
 }

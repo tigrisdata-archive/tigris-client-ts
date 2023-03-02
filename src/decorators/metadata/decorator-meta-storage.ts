@@ -1,8 +1,8 @@
 import { CollectionMetadata } from "./collection-metadata";
 import { FieldMetadata } from "./field-metadata";
 import { PrimaryKeyMetadata } from "./primary-key-metadata";
-import { IndexMetadata } from "./index-metadata";
-import { IndexFieldMetadata } from "./index-field-metadata";
+import { SearchIndexMetadata } from "./search-index-metadata";
+import { SearchFieldMetadata } from "./search-field-metadata";
 
 /**
  * Temporary storage for storing metadata processed by decorators. Classes can
@@ -13,10 +13,10 @@ import { IndexFieldMetadata } from "./index-field-metadata";
  */
 export class DecoratorMetaStorage {
 	readonly collections: Map<string, CollectionMetadata> = new Map();
-	readonly indexes: Array<IndexMetadata> = new Array<IndexMetadata>();
-	readonly fields: Array<FieldMetadata> = new Array<FieldMetadata>();
-	readonly indexFields: Array<IndexFieldMetadata> = new Array<IndexFieldMetadata>();
+	readonly collectionFields: Array<FieldMetadata> = new Array<FieldMetadata>();
 	readonly primaryKeys: Array<PrimaryKeyMetadata> = new Array<PrimaryKeyMetadata>();
+	readonly indexes: Array<SearchIndexMetadata> = new Array<SearchIndexMetadata>();
+	readonly searchFields: Array<SearchFieldMetadata> = new Array<SearchFieldMetadata>();
 
 	getCollectionByTarget(target: Function): CollectionMetadata {
 		for (const collection of this.collections.values()) {
@@ -26,7 +26,7 @@ export class DecoratorMetaStorage {
 		}
 	}
 
-	getIndexByTarget(target: Function): IndexMetadata {
+	getIndexByTarget(target: Function): SearchIndexMetadata {
 		for (const index of this.indexes.values()) {
 			if (index.target === target) {
 				return index;
@@ -35,13 +35,13 @@ export class DecoratorMetaStorage {
 	}
 
 	getFieldsByTarget(target: Function): Array<FieldMetadata> {
-		return this.fields.filter(function (field) {
+		return this.collectionFields.filter(function (field) {
 			return field.target === target;
 		});
 	}
 
-	getIndexFieldsByTarget(target: Function): Array<IndexFieldMetadata> {
-		return this.indexFields.filter(function (field) {
+	getIndexFieldsByTarget(target: Function): Array<SearchFieldMetadata> {
+		return this.searchFields.filter(function (field) {
 			return field.target === target;
 		});
 	}

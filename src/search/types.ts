@@ -9,7 +9,7 @@ import {
 import { Status } from "../constants";
 import { TigrisError } from "../error";
 
-export type TigrisIndexFieldOptions = {
+export type SearchFieldOptions = {
 	index?: boolean;
 	sort?: boolean;
 	facet?: boolean;
@@ -21,7 +21,7 @@ export type TigrisIndexSchema<T extends TigrisIndexType> = {
 	[K in keyof T]: {
 		type: TigrisDataTypes | TigrisIndexSchema<unknown>;
 		items?: TigrisArrayItem;
-	} & TigrisIndexFieldOptions;
+	} & SearchFieldOptions;
 };
 
 export class IndexInfo {
