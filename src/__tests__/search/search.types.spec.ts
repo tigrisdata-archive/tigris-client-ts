@@ -7,11 +7,13 @@ import {
 	SearchHitMeta as ProtoSearchHitMeta,
 	SearchMetadata as ProtoSearchMetadata,
 	SearchResponse as ProtoSearchResponse,
+	Match as ProtoMatch,
+	MatchField as ProtoMatchField,
 } from "../../proto/server/v1/api_pb";
 import { TestTigrisService } from "../test-service";
 import { IBook } from "../tigris.rpc.spec";
 import * as google_protobuf_timestamp_pb from "google-protobuf/google/protobuf/timestamp_pb";
-import { SearchResult } from "../../search/result";
+import { TextMatchInfo, SearchResult, DocMeta } from "../../search";
 
 describe("SearchResponse parsing", () => {
 	it("generates search hits appropriately", () => {
@@ -127,5 +129,45 @@ describe("SearchResponse parsing", () => {
 		expect(parsed.meta.page.size).toBe(3);
 		expect(parsed.meta.page.current).toBe(2);
 		expect(parsed.meta.totalPages).toBe(100);
+	});
+
+	describe("DocMeta", () => {
+		it("generates DocMeta with empty", () => {
+			const input: ProtoSearchHitMeta = new ProtoSearchHitMeta();
+			const parsed: DocMeta = DocMeta.from(input);
+			expect(parsed.createdAt).toBeUndefined();
+			expect(parsed.updatedAt).toBeUndefined();
+			expect(parsed.textMatch).toBeUndefined();
+		});
+		it("generates DocMeta with empty", () => {
+			const input: ProtoSearchHitMeta = new ProtoSearchHitMeta();
+			const expectedTimeInSeconds = Math.floor(Date.now() / 1000);
+			input.setCreatedAt(
+				new google_protobuf_timestamp_pb.Timestamp().setSeconds(expectedTimeInSeconds)
+			);
+			input.setMatch(new ProtoMatch());
+			const parsed: DocMeta = DocMeta.from(input);
+			expect(parsed.updatedAt).toBeUndefined();
+			expect(parsed.createdAt).toStrictEqual(new Date(expectedTimeInSeconds * 1000));
+			expect(parsed.textMatch).toBeDefined();
+		});
+	});
+
+	describe("TextMatchInfo", () => {
+		it("generates match field with empty inputs", () => {
+			const input: ProtoMatch = new ProtoMatch();
+			const parsed: TextMatchInfo = TextMatchInfo.from(input);
+			expect(parsed.fields).toStrictEqual([]);
+			expect(parsed.score).toBe("");
+		});
+		it("generates match field from input", () => {
+			const input: ProtoMatch = new ProtoMatch();
+			input.setScore("456");
+			input.addFields(new ProtoMatchField().setName("person"));
+			input.addFields(new ProtoMatchField().setName("user"));
+			const parsed: TextMatchInfo = TextMatchInfo.from(input);
+			expect(parsed.fields).toEqual(expect.arrayContaining(["person", "user"]));
+			expect(parsed.score).toBe("456");
+		});
 	});
 });
