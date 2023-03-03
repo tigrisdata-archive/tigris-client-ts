@@ -34,13 +34,13 @@ export class DecoratorMetaStorage {
 		}
 	}
 
-	getFieldsByTarget(target: Function): Array<FieldMetadata> {
+	getCollectionFieldsByTarget(target: Function): Array<FieldMetadata> {
 		return this.collectionFields.filter(function (field) {
 			return field.target === target;
 		});
 	}
 
-	getIndexFieldsByTarget(target: Function): Array<SearchFieldMetadata> {
+	getSearchFieldsByTarget(target: Function): Array<SearchFieldMetadata> {
 		return this.searchFields.filter(function (field) {
 			return field.target === target;
 		});

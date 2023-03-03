@@ -2,6 +2,7 @@ import { TigrisCollection } from "../../../decorators/tigris-collection";
 import { PrimaryKey } from "../../../decorators/tigris-primary-key";
 import { TigrisDataTypes, TigrisSchema } from "../../../types";
 import { Field } from "../../../decorators/tigris-field";
+import { SearchField } from "../../../decorators/tigris-search-field";
 
 /******************************************************************************
  * `Order` class demonstrates a Tigris collection schema generated using
@@ -10,12 +11,14 @@ import { Field } from "../../../decorators/tigris-field";
  * - has multiple primary keys
  * - has embedded objects
  * - has an Array of embedded objects
+ * - collection has search indexing enabled on certain fields
  * - and infers the type of collection fields automatically using Reflection APIs
  *****************************************************************************/
 export const ORDERS_COLLECTION_NAME = "orders";
 
 export class Brand {
 	@Field()
+	@SearchField()
 	name: string;
 
 	@Field({ elements: TigrisDataTypes.STRING })
@@ -33,6 +36,7 @@ export class Product {
 	upc: bigint;
 
 	@Field()
+	@SearchField({ sort: true, facet: false })
 	price: number;
 }
 
@@ -42,6 +46,7 @@ export class Order {
 	orderId: string;
 
 	@PrimaryKey({ order: 2 })
+	@SearchField({ sort: false, facet: false })
 	customerId: string;
 
 	@Field({ elements: Product })
@@ -66,6 +71,8 @@ export const OrderSchema: TigrisSchema<Order> = {
 	},
 	customerId: {
 		type: TigrisDataTypes.STRING,
+		sort: false,
+		facet: false,
 		primary_key: {
 			order: 2,
 			autoGenerate: false,
@@ -97,6 +104,8 @@ export const OrderSchema: TigrisSchema<Order> = {
 				},
 				price: {
 					type: TigrisDataTypes.NUMBER,
+					sort: true,
+					facet: false,
 				},
 			},
 		},

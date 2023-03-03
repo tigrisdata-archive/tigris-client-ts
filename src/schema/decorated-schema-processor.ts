@@ -2,6 +2,8 @@ import { DecoratorMetaStorage } from "../decorators/metadata/decorator-meta-stor
 import { getDecoratorMetaStorage } from "../globals";
 import { TigrisCollectionType, TigrisDataTypes, TigrisSchema } from "../types";
 import { TigrisIndexSchema, TigrisIndexType } from "../search";
+import { SearchFieldMetadata } from "../decorators/metadata/search-field-metadata";
+import { FieldMetadata } from "../decorators/metadata/field-metadata";
 
 export type CollectionSchema<T extends TigrisCollectionType> = {
 	name: string;
@@ -54,41 +56,49 @@ export class DecoratedSchemaProcessor {
 	): TigrisSchema<unknown> | TigrisIndexSchema<unknown> {
 		const schema = {};
 		// get all top level fields matching this target
-		const fields = forCollection
-			? this.storage.getFieldsByTarget(from)
-			: this.storage.getIndexFieldsByTarget(from);
+		let fields: (SearchFieldMetadata | FieldMetadata)[] =
+			this.storage.getSearchFieldsByTarget(from);
+		if (forCollection) {
+			fields = [...fields, ...this.storage.getCollectionFieldsByTarget(from)];
+		}
 		for (const field of fields) {
 			const key = field.name;
-			schema[key] = { type: field.type };
-			let arrayItems: Object, arrayDepth: number;
+			if (!(key in schema)) {
+				schema[key] = { type: field.type };
 
-			switch (field.type) {
-				case TigrisDataTypes.ARRAY:
-					arrayItems =
-						typeof field.embedType === "function"
-							? {
+				let arrayItems: Object, arrayDepth: number;
+
+				switch (field.type) {
+					case TigrisDataTypes.ARRAY:
+						arrayItems =
+							typeof field.embedType === "function"
+								? {
+										type: this.buildTigrisSchema(field.embedType as Function, forCollection),
+								  }
+								: { type: field.embedType as TigrisDataTypes };
+						arrayDepth = field.arrayDepth && field.arrayDepth > 1 ? field.arrayDepth : 1;
+						schema[key] = this.buildNestedArray(arrayItems, arrayDepth);
+						break;
+					case TigrisDataTypes.OBJECT:
+						if (typeof field.embedType === "function") {
+							const embedSchema = this.buildTigrisSchema(
+								field.embedType as Function,
+								forCollection
+							);
+							// generate embedded schema as its a class
+							if (Object.keys(embedSchema).length > 0) {
+								schema[key] = {
 									type: this.buildTigrisSchema(field.embedType as Function, forCollection),
-							  }
-							: { type: field.embedType as TigrisDataTypes };
-					arrayDepth = field.arrayDepth && field.arrayDepth > 1 ? field.arrayDepth : 1;
-					schema[key] = this.buildNestedArray(arrayItems, arrayDepth);
-					break;
-				case TigrisDataTypes.OBJECT:
-					if (typeof field.embedType === "function") {
-						const embedSchema = this.buildTigrisSchema(field.embedType as Function, forCollection);
-						// generate embedded schema as its a class
-						if (Object.keys(embedSchema).length > 0) {
-							schema[key] = {
-								type: this.buildTigrisSchema(field.embedType as Function, forCollection),
-							};
+								};
+							}
 						}
-					}
-					break;
-				case TigrisDataTypes.STRING:
-					if (field.schemaFieldOptions && "maxLength" in field.schemaFieldOptions) {
-						schema[key].maxLength = field.schemaFieldOptions.maxLength;
-					}
-					break;
+						break;
+					case TigrisDataTypes.STRING:
+						if (field.schemaFieldOptions && "maxLength" in field.schemaFieldOptions) {
+							schema[key].maxLength = field.schemaFieldOptions.maxLength;
+						}
+						break;
+				}
 			}
 
 			// process any field optionals
@@ -127,12 +137,14 @@ export class DecoratedSchemaProcessor {
 		collectionClass: Function
 	) {
 		for (const pk of this.storage.getPKsByTarget(collectionClass)) {
-			targetSchema[pk.name] = {
-				type: pk.type,
-				primary_key: {
-					order: pk.options?.order,
-					autoGenerate: pk.options.autoGenerate === true,
-				},
+			if (!(pk.name in targetSchema)) {
+				targetSchema[pk.name] = {
+					type: pk.type,
+				};
+			}
+			targetSchema[pk.name]["primary_key"] = {
+				order: pk.options?.order,
+				autoGenerate: pk.options.autoGenerate === true,
 			};
 		}
 	}

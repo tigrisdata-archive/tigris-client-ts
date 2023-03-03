@@ -9,7 +9,9 @@
 			"autoGenerate": true
 		},
 		"customerId": {
-			"type": "string"
+			"type": "string",
+			"sort": false,
+			"facet": false
 		},
 		"products": {
 			"type": "array",
@@ -38,7 +40,9 @@
 						"type": "integer"
 					},
 					"price": {
-						"type": "number"
+						"type": "number",
+						"sort": true,
+						"facet": false
 					}
 				}
 			}
