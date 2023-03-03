@@ -167,7 +167,7 @@ class TestSearchService {
 				case SearchServiceFixtures.CreateIndex.Blog:
 					const schema = Buffer.from(call.request.getSchema_asB64(), "base64").toString();
 					expect(schema).toBe(
-						'{"title":"blogPosts","type":"object","properties":{"text":{"type":"string","index":true,"facet":true},"comments":{"type":"array","items":{"type":"string"},"index":true},"author":{"type":"string","index":true},"createdAt":{"type":"string","format":"date-time","index":true,"sort":true}}}'
+						'{"title":"blogPosts","type":"object","properties":{"text":{"type":"string","searchIndex":true,"facet":true},"comments":{"type":"array","items":{"type":"string"},"searchIndex":true},"author":{"type":"string","searchIndex":true},"createdAt":{"type":"string","format":"date-time","searchIndex":true,"sort":true}}}'
 					);
 					const resp = new CreateOrUpdateIndexResponse()
 						.setStatus("created")

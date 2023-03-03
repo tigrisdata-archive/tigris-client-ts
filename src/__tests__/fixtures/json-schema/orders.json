@@ -10,7 +10,7 @@
 		},
 		"customerId": {
 			"type": "string",
-			"index": false,
+			"searchIndex": false,
 			"sort": false,
 			"facet": false
 		},
@@ -28,7 +28,7 @@
 						"properties": {
 							"name": {
 								"type": "string",
-								"index": true
+								"searchIndex": true
 							},
 							"tags": {
 								"type": "array",
@@ -43,7 +43,7 @@
 					},
 					"price": {
 						"type": "number",
-						"index": true,
+						"searchIndex": true,
 						"sort": true,
 						"facet": false
 					}

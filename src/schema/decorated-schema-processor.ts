@@ -101,7 +101,7 @@ export class DecoratedSchemaProcessor {
 			// process any field optionals
 			if (field.schemaFieldOptions) {
 				// set value for field,  if any
-				for (const opKey of ["default", "timestamp", "index", "sort", "facet"])
+				for (const opKey of ["default", "timestamp", "searchIndex", "sort", "facet"])
 					if (opKey in field.schemaFieldOptions) {
 						schema[key][opKey] = field.schemaFieldOptions[opKey];
 					}

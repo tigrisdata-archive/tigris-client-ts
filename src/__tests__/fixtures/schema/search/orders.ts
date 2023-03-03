@@ -17,7 +17,7 @@ export class Brand {
 	@SearchField()
 	name: string;
 
-	@SearchField({ elements: TigrisDataTypes.STRING, index: false })
+	@SearchField({ elements: TigrisDataTypes.STRING, searchIndex: false })
 	tags: Set<string>;
 }
 
@@ -28,7 +28,7 @@ export class Product {
 	@SearchField()
 	brand: Brand;
 
-	@SearchField({ index: false, sort: false })
+	@SearchField({ searchIndex: false, sort: false })
 	upc: bigint;
 
 	@SearchField({ sort: true, facet: false })
@@ -56,33 +56,33 @@ export class Order {
 export const OrderSchema: TigrisIndexSchema<Order> = {
 	orderId: {
 		type: TigrisDataTypes.UUID,
-		index: true,
+		searchIndex: true,
 		sort: true,
 	},
 	customerId: {
 		type: TigrisDataTypes.STRING,
-		index: true,
+		searchIndex: true,
 		facet: false,
 	},
 	products: {
 		type: TigrisDataTypes.ARRAY,
-		index: true,
+		searchIndex: true,
 		items: {
 			type: {
 				name: {
 					type: TigrisDataTypes.STRING,
-					index: true,
+					searchIndex: true,
 				},
 				brand: {
-					index: true,
+					searchIndex: true,
 					type: {
 						name: {
 							type: TigrisDataTypes.STRING,
-							index: true,
+							searchIndex: true,
 						},
 						tags: {
 							type: TigrisDataTypes.ARRAY,
-							index: false,
+							searchIndex: false,
 							items: {
 								type: TigrisDataTypes.STRING,
 							},
@@ -91,12 +91,12 @@ export const OrderSchema: TigrisIndexSchema<Order> = {
 				},
 				upc: {
 					type: TigrisDataTypes.NUMBER_BIGINT,
-					index: false,
+					searchIndex: false,
 					sort: false,
 				},
 				price: {
 					type: TigrisDataTypes.NUMBER,
-					index: true,
+					searchIndex: true,
 					sort: true,
 					facet: false,
 				},

@@ -5,12 +5,12 @@
 		"orderId": {
 			"type": "string",
 			"format": "uuid",
-			"index": true,
+			"searchIndex": true,
 			"sort": true
 		},
 		"customerId": {
 			"type": "string",
-			"index": true,
+			"searchIndex": true,
 			"facet": false
 		},
 		"products": {
@@ -20,39 +20,39 @@
 				"properties": {
 					"name": {
 						"type": "string",
-						"index": true
+						"searchIndex": true
 					},
 					"brand": {
 						"type": "object",
 						"properties": {
 							"name": {
 								"type": "string",
-								"index": true
+								"searchIndex": true
 							},
 							"tags": {
 								"type": "array",
 								"items": {
 									"type": "string"
 								},
-								"index": false
+								"searchIndex": false
 							}
 						},
-						"index": true
+						"searchIndex": true
 					},
 					"upc": {
 						"type": "integer",
-						"index": false,
+						"searchIndex": false,
 						"sort": false
 					},
 					"price": {
 						"type": "number",
-						"index": true,
+						"searchIndex": true,
 						"sort": true,
 						"facet": false
 					}
 				}
 			},
-			"index": true
+			"searchIndex": true
 		}
 	}
 }

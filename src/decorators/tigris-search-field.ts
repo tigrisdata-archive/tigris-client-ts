@@ -80,7 +80,7 @@ export function SearchField(
 		if (propertyType === TigrisDataTypes.ARRAY && embedOptions?.elements === undefined) {
 			throw new IncompleteArrayTypeDefError(target, propertyName);
 		}
-		const defaultFieldOption = { index: true };
+		const defaultFieldOption: SearchFieldOptions = { searchIndex: true };
 		fieldOptions = { ...defaultFieldOption, ...fieldOptions };
 
 		getDecoratorMetaStorage().searchFields.push({
