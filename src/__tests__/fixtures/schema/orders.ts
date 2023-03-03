@@ -46,7 +46,7 @@ export class Order {
 	orderId: string;
 
 	@PrimaryKey({ order: 2 })
-	@SearchField({ sort: false, facet: false })
+	@SearchField({ index: false, sort: false, facet: false })
 	customerId: string;
 
 	@Field({ elements: Product })
@@ -71,6 +71,7 @@ export const OrderSchema: TigrisSchema<Order> = {
 	},
 	customerId: {
 		type: TigrisDataTypes.STRING,
+		index: false,
 		sort: false,
 		facet: false,
 		primary_key: {
@@ -90,6 +91,7 @@ export const OrderSchema: TigrisSchema<Order> = {
 					type: {
 						name: {
 							type: TigrisDataTypes.STRING,
+							index: true,
 						},
 						tags: {
 							type: TigrisDataTypes.ARRAY,
@@ -104,6 +106,7 @@ export const OrderSchema: TigrisSchema<Order> = {
 				},
 				price: {
 					type: TigrisDataTypes.NUMBER,
+					index: true,
 					sort: true,
 					facet: false,
 				},

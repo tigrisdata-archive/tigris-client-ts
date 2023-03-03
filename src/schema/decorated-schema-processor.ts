@@ -65,40 +65,37 @@ export class DecoratedSchemaProcessor {
 			const key = field.name;
 			if (!(key in schema)) {
 				schema[key] = { type: field.type };
+			}
 
-				let arrayItems: Object, arrayDepth: number;
+			let arrayItems: Object, arrayDepth: number;
 
-				switch (field.type) {
-					case TigrisDataTypes.ARRAY:
-						arrayItems =
-							typeof field.embedType === "function"
-								? {
-										type: this.buildTigrisSchema(field.embedType as Function, forCollection),
-								  }
-								: { type: field.embedType as TigrisDataTypes };
-						arrayDepth = field.arrayDepth && field.arrayDepth > 1 ? field.arrayDepth : 1;
-						schema[key] = this.buildNestedArray(arrayItems, arrayDepth);
-						break;
-					case TigrisDataTypes.OBJECT:
-						if (typeof field.embedType === "function") {
-							const embedSchema = this.buildTigrisSchema(
-								field.embedType as Function,
-								forCollection
-							);
-							// generate embedded schema as its a class
-							if (Object.keys(embedSchema).length > 0) {
-								schema[key] = {
+			switch (field.type) {
+				case TigrisDataTypes.ARRAY:
+					arrayItems =
+						typeof field.embedType === "function"
+							? {
 									type: this.buildTigrisSchema(field.embedType as Function, forCollection),
-								};
-							}
+							  }
+							: { type: field.embedType as TigrisDataTypes };
+					arrayDepth = field.arrayDepth && field.arrayDepth > 1 ? field.arrayDepth : 1;
+					schema[key] = this.buildNestedArray(arrayItems, arrayDepth);
+					break;
+				case TigrisDataTypes.OBJECT:
+					if (typeof field.embedType === "function") {
+						const embedSchema = this.buildTigrisSchema(field.embedType as Function, forCollection);
+						// generate embedded schema as its a class
+						if (Object.keys(embedSchema).length > 0) {
+							schema[key] = {
+								type: this.buildTigrisSchema(field.embedType as Function, forCollection),
+							};
 						}
-						break;
-					case TigrisDataTypes.STRING:
-						if (field.schemaFieldOptions && "maxLength" in field.schemaFieldOptions) {
-							schema[key].maxLength = field.schemaFieldOptions.maxLength;
-						}
-						break;
-				}
+					}
+					break;
+				case TigrisDataTypes.STRING:
+					if (field.schemaFieldOptions && "maxLength" in field.schemaFieldOptions) {
+						schema[key].maxLength = field.schemaFieldOptions.maxLength;
+					}
+					break;
 			}
 
 			// process any field optionals
