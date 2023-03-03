@@ -1,4 +1,4 @@
-import { TigrisDataTypes, TigrisFieldOptions } from "../types";
+import { TigrisDataTypes, CollectionFieldOptions } from "../types";
 import { EmbeddedFieldOptions } from "./options/embedded-field-options";
 
 export function getTigrisTypeFromReflectedType(reflectedType: string): TigrisDataTypes | undefined {
@@ -24,7 +24,7 @@ export function getTigrisTypeFromReflectedType(reflectedType: string): TigrisDat
 }
 
 export function isEmbeddedOption(
-	options: TigrisFieldOptions | EmbeddedFieldOptions
+	options: CollectionFieldOptions | EmbeddedFieldOptions
 ): options is EmbeddedFieldOptions {
 	return (options as EmbeddedFieldOptions).elements !== undefined;
 }

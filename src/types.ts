@@ -5,6 +5,7 @@ import {
 } from "./proto/server/v1/api_pb";
 import { Status } from "./constants";
 import { Collation } from "./search/query";
+import { SearchFieldOptions } from "./search";
 
 export class DatabaseInfo {
 	private readonly _name: string;
@@ -623,7 +624,7 @@ export enum Generated {
 
 export type AutoTimestamp = "createdAt" | "updatedAt";
 
-export type TigrisFieldOptions = {
+export type CollectionFieldOptions = {
 	/**
 	 * Max length for "string" type of fields
 	 */
@@ -644,7 +645,8 @@ export type TigrisSchema<T extends TigrisCollectionType> = {
 		type: TigrisDataTypes | TigrisSchema<unknown>;
 		primary_key?: PrimaryKeyOptions;
 		items?: TigrisArrayItem;
-	} & TigrisFieldOptions;
+	} & CollectionFieldOptions &
+		SearchFieldOptions;
 };
 
 export type TigrisArrayItem = {

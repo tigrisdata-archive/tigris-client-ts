@@ -387,8 +387,8 @@ export const Utility = {
 			}
 
 			// indexing optionals
-			if ("index" in schema[property]) {
-				thisProperty["index"] = schema[property]["index"];
+			if ("searchIndex" in schema[property]) {
+				thisProperty["searchIndex"] = schema[property]["searchIndex"];
 			}
 			if ("sort" in schema[property]) {
 				thisProperty["sort"] = schema[property]["sort"];

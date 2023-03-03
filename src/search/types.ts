@@ -10,7 +10,7 @@ import { Status } from "../constants";
 import { TigrisError } from "../error";
 
 export type SearchFieldOptions = {
-	index?: boolean;
+	searchIndex?: boolean;
 	sort?: boolean;
 	facet?: boolean;
 };

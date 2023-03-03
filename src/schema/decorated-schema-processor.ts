@@ -2,6 +2,8 @@ import { DecoratorMetaStorage } from "../decorators/metadata/decorator-meta-stor
 import { getDecoratorMetaStorage } from "../globals";
 import { TigrisCollectionType, TigrisDataTypes, TigrisSchema } from "../types";
 import { TigrisIndexSchema, TigrisIndexType } from "../search";
+import { SearchFieldMetadata } from "../decorators/metadata/search-field-metadata";
+import { FieldMetadata } from "../decorators/metadata/field-metadata";
 
 export type CollectionSchema<T extends TigrisCollectionType> = {
 	name: string;
@@ -54,12 +56,17 @@ export class DecoratedSchemaProcessor {
 	): TigrisSchema<unknown> | TigrisIndexSchema<unknown> {
 		const schema = {};
 		// get all top level fields matching this target
-		const fields = forCollection
-			? this.storage.getFieldsByTarget(from)
-			: this.storage.getIndexFieldsByTarget(from);
+		let fields: (SearchFieldMetadata | FieldMetadata)[] =
+			this.storage.getSearchFieldsByTarget(from);
+		if (forCollection) {
+			fields = [...fields, ...this.storage.getCollectionFieldsByTarget(from)];
+		}
 		for (const field of fields) {
 			const key = field.name;
-			schema[key] = { type: field.type };
+			if (!(key in schema)) {
+				schema[key] = { type: field.type };
+			}
+
 			let arrayItems: Object, arrayDepth: number;
 
 			switch (field.type) {
@@ -94,7 +101,7 @@ export class DecoratedSchemaProcessor {
 			// process any field optionals
 			if (field.schemaFieldOptions) {
 				// set value for field,  if any
-				for (const opKey of ["default", "timestamp", "index", "sort", "facet"])
+				for (const opKey of ["default", "timestamp", "searchIndex", "sort", "facet"])
 					if (opKey in field.schemaFieldOptions) {
 						schema[key][opKey] = field.schemaFieldOptions[opKey];
 					}
@@ -127,12 +134,14 @@ export class DecoratedSchemaProcessor {
 		collectionClass: Function
 	) {
 		for (const pk of this.storage.getPKsByTarget(collectionClass)) {
-			targetSchema[pk.name] = {
-				type: pk.type,
-				primary_key: {
-					order: pk.options?.order,
-					autoGenerate: pk.options.autoGenerate === true,
-				},
+			if (!(pk.name in targetSchema)) {
+				targetSchema[pk.name] = {
+					type: pk.type,
+				};
+			}
+			targetSchema[pk.name]["primary_key"] = {
+				order: pk.options?.order,
+				autoGenerate: pk.options.autoGenerate === true,
 			};
 		}
 	}
