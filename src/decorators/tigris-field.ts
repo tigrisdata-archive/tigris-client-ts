@@ -115,7 +115,7 @@ export function Field(
 			throw new IncompleteArrayTypeDefError(target, propertyName);
 		}
 
-		getDecoratorMetaStorage().fields.push({
+		getDecoratorMetaStorage().collectionFields.push({
 			name: propertyName,
 			type: propertyType,
 			isArray: propertyType === TigrisDataTypes.ARRAY,

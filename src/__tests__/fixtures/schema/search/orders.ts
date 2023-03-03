@@ -1,7 +1,7 @@
 import { TigrisDataTypes } from "../../../../types";
 import { TigrisIndexSchema } from "../../../../search";
-import { IndexField } from "../../../../decorators/tigris-index-field";
-import { TigrisIndex } from "../../../../decorators/tigris-index";
+import { SearchField } from "../../../../decorators/tigris-search-field";
+import { TigrisSearchIndex } from "../../../../decorators/tigris-search-index";
 
 /******************************************************************************
  * `Order` class demonstrates a Tigris search index schema generated using
@@ -14,36 +14,36 @@ import { TigrisIndex } from "../../../../decorators/tigris-index";
 export const ORDERS_INDEX_NAME = "orders";
 
 export class Brand {
-	@IndexField()
+	@SearchField()
 	name: string;
 
-	@IndexField({ elements: TigrisDataTypes.STRING, index: false })
+	@SearchField({ elements: TigrisDataTypes.STRING, index: false })
 	tags: Set<string>;
 }
 
 export class Product {
-	@IndexField()
+	@SearchField()
 	name: string;
 
-	@IndexField()
+	@SearchField()
 	brand: Brand;
 
-	@IndexField({ sort: false })
+	@SearchField({ sort: false })
 	upc: bigint;
 
-	@IndexField({ sort: true, facet: false })
+	@SearchField({ sort: true, facet: false })
 	price: number;
 }
 
-@TigrisIndex(ORDERS_INDEX_NAME)
+@TigrisSearchIndex(ORDERS_INDEX_NAME)
 export class Order {
-	@IndexField(TigrisDataTypes.UUID, { sort: true })
+	@SearchField(TigrisDataTypes.UUID, { sort: true })
 	orderId: string;
 
-	@IndexField({ facet: false })
+	@SearchField({ facet: false })
 	customerId: string;
 
-	@IndexField({ elements: Product })
+	@SearchField({ elements: Product })
 	products: Array<Product>;
 }
 

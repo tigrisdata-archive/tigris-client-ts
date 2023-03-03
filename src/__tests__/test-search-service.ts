@@ -15,13 +15,11 @@ import {
 	DeleteDocumentResponse,
 	DeleteIndexRequest,
 	DeleteIndexResponse,
-	DocMeta,
 	DocStatus,
 	GetDocumentRequest,
 	GetDocumentResponse,
 	GetIndexRequest,
 	GetIndexResponse,
-	IndexDoc,
 	IndexInfo,
 	ListIndexesRequest,
 	ListIndexesResponse,
@@ -32,7 +30,14 @@ import {
 } from "../proto/server/v1/search_pb";
 import * as google_protobuf_timestamp_pb from "google-protobuf/google/protobuf/timestamp_pb";
 import { Utility } from "../utility";
-import { FacetCount, Page, SearchFacet, SearchMetadata } from "../proto/server/v1/api_pb";
+import {
+	FacetCount,
+	Page,
+	SearchFacet,
+	SearchMetadata,
+	SearchHit,
+	SearchHitMeta,
+} from "../proto/server/v1/api_pb";
 
 export const SearchServiceFixtures = {
 	Success: "validIndex",
@@ -44,6 +49,12 @@ export const SearchServiceFixtures = {
 	]),
 	CreateIndex: {
 		Blog: "blogPosts",
+	},
+	SearchDocs: {
+		UpdatedAtSeconds: Math.floor(Date.now() / 1000),
+	},
+	GetDocs: {
+		CreatedAtSeconds: 1672574400,
 	},
 };
 const enc = new TextEncoder();
@@ -96,18 +107,31 @@ class TestSearchService {
 			const resp = new GetDocumentResponse();
 			call.request.getIdsList().forEach((id) => {
 				const docAsString = JSON.stringify(SearchServiceFixtures.Docs.get(id));
-				resp.addDocuments(new IndexDoc().setDoc(enc.encode(docAsString)));
+				resp.addDocuments(
+					new SearchHit()
+						.setData(enc.encode(docAsString))
+						.setMetadata(
+							new SearchHitMeta().setCreatedAt(
+								new google_protobuf_timestamp_pb.Timestamp().setSeconds(
+									SearchServiceFixtures.GetDocs.CreatedAtSeconds
+								)
+							)
+						)
+				);
 			});
 			callback(undefined, resp);
 			return;
 		},
 		search(call: ServerWritableStream<SearchIndexRequest, SearchIndexResponse>): void {
+			const expectedUpdatedAt = new google_protobuf_timestamp_pb.Timestamp().setSeconds(
+				SearchServiceFixtures.SearchDocs.UpdatedAtSeconds
+			);
 			const resp = new SearchIndexResponse();
 			SearchServiceFixtures.Docs.forEach((d) =>
 				resp.addHits(
-					new IndexDoc()
-						.setDoc(enc.encode(JSON.stringify(d)))
-						.setMetadata(new DocMeta().setUpdatedAt(new google_protobuf_timestamp_pb.Timestamp()))
+					new SearchHit()
+						.setData(enc.encode(JSON.stringify(d)))
+						.setMetadata(new SearchHitMeta().setUpdatedAt(expectedUpdatedAt))
 				)
 			);
 			resp.setMeta(

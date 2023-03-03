@@ -2,7 +2,7 @@ import { TigrisDataTypes } from "../types";
 import { Tigris } from "../tigris";
 import { Status } from "../constants";
 import {
-	Hit,
+	IndexedDoc,
 	MATCH_ALL_QUERY_STRING,
 	SearchIndex,
 	SearchIterator,
@@ -13,9 +13,8 @@ import { Server, ServerCredentials } from "@grpc/grpc-js";
 import TestSearchService, { SearchServiceFixtures } from "./test-search-service";
 import { SearchService } from "../proto/server/v1/search_grpc_pb";
 import { Search } from "../search/search";
-import { IndexField } from "../decorators/tigris-index-field";
-import { TigrisIndex } from "../decorators/tigris-index";
-import * as repl from "repl";
+import { SearchField } from "../decorators/tigris-search-field";
+import { TigrisSearchIndex } from "../decorators/tigris-search-index";
 
 describe("Search Indexing", () => {
 	let tigris: Search;
@@ -135,16 +134,25 @@ describe("Search Indexing", () => {
 	describe("getDocuments", () => {
 		it("gets multiple documents", async () => {
 			const index = await tigris.getIndex<Book>(SearchServiceFixtures.Success);
-			const result = await index.getMany(Array.from(SearchServiceFixtures.Docs.keys()));
-			expect(result).toEqual(
-				expect.arrayContaining(Array.from(SearchServiceFixtures.Docs.values()))
-			);
+			const expectedDocs = Array.from(SearchServiceFixtures.Docs.values());
+			const recvdDocs = await index.getMany(Array.from(SearchServiceFixtures.Docs.keys()));
+			for (let i = 0; i < recvdDocs.length; i++) {
+				expect(recvdDocs[i].meta.updatedAt).toBeUndefined();
+				expect(recvdDocs[i].meta.createdAt).toStrictEqual(
+					new Date(SearchServiceFixtures.GetDocs.CreatedAtSeconds * 1000)
+				);
+				expect(recvdDocs[i].document).toEqual(expectedDocs[i]);
+			}
 		});
 
 		it("gets a single document", async () => {
 			const index = await tigris.getIndex<Book>(SearchServiceFixtures.Success);
 			const result = await index.getOne("1");
-			expect(result).toEqual(SearchServiceFixtures.Docs.get("1"));
+			expect(result.document).toEqual(SearchServiceFixtures.Docs.get("1"));
+			expect(result.meta.updatedAt).toBeUndefined();
+			expect(result.meta.createdAt).toStrictEqual(
+				new Date(SearchServiceFixtures.GetDocs.CreatedAtSeconds * 1000)
+			);
 		});
 	});
 
@@ -156,9 +164,12 @@ describe("Search Indexing", () => {
 			const expectedDocs = Array.from(SearchServiceFixtures.Docs.values());
 			// for await loop the iterator
 			for await (const searchResult of maybeIterator) {
-				searchResult.hits.forEach((h: Hit<Book>) => {
+				searchResult.hits.forEach((h: IndexedDoc<Book>) => {
 					expect(expectedDocs).toContainEqual(h.document);
 					expect(h.meta.updatedAt).toBeDefined();
+					expect(h.meta.updatedAt).toStrictEqual(
+						new Date(SearchServiceFixtures.SearchDocs.UpdatedAtSeconds * 1000)
+					);
 					expect(h.meta.createdAt).toBeUndefined();
 				});
 				expect(searchResult.meta.found).toBe(5);
@@ -199,17 +210,17 @@ const bookSchema: TigrisIndexSchema<Book> = {
 	},
 };
 
-@TigrisIndex(SearchServiceFixtures.CreateIndex.Blog)
+@TigrisSearchIndex(SearchServiceFixtures.CreateIndex.Blog)
 class BlogPost {
-	@IndexField({ facet: true })
+	@SearchField({ facet: true })
 	text: string;
 
-	@IndexField({ elements: TigrisDataTypes.STRING })
+	@SearchField({ elements: TigrisDataTypes.STRING })
 	comments: Array<string>;
 
-	@IndexField()
+	@SearchField()
 	author: string;
 
-	@IndexField({ sort: true })
+	@SearchField({ sort: true })
 	createdAt: Date;
 }
