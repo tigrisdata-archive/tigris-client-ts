@@ -616,7 +616,7 @@ export enum TigrisDataTypes {
 /**
  * DB generated values for the schema fields
  */
-export enum Generated {
+export enum GeneratedField {
 	NOW = "now()",
 	CUID = "cuid()",
 	UUID = "uuid()",
@@ -632,7 +632,7 @@ export type CollectionFieldOptions = {
 	/**
 	 * Default value for the schema field
 	 */
-	default?: Generated | FieldTypes | Array<unknown> | Record<string, unknown>;
+	default?: GeneratedField | FieldTypes | Array<unknown> | Record<string, unknown>;
 
 	/**
 	 * Let DB generate values for `Date` type of fields

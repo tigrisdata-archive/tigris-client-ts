@@ -8,7 +8,5 @@ export { Field } from "./decorators/tigris-field";
 export { PrimaryKey } from "./decorators/tigris-primary-key";
 export { TigrisCollection } from "./decorators/tigris-collection";
 export { EmbeddedFieldOptions } from "./decorators/options/embedded-field-options";
-export { TigrisSearchIndex } from "./decorators/tigris-search-index";
-export { SearchField } from "./decorators/tigris-search-field";
 export { Cursor } from "./consumables/cursor";
-export { Search } from "./search/search";
+export * from "./search/index";
