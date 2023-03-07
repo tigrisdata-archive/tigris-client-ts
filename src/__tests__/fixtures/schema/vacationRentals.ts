@@ -1,5 +1,5 @@
 import { TigrisCollection } from "../../../decorators/tigris-collection";
-import { Generated, TigrisDataTypes, TigrisSchema } from "../../../types";
+import { GeneratedField, TigrisDataTypes, TigrisSchema } from "../../../types";
 import { PrimaryKey } from "../../../decorators/tigris-primary-key";
 import { Field } from "../../../decorators/tigris-field";
 
@@ -67,10 +67,10 @@ export class VacationRentals {
 	@Field({ elements: TigrisDataTypes.OBJECT, default: undefined })
 	reviews: Array<Object>;
 
-	@Field({ default: Generated.NOW })
+	@Field({ default: GeneratedField.NOW })
 	availableSince: Date;
 
-	@Field({ default: Generated.NOW, timestamp: "updatedAt" })
+	@Field({ default: GeneratedField.NOW, timestamp: "updatedAt" })
 	lastSeen: Date;
 
 	@Field({ timestamp: "createdAt" })
@@ -79,10 +79,10 @@ export class VacationRentals {
 	@Field({ timestamp: "updatedAt" })
 	lastModified: Date;
 
-	@Field({ default: Generated.CUID })
+	@Field({ default: GeneratedField.CUID })
 	partnerId: string;
 
-	@Field(TigrisDataTypes.UUID, { default: Generated.UUID })
+	@Field(TigrisDataTypes.UUID, { default: GeneratedField.UUID })
 	referralId: string;
 }
 /********************************** END **************************************/
@@ -177,11 +177,11 @@ export const VacationsRentalSchema: TigrisSchema<VacationRentals> = {
 	},
 	availableSince: {
 		type: TigrisDataTypes.DATE_TIME,
-		default: Generated.NOW,
+		default: GeneratedField.NOW,
 	},
 	lastSeen: {
 		type: TigrisDataTypes.DATE_TIME,
-		default: Generated.NOW,
+		default: GeneratedField.NOW,
 		timestamp: "updatedAt",
 	},
 	createdAt: {
@@ -194,10 +194,10 @@ export const VacationsRentalSchema: TigrisSchema<VacationRentals> = {
 	},
 	partnerId: {
 		type: TigrisDataTypes.STRING,
-		default: Generated.CUID,
+		default: GeneratedField.CUID,
 	},
 	referralId: {
 		type: TigrisDataTypes.UUID,
-		default: Generated.UUID,
+		default: GeneratedField.UUID,
 	},
 };
