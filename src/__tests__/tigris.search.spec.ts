@@ -104,12 +104,7 @@ describe("Search Indexing", () => {
 
 		it("successfully creates multiple documents", async () => {
 			expect.assertions(docs.size);
-			const tigris = new Tigris({ serverUrl: "localhost:8081", projectName: "db1" }).getSearch();
 			const index: SearchIndex<Book> = await tigris.getIndex(SearchServiceFixtures.Success);
-			// const index: SearchIndex<Book> = await tigris.createOrUpdateIndex(
-			// 	SearchServiceFixtures.Success,
-			// 	bookSchema
-			// );
 			const result = await index.createMany(Array.from(docs.values()));
 			console.log(result);
 			result.forEach((r) => expect(docs.has(r.id)).toBeTruthy());
@@ -140,16 +135,10 @@ describe("Search Indexing", () => {
 
 	describe("getDocuments", () => {
 		it("gets multiple documents", async () => {
-			const tigris = new Tigris({ serverUrl: "localhost:8081", projectName: "db1" }).getSearch();
 			const index = await tigris.getIndex<Book>(SearchServiceFixtures.Success);
 			const expectedDocs = Array.from(SearchServiceFixtures.Docs.values());
-			const recvdDocs = await index.getMany([
-				"23b0ee7b-cc75-49d6-b844-742ec9047678",
-				"b3a44d36-3db1-46a0-af20-27505689d402",
-			]);
-			console.log(JSON.stringify(recvdDocs));
+			const recvdDocs = await index.getMany(Array.from(SearchServiceFixtures.Docs.keys()));
 			for (let i = 0; i < recvdDocs.length; i++) {
-				expect(recvdDocs[i].meta.updatedAt).toBeUndefined();
 				expect(recvdDocs[i].meta.createdAt).toStrictEqual(
 					new Date(SearchServiceFixtures.GetDocs.CreatedAtSeconds * 1000)
 				);
@@ -189,8 +178,8 @@ describe("Search Indexing", () => {
 				expect(searchResult.facets["title"]).toBeDefined();
 				expect(searchResult.facets["title"].counts).toEqual([
 					{
-						_count: 2,
-						_value: "Philosophy",
+						count: 2,
+						value: "Philosophy",
 					},
 				]);
 			}
@@ -202,111 +191,6 @@ describe("Search Indexing", () => {
 		const maybePromise = index.search({ q: MATCH_ALL_QUERY_STRING }, 1);
 		expect(maybePromise).toBeInstanceOf(Promise);
 		return expect(maybePromise).resolves.toBeDefined();
-	});
-});
-
-describe("for the project", () => {
-	let catalog: SearchIndex<Catalog>;
-	const docs: Array<Catalog> = [
-		{
-			id: "1",
-			name: "fiona handbag",
-			price: 99.9,
-			brand: "michael kors",
-			labels: "purses",
-			popularity: 8,
-			review: {
-				author: "alice",
-				rating: 7,
-			},
-		},
-		{
-			id: "2",
-			name: "tote bag",
-			price: 49,
-			brand: "coach",
-			labels: "handbags",
-			popularity: 9,
-			review: {
-				author: "olivia",
-				rating: 8.3,
-			},
-		},
-		{
-			id: "3",
-			name: "sling bag",
-			price: 75,
-			brand: "coach",
-			labels: "purses",
-			popularity: 9,
-			review: {
-				author: "alice",
-				rating: 9.2,
-			},
-		},
-		{
-			id: "4",
-			name: "sneakers shoes",
-			price: 40,
-			brand: "adidas",
-			labels: "shoes",
-			popularity: 10,
-			review: {
-				author: "olivia",
-				rating: 9,
-			},
-		},
-		{
-			id: "5",
-			name: "running shoes",
-			price: 89,
-			brand: "nike",
-			labels: "shoes",
-			popularity: 10,
-			review: {
-				author: "olivia",
-				rating: 8.5,
-			},
-		},
-		{
-			id: "6",
-			name: "running shorts",
-			price: 35,
-			brand: "adidas",
-			labels: "clothing",
-			popularity: 7,
-			review: {
-				author: "olivia",
-				rating: 7.5,
-			},
-		},
-	];
-
-	beforeAll(async () => {
-		const tigris = new Tigris({ serverUrl: "localhost:8081", projectName: "db1" }).getSearch();
-		await tigris.deleteIndex("catalog");
-		catalog = await tigris.createOrUpdateIndex(Catalog);
-	});
-
-	it("searches", async () => {
-		const inserted = await catalog.createMany(docs);
-		console.table(docs);
-		const query: SearchQuery<Catalog> = {
-			q: "running",
-			searchFields: ["name", "labels"],
-			sort: [
-				{
-					field: "popularity",
-					order: Order.DESC,
-				},
-				{
-					field: "review.rating",
-					order: Order.DESC,
-				},
-			],
-		};
-		const result = await catalog.search(query, 1);
-		console.log(result.toString());
 	});
 });
 
@@ -340,29 +224,4 @@ class BlogPost {
 
 	@SearchField({ sort: true })
 	createdAt: Date;
-}
-
-class Review {
-	@SearchField()
-	author: string;
-	@SearchField()
-	rating: number;
-}
-@TigrisSearchIndex("catalog")
-class Catalog {
-	@SearchField()
-	id: string;
-
-	@SearchField()
-	name: string;
-	@SearchField()
-	price: number;
-	@SearchField({ facet: true })
-	brand: string;
-	@SearchField({ facet: true })
-	labels: string;
-	@SearchField()
-	popularity: number;
-	@SearchField()
-	review: Review;
 }

@@ -2,6 +2,8 @@
  * Generic TigrisError
  */
 export class TigrisError extends Error {
+	readonly errMsg = this.name + ": " + this.message;
+
 	constructor(message: string) {
 		super(message);
 	}
@@ -20,10 +22,6 @@ export class TigrisError extends Error {
 export class CursorInUseError extends TigrisError {
 	constructor(message = "Cursor is already in use or used. Please reset()") {
 		super(message);
-	}
-
-	override get name(): string {
-		return "CursorInUseError";
 	}
 }
 

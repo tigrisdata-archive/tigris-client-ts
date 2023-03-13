@@ -21,50 +21,31 @@ export type Facets = { [key: string]: FacetCountDistribution };
  * @typeParam T - type of Tigris collection
  */
 export class SearchResult<T> {
-	private readonly _hits: ReadonlyArray<IndexedDoc<T>>;
-	private readonly _facets: Facets;
-	private readonly _meta: SearchMeta | undefined;
+	/**
+	 * Array of matched documents
+	 * @readonly
+	 */
+	readonly hits: ReadonlyArray<IndexedDoc<T>>;
+	/**
+	 * Distribution of facets for fields included in facet query
+	 * @readonly
+	 */
+	readonly facets: Facets;
+	/**
+	 * Metadata associated with {@link SearchResult}
+	 * @readonly
+	 * @defaultValue undefined
+	 */
+	readonly meta: SearchMeta | undefined;
 
 	constructor(hits: Array<IndexedDoc<T>>, facets: Facets, meta: SearchMeta | undefined) {
-		this._hits = hits;
-		this._facets = facets;
-		this._meta = meta;
+		this.hits = hits;
+		this.facets = facets;
+		this.meta = meta;
 	}
 
 	static get empty(): SearchResult<never> {
 		return new SearchResult([], {}, SearchMeta.default);
-	}
-
-	/**
-	 * @returns matched documents as a list
-	 * @readonly
-	 */
-	get hits(): ReadonlyArray<IndexedDoc<T>> {
-		return this._hits;
-	}
-
-	/**
-	 * @returns distribution of facets for fields included in facet query
-	 * @readonly
-	 */
-	get facets(): { [key: string]: FacetCountDistribution } {
-		return this._facets;
-	}
-
-	/**
-	 * @returns metadata associated with {@link SearchResult}
-	 * @readonly
-	 * @defaultValue undefined
-	 */
-	get meta(): SearchMeta | undefined {
-		return this._meta;
-	}
-
-	/**
-	 * @override
-	 */
-	public toString(): string {
-		return JSON.stringify(this, undefined, 2);
 	}
 
 	static from<T>(
@@ -90,35 +71,20 @@ export class SearchResult<T> {
  * @typeParam T - type of Tigris collection
  */
 export class IndexedDoc<T extends TigrisCollectionType> {
-	private readonly _document: T | undefined;
-	private readonly _meta: DocMeta | undefined;
+	/**
+	 * Deserialized collection/search index document
+	 * @readonly
+	 */
+	readonly document: T | undefined;
+	/**
+	 * Relevance metadata for the matched document
+	 * @readonly
+	 */
+	readonly meta: DocMeta | undefined;
 
 	constructor(document: T, meta: DocMeta | undefined) {
-		this._document = document;
-		this._meta = meta;
-	}
-
-	/**
-	 * @returns json deserialized collection document
-	 * @readonly
-	 */
-	get document(): T | undefined {
-		return this._document;
-	}
-
-	/**
-	 * @returns relevance metadata for the matched document
-	 * @readonly
-	 */
-	get meta(): DocMeta | undefined {
-		return this._meta;
-	}
-
-	/**
-	 * @override
-	 */
-	public toString(): string {
-		return JSON.stringify(this, undefined, 2);
+		this.document = document;
+		this.meta = meta;
 	}
 
 	static from<T>(resp: ProtoSearchHit, config: TigrisClientConfig): IndexedDoc<T> {
@@ -136,44 +102,26 @@ export class IndexedDoc<T extends TigrisCollectionType> {
  * Relevance metadata for a matched document
  */
 export class DocMeta {
-	private readonly _createdAt: Date | undefined;
-	private readonly _updatedAt: Date | undefined;
-	private readonly _textMatch: TextMatchInfo | undefined;
+	/**
+	 * Time at which document was inserted/replaced to a precision of milliseconds
+	 * @readonly
+	 */
+	readonly createdAt: Date | undefined;
+	/**
+	 * Time at which document was updated to a precision of milliseconds
+	 * @readonly
+	 */
+	readonly updatedAt: Date | undefined;
+	/**
+	 * Metadata for matched fields and relevant score
+	 * @readonly
+	 */
+	readonly textMatch: TextMatchInfo | undefined;
 
 	constructor(createdAt: Date, updatedAt: Date, textMatch: TextMatchInfo) {
-		this._createdAt = createdAt;
-		this._updatedAt = updatedAt;
-		this._textMatch = textMatch;
-	}
-
-	/**
-	 * @returns time at which document was inserted/replaced to a precision of milliseconds
-	 * @readonly
-	 */
-	get createdAt(): Date | undefined {
-		return this._createdAt;
-	}
-
-	/**
-	 * @returns time at which document was updated to a precision of milliseconds
-	 * @readonly
-	 */
-	get updatedAt(): Date | undefined {
-		return this._updatedAt;
-	}
-
-	/**
-	 * @returns metadata for matched fields and relevant score
-	 */
-	get textMatch(): TextMatchInfo {
-		return this._textMatch;
-	}
-
-	/**
-	 * @override
-	 */
-	public toString(): string {
-		return JSON.stringify(this, undefined, 2);
+		this.createdAt = createdAt;
+		this.updatedAt = updatedAt;
+		this.textMatch = textMatch;
 	}
 
 	static from(resp: ProtoSearchHitMeta): DocMeta {
@@ -196,20 +144,12 @@ export class DocMeta {
  * Information about the matched document
  */
 export class TextMatchInfo {
-	private readonly _fields: ReadonlyArray<string>;
-	private readonly _score: string;
-
-	get fields(): ReadonlyArray<string> {
-		return this._fields;
-	}
-
-	get score(): string {
-		return this._score;
-	}
+	readonly fields: ReadonlyArray<string>;
+	readonly score: string;
 
 	constructor(fields: ReadonlyArray<string>, score: string) {
-		this._fields = fields;
-		this._score = score;
+		this.fields = fields;
+		this.score = score;
 	}
 
 	static from(resp: ProtoMatch): TextMatchInfo {
@@ -222,35 +162,21 @@ export class TextMatchInfo {
  * Distribution of values in a faceted field
  */
 class FacetCountDistribution {
-	private readonly _counts: ReadonlyArray<FacetCount>;
-	private readonly _stats: FacetStats | undefined;
+	/**
+	 * List of field values and their aggregated counts
+	 * @readonly
+	 */
+	readonly counts: ReadonlyArray<FacetCount>;
+
+	/**
+	 * Summary of faceted field
+	 * @readonly
+	 */
+	readonly stats: FacetStats | undefined;
 
 	constructor(counts: ReadonlyArray<FacetCount>, stats: FacetStats | undefined) {
-		this._counts = counts;
-		this._stats = stats;
-	}
-
-	/**
-	 * @returns list of field values and their aggregated counts
-	 * @readonly
-	 */
-	get counts(): ReadonlyArray<FacetCount> {
-		return this._counts;
-	}
-
-	/**
-	 * @returns summary of faceted field
-	 * @readonly
-	 */
-	get stats(): FacetStats | undefined {
-		return this._stats;
-	}
-
-	/**
-	 * @override
-	 */
-	public toString(): string {
-		return JSON.stringify(this, undefined, 2);
+		this.counts = counts;
+		this.stats = stats;
 	}
 
 	static from(resp: ProtoSearchFacet): FacetCountDistribution {
@@ -265,28 +191,20 @@ class FacetCountDistribution {
  * Aggregate count of values in a faceted field
  */
 export class FacetCount {
-	private readonly _value: string;
-	private readonly _count: number;
+	/**
+	 * Field's attribute value
+	 * @readonly
+	 */
+	readonly value: string;
+	/**
+	 * Count of field values in the search results
+	 * @readonly
+	 */
+	readonly count: number;
 
 	constructor(value: string, count: number) {
-		this._value = value;
-		this._count = count;
-	}
-
-	/**
-	 * @returns field's attribute value
-	 * @readonly
-	 */
-	get value(): string {
-		return this._value;
-	}
-
-	/**
-	 * @returns count of field values in the search results
-	 * @readonly
-	 */
-	get count(): number {
-		return this._count;
+		this.value = value;
+		this.count = count;
 	}
 
 	static from(resp: ProtoFacetCount): FacetCount {
@@ -298,70 +216,50 @@ export class FacetCount {
  * Summary of field values in a faceted field
  */
 export class FacetStats {
-	private readonly _avg: number;
-	private readonly _count: number;
-	private readonly _max: number;
-	private readonly _min: number;
-	private readonly _sum: number;
-
-	constructor(avg: number, count: number, max: number, min: number, sum: number) {
-		this._avg = avg;
-		this._count = count;
-		this._max = max;
-		this._min = min;
-		this._sum = sum;
-	}
-
 	/**
 	 * Only for numeric fields. Average of values in a numeric field
 	 *
-	 * @returns average of values in a numeric field
 	 * @defaultValue `0`
 	 * @readonly
 	 */
-	get avg(): number {
-		return this._avg;
-	}
+	readonly avg: number;
 
 	/**
-	 * @returns Count of values in a faceted field
+	 * Count of values in a faceted field
 	 * @readonly
 	 */
-	get count(): number {
-		return this._count;
-	}
+	readonly count: number;
 
 	/**
-	 * Only for numeric fields. Maximum value in a numeric field
+	 * Only for numeric fields. Maximum value in a numeric field.
 	 *
-	 * @returns maximum value in a numeric field
 	 * @defaultValue `0`
 	 * @readonly
 	 */
-	get max(): number {
-		return this._max;
-	}
+	readonly max: number;
 
 	/**
-	 * Only for numeric fields. Minimum value in a numeric field
+	 * Only for numeric fields. Minimum value in a numeric field.
 	 *
-	 * @returns minimum value in a numeric field
 	 * @defaultValue `0`
 	 * @readonly
 	 */
-	get min(): number {
-		return this._min;
-	}
+	readonly min: number;
 
 	/**
-	 * Only for numeric fields. Sum of numeric values in the field
+	 * Only for numeric fields. Sum of numeric values in the field.
 	 *
-	 * @returns sum of numeric values in the field
 	 * @defaultValue `0`
 	 * @readonly
 	 */
-	get sum(): number {
-		return this._sum;
+	readonly sum: number;
+
+	constructor(avg: number, count: number, max: number, min: number, sum: number) {
+		this.avg = avg;
+		this.count = count;
+		this.max = max;
+		this.min = min;
+		this.sum = sum;
 	}
 
 	static from(resp: ProtoFacetStats): FacetStats {
@@ -379,48 +277,35 @@ export class FacetStats {
  * Metadata associated with search results
  */
 export class SearchMeta {
-	private readonly _found: number;
-	private readonly _totalPages: number;
-	private readonly _page: Page;
-	private readonly _matchedFields: ReadonlyArray<string>;
+	/**
+	 * Total number of matched hits for search query
+	 * @readonly
+	 */
+	readonly found: number;
+
+	/**
+	 * Total number of pages of search results
+	 * @readonly
+	 */
+	readonly totalPages: number;
+
+	/**
+	 * Current page information
+	 * @readonly
+	 */
+	readonly page: Page;
+
+	/**
+	 * List of document fields matching the given input
+	 * @readonly
+	 */
+	readonly matchedFields: ReadonlyArray<string>;
 
 	constructor(found: number, totalPages: number, page: Page, matchedFields: Array<string>) {
-		this._found = found;
-		this._totalPages = totalPages;
-		this._page = page;
-		this._matchedFields = matchedFields;
-	}
-
-	/**
-	 * @returns total number of matched hits for search query
-	 * @readonly
-	 */
-	get found(): number {
-		return this._found;
-	}
-
-	/**
-	 * @returns total number of pages of search results
-	 * @readonly
-	 */
-	get totalPages(): number {
-		return this._totalPages;
-	}
-
-	/**
-	 * @returns current page information
-	 * @readonly
-	 */
-	get page(): Page {
-		return this._page;
-	}
-
-	/**
-	 * @returns List of document fields matching the given input
-	 * @readonly
-	 */
-	get matchedFields(): ReadonlyArray<string> {
-		return this._matchedFields;
+		this.found = found;
+		this.totalPages = totalPages;
+		this.page = page;
+		this.matchedFields = matchedFields;
 	}
 
 	static from(resp: ProtoSearchMetadata): SearchMeta {
@@ -443,28 +328,21 @@ export class SearchMeta {
  * Pagination metadata associated with search results
  */
 export class Page {
-	private readonly _current;
-	private readonly _size;
+	/**
+	 * Current page number for the paginated search results
+	 * @readonly
+	 */
+	readonly current;
+
+	/**
+	 * Maximum number of search results included per page
+	 * @readonly
+	 */
+	readonly size;
 
 	constructor(current, size) {
-		this._current = current;
-		this._size = size;
-	}
-
-	/**
-	 * @returns current page number for the paginated search results
-	 * @readonly
-	 */
-	get current() {
-		return this._current;
-	}
-
-	/**
-	 * @returns maximum number of search results included per page
-	 * @readonly
-	 */
-	get size() {
-		return this._size;
+		this.current = current;
+		this.size = size;
 	}
 
 	static from(resp: ProtoSearchPage): Page {

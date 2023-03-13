@@ -66,12 +66,12 @@ export class DeleteIndexResponse implements TigrisResponse {
 }
 
 export class DocStatus {
-	private readonly _id: string;
-	private readonly _error?: TigrisError;
+	readonly id: string;
+	readonly error?: TigrisError;
 
 	constructor(id: string, error: TigrisError) {
-		this._id = id;
-		this._error = error;
+		this.id = id;
+		this.error = error;
 	}
 
 	static from(protoStatus: ProtoDocStatus): DocStatus {
@@ -79,13 +79,5 @@ export class DocStatus {
 			? new TigrisError(protoStatus.getError().getMessage())
 			: undefined;
 		return new this(protoStatus.getId(), err);
-	}
-
-	get id(): string {
-		return this._id;
-	}
-
-	get error(): TigrisError {
-		return this._error;
 	}
 }
