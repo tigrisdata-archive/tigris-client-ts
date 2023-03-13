@@ -60,6 +60,13 @@ export class SearchResult<T> {
 		return this._meta;
 	}
 
+	/**
+	 * @override
+	 */
+	public toString(): string {
+		return JSON.stringify(this, undefined, 2);
+	}
+
 	static from<T>(
 		resp: ProtoSearchResponse | ProtoSearchIndexResponse,
 		config: TigrisClientConfig
@@ -83,7 +90,7 @@ export class SearchResult<T> {
  * @typeParam T - type of Tigris collection
  */
 export class IndexedDoc<T extends TigrisCollectionType> {
-	private readonly _document: T;
+	private readonly _document: T | undefined;
 	private readonly _meta: DocMeta | undefined;
 
 	constructor(document: T, meta: DocMeta | undefined) {
@@ -95,7 +102,7 @@ export class IndexedDoc<T extends TigrisCollectionType> {
 	 * @returns json deserialized collection document
 	 * @readonly
 	 */
-	get document(): T {
+	get document(): T | undefined {
 		return this._document;
 	}
 
@@ -107,8 +114,18 @@ export class IndexedDoc<T extends TigrisCollectionType> {
 		return this._meta;
 	}
 
+	/**
+	 * @override
+	 */
+	public toString(): string {
+		return JSON.stringify(this, undefined, 2);
+	}
+
 	static from<T>(resp: ProtoSearchHit, config: TigrisClientConfig): IndexedDoc<T> {
 		const docAsB64 = resp.getData_asB64();
+		if (!docAsB64) {
+			return new IndexedDoc<T>(undefined, undefined);
+		}
 		const document = Utility.jsonStringToObj<T>(Utility._base64Decode(docAsB64), config);
 		const meta = resp.hasMetadata() ? DocMeta.from(resp.getMetadata()) : undefined;
 		return new IndexedDoc<T>(document, meta);
@@ -150,6 +167,13 @@ export class DocMeta {
 	 */
 	get textMatch(): TextMatchInfo {
 		return this._textMatch;
+	}
+
+	/**
+	 * @override
+	 */
+	public toString(): string {
+		return JSON.stringify(this, undefined, 2);
 	}
 
 	static from(resp: ProtoSearchHitMeta): DocMeta {
@@ -220,6 +244,13 @@ class FacetCountDistribution {
 	 */
 	get stats(): FacetStats | undefined {
 		return this._stats;
+	}
+
+	/**
+	 * @override
+	 */
+	public toString(): string {
+		return JSON.stringify(this, undefined, 2);
 	}
 
 	static from(resp: ProtoSearchFacet): FacetCountDistribution {
