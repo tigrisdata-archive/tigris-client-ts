@@ -85,6 +85,17 @@ describe("utility tests", () => {
 		const branch = "my_test_branch";
 		const collectionName = "my_test_collection";
 
+		it("sets query string to match all if not provided", () => {
+			const emptyRequest = {};
+			const generated = Utility.createProtoSearchRequest(
+				dbName,
+				branch,
+				collectionName,
+				emptyRequest
+			);
+			expect(generated.getQ()).toBe("");
+		});
+
 		it("populates projectName and collection name", () => {
 			const emptyRequest = { q: "" };
 			const generated = Utility.createProtoSearchRequest(

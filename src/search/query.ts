@@ -9,7 +9,7 @@ export interface SearchQuery<T extends TigrisCollectionType> {
 	/**
 	 * Text to match
 	 */
-	q: string;
+	q?: string;
 	/**
 	 * Fields to project search query on
 	 */
