@@ -1,5 +1,5 @@
 import { Utility } from "../utility";
-import { Order, SelectorFilterOperator, SortOrder } from "../types";
+import { SelectorFilterOperator, SortOrder } from "../types";
 import {
 	Case,
 	FacetFieldOptions,
@@ -74,16 +74,12 @@ describe("utility tests", () => {
 		[
 			"multiple sort fields",
 			[
-				{ field: "name", order: Order.ASC },
-				{ field: "address.street", order: Order.DESC },
+				{ field: "name", order: "$asc" },
+				{ field: "address.street", order: "$desc" },
 			],
 			'[{"name":"$asc"},{"address.street":"$desc"}]',
 		],
-		[
-			"single sort field",
-			{ field: "address.city", order: Order.DESC },
-			'[{"address.city":"$desc"}]',
-		],
+		["single sort field", { field: "address.city", order: "$desc" }, '[{"address.city":"$desc"}]'],
 		["empty array", [], "[]"],
 	])("_sortOrderingToString() with '%s'", (testName, input, expected: string) => {
 		expect(Utility._sortOrderingToString(input)).toBe(expected);
@@ -139,7 +135,7 @@ describe("utility tests", () => {
 
 		it("sets sort order", () => {
 			const query: SearchQuery<Student> = {
-				sort: { field: "balance", order: Order.DESC },
+				sort: { field: "balance", order: "$desc" },
 			};
 			Utility.protoSearchRequestFromQuery(query, request);
 

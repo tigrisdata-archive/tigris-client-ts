@@ -507,20 +507,12 @@ export type SortOrder<T> = SortField<T> | Array<SortField<T>>;
  */
 export type SortField<T> = {
 	field: Paths<T>;
-	order: Order;
+
+	/**
+	 * Ascending or Descending order
+	 */
+	order: "$asc" | "$desc";
 };
-
-export enum Order {
-	/**
-	 * Ascending order
-	 */
-	ASC = "$asc",
-
-	/**
-	 * Descending order
-	 */
-	DESC = "$desc",
-}
 
 /**
  * Query builder for reading documents from a collection
