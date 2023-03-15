@@ -25,7 +25,7 @@ export interface SearchQuery<T extends TigrisCollectionType> {
 	/**
 	 * Sort the search results in indicated order
 	 */
-	sort?: SortOrder;
+	sort?: SortOrder<T>;
 	/**
 	 * Document fields to include when returning search results
 	 */

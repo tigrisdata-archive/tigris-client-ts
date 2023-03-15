@@ -500,13 +500,13 @@ export type UpdateFields<T> =
 /**
  * List of fields and their corresponding sort order to order the search results.
  */
-export type SortOrder = SortField | Array<SortField>;
+export type SortOrder<T> = SortField<T> | Array<SortField<T>>;
 
 /**
  * Collection field name and sort order
  */
-export type SortField = {
-	field: string;
+export type SortField<T> = {
+	field: Paths<T>;
 	order: Order;
 };
 
@@ -541,7 +541,7 @@ export interface FindQuery<T> {
 	/**
 	 * Sort the query results as per indicated order
 	 */
-	sort?: SortOrder;
+	sort?: SortOrder<T>;
 
 	/**
 	 * Optional params

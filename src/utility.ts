@@ -556,7 +556,7 @@ export const Utility = {
 		}
 	},
 
-	_sortOrderingToString(ordering: SortOrder): string {
+	_sortOrderingToString<T>(ordering: SortOrder<T>): string {
 		if (typeof ordering === "undefined") {
 			return "[]";
 		}

@@ -1,5 +1,5 @@
 import { Utility } from "../utility";
-import { LogicalOperator, Order, SelectorFilterOperator } from "../types";
+import { Order, SelectorFilterOperator, SortOrder } from "../types";
 import {
 	Case,
 	FacetFieldOptions,
@@ -13,7 +13,6 @@ import {
 import { SearchRequest as ProtoSearchRequest } from "../proto/server/v1/api_pb";
 import { TigrisCollection } from "../decorators/tigris-collection";
 import { PrimaryKey } from "../decorators/tigris-primary-key";
-import * as stream from "stream";
 import { Field } from "../decorators/tigris-field";
 
 describe("utility tests", () => {
@@ -70,19 +69,23 @@ describe("utility tests", () => {
 		expect(serializedFields).toBe(Utility.facetQueryToString(facetWithOptions));
 	});
 
-	it.each([
+	it.each<[string, SortOrder<Student>, string]>([
 		["undefined", undefined, "[]"],
 		[
 			"multiple sort fields",
 			[
-				{ field: "field_1", order: Order.ASC },
-				{ field: "parent.field_2", order: Order.DESC },
+				{ field: "name", order: Order.ASC },
+				{ field: "address.street", order: Order.DESC },
 			],
-			'[{"field_1":"$asc"},{"parent.field_2":"$desc"}]',
+			'[{"name":"$asc"},{"address.street":"$desc"}]',
 		],
-		["single sort field", { field: "field_3", order: Order.DESC }, '[{"field_3":"$desc"}]'],
+		[
+			"single sort field",
+			{ field: "address.city", order: Order.DESC },
+			'[{"address.city":"$desc"}]',
+		],
 		["empty array", [], "[]"],
-	])("_sortOrderingToString() with '%s'", (testName, input, expected) => {
+	])("_sortOrderingToString() with '%s'", (testName, input, expected: string) => {
 		expect(Utility._sortOrderingToString(input)).toBe(expected);
 	});
 
@@ -136,11 +139,11 @@ describe("utility tests", () => {
 
 		it("sets sort order", () => {
 			const query: SearchQuery<Student> = {
-				sort: { field: "field_1", order: Order.DESC },
+				sort: { field: "balance", order: Order.DESC },
 			};
 			Utility.protoSearchRequestFromQuery(query, request);
 
-			expect(request.getSort()).toEqual(Utility.stringToUint8Array('[{"field_1":"$desc"}]'));
+			expect(request.getSort()).toEqual(Utility.stringToUint8Array('[{"balance":"$desc"}]'));
 		});
 
 		it("sets includeFields", () => {
