@@ -486,14 +486,10 @@ export type ReadFields = {
 	exclude?: Array<string>;
 };
 
-type DocumentFields<T, V> = Partial<{
-	[K in Paths<T>]: V;
-}>;
-
 export type UpdateFields<T> =
 	| {
 			$set?: DocumentFields<T, FieldTypes | undefined>;
-			$unset?: Partial<Paths<T>>[];
+			$unset?: DocumentPaths<T>;
 			$increment?: DocumentFields<T, NumericType>;
 			$decrement?: DocumentFields<T, NumericType>;
 			$multiply?: DocumentFields<T, NumericType>;
@@ -698,6 +694,12 @@ type PathType<T, P extends string> = P extends keyof T
 		? PathType<T[L], R>
 		: never
 	: never;
+
+export type DocumentFields<T, V> = Partial<{
+	[K in Paths<T>]: V;
+}>;
+
+export type DocumentPaths<T> = Partial<Paths<T>>[];
 
 export type Selector<T> = Partial<{
 	[K in Paths<T>]: Partial<PathType<T, K & string>>;

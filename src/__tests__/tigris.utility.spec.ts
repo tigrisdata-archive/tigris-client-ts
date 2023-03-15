@@ -1,5 +1,5 @@
 import { Utility } from "../utility";
-import { Order } from "../types";
+import { LogicalOperator, Order, SelectorFilterOperator } from "../types";
 import {
 	Case,
 	FacetFieldOptions,
@@ -7,8 +7,10 @@ import {
 	FacetFieldsQuery,
 	FacetQueryFieldType,
 	MATCH_ALL_QUERY_STRING,
+	SearchQuery,
 	SearchQueryOptions,
 } from "../search";
+import { SearchRequest as ProtoSearchRequest } from "../proto/server/v1/api_pb";
 import { TigrisCollection } from "../decorators/tigris-collection";
 import { PrimaryKey } from "../decorators/tigris-primary-key";
 import * as stream from "stream";
@@ -85,38 +87,87 @@ describe("utility tests", () => {
 	});
 
 	describe("createProtoSearchRequest", () => {
-		const dbName = "my_test_db";
-		const branch = "my_test_branch";
-		const collectionName = "my_test_collection";
-
-		it("sets query string to match all if not provided", () => {
-			const emptyRequest = {};
-			const generated = Utility.createProtoSearchRequest(
-				dbName,
-				branch,
-				collectionName,
-				emptyRequest
-			);
-			expect(generated.getQ()).toBe("");
+		let request: ProtoSearchRequest;
+		beforeEach(() => {
+			request = new ProtoSearchRequest();
 		});
 
-		it("populates projectName and collection name", () => {
-			const emptyRequest = { q: "" };
-			const generated = Utility.createProtoSearchRequest(
-				dbName,
-				branch,
-				collectionName,
-				emptyRequest
-			);
-			expect(generated.getProject()).toBe(dbName);
-			expect(generated.getBranch()).toBe(branch);
-			expect(generated.getCollection()).toBe(collectionName);
+		it("creates default match all search request", () => {
+			const query = {};
+			Utility.protoSearchRequestFromQuery(query, request);
+			expect(request.getQ()).toBe(MATCH_ALL_QUERY_STRING);
+			expect(request.getSearchFieldsList()).toEqual([]);
+			expect(request.getFilter()).toBe("");
+			expect(request.getFacet()).toBe("");
+			expect(request.getSort()).toBe("");
+			expect(request.getIncludeFieldsList()).toEqual([]);
+			expect(request.getExcludeFieldsList()).toEqual([]);
+			expect(request.getPage()).toBe(0);
+			expect(request.getPageSize()).toBe(0);
+			expect(request.getCollation()).toBeUndefined();
 		});
 
-		it("creates default match all query string", () => {
-			const request = { q: undefined };
-			const generated = Utility.createProtoSearchRequest(dbName, branch, collectionName, request);
-			expect(generated.getQ()).toBe(MATCH_ALL_QUERY_STRING);
+		it("sets searchFields", () => {
+			const query: SearchQuery<Student> = { searchFields: ["name", "address.street"] };
+			Utility.protoSearchRequestFromQuery(query, request);
+
+			expect(request.getSearchFieldsList()).toEqual(["name", "address.street"]);
+		});
+
+		it("sets filter", () => {
+			const query: SearchQuery<Student> = {
+				filter: { op: SelectorFilterOperator.GT, fields: { balance: 25 } },
+			};
+			Utility.protoSearchRequestFromQuery(query, request);
+
+			expect(request.getFilter()).toEqual(Utility.stringToUint8Array('{"balance":{"$gt":25}}'));
+		});
+
+		it("sets facets", () => {
+			const query: SearchQuery<Student> = {
+				facets: ["address.city"],
+			};
+			Utility.protoSearchRequestFromQuery(query, request);
+
+			expect(request.getFacet()).toEqual(
+				Utility.stringToUint8Array('{"address.city":{"size":10,"type":"value"}}')
+			);
+		});
+
+		it("sets sort order", () => {
+			const query: SearchQuery<Student> = {
+				sort: { field: "field_1", order: Order.DESC },
+			};
+			Utility.protoSearchRequestFromQuery(query, request);
+
+			expect(request.getSort()).toEqual(Utility.stringToUint8Array('[{"field_1":"$desc"}]'));
+		});
+
+		it("sets includeFields", () => {
+			const query: SearchQuery<Student> = { includeFields: ["name", "address.street"] };
+			Utility.protoSearchRequestFromQuery(query, request);
+
+			expect(request.getIncludeFieldsList()).toEqual(["name", "address.street"]);
+		});
+
+		it("sets excludeFields", () => {
+			const query: SearchQuery<Student> = { excludeFields: ["name", "address.street"] };
+			Utility.protoSearchRequestFromQuery(query, request);
+
+			expect(request.getExcludeFieldsList()).toEqual(["name", "address.street"]);
+		});
+
+		it("sets hitsPerPage", () => {
+			const query: SearchQuery<Student> = { hitsPerPage: 57 };
+			Utility.protoSearchRequestFromQuery(query, request);
+
+			expect(request.getPageSize()).toEqual(57);
+		});
+
+		it("sets page", () => {
+			Utility.protoSearchRequestFromQuery({}, request, 3);
+
+			expect(request.getPage()).toEqual(3);
 		});
 
 		it("sets collation options", () => {
@@ -125,81 +176,77 @@ describe("utility tests", () => {
 					case: Case.CaseInsensitive,
 				},
 			};
-			const emptyRequest = { q: "", options: options };
-			const generated = Utility.createProtoSearchRequest(
-				dbName,
-				branch,
-				collectionName,
-				emptyRequest
-			);
-			expect(generated.getPage()).toBe(0);
-			expect(generated.getPageSize()).toBe(0);
-			expect(generated.getCollation().getCase()).toBe("ci");
+			const optionsQuery = { q: "", options: options };
+			Utility.protoSearchRequestFromQuery(optionsQuery, request);
+
+			expect(request.getPage()).toBe(0);
+			expect(request.getPageSize()).toBe(0);
+			expect(request.getCollation().getCase()).toBe("ci");
+		});
+	});
+
+	const nerfingTestCases = [
+		["main/fork", "main_fork"],
+		["main-fork", "main-fork"],
+		["main?fork", "main?fork"],
+		["sTaging21", "sTaging21"],
+		["hotfix/jira-23$4", "hotfix_jira-23$4"],
+		["", ""],
+		["release", "release"],
+		["zero ops", "zero_ops"],
+		["under_score", "under_score"],
+		["bot/fork1.2#server/main_beta new", "bot_fork1.2_server_main_beta_new"],
+	];
+
+	test.each(nerfingTestCases)("nerfs the name - '%s'", (original, nerfed) => {
+		expect(Utility.nerfGitBranchName(original)).toBe(nerfed);
+	});
+
+	describe("character encoding", () => {
+		it("read back data into utf-8", () => {
+			expect(Utility._base64Decode("4KSo4KSu4KS44KWN4KSk4KWH")).toBe("नमस्ते");
+			expect(Utility._base64Decode("0L/RgNC40LLQtdGC")).toBe("привет");
+			expect(Utility._base64Decode("44GT44KT44Gr44Gh44Gv")).toBe("こんにちは");
+			expect(Utility._base64Decode("7JWI64WV7ZWY7IS47JqU")).toBe("안녕하세요");
+			expect(Utility._base64Decode("8J+Zjw==")).toBe("🙏");
+			expect(Utility._base64Decode("8J+YgQ==")).toBe("😁");
+		});
+	});
+
+	describe("get branch name from environment", () => {
+		const OLD_ENV = Object.assign({}, process.env);
+
+		beforeEach(() => {
+			jest.resetModules();
 		});
 
-		const nerfingTestCases = [
-			["main/fork", "main_fork"],
-			["main-fork", "main-fork"],
-			["main?fork", "main?fork"],
-			["sTaging21", "sTaging21"],
-			["hotfix/jira-23$4", "hotfix_jira-23$4"],
+		afterEach(() => {
+			process.env = OLD_ENV;
+		});
+
+		it.each([
+			["preview_${GIT_BRANCH}", "GIT_BRANCH", "feature_1", "preview_feature_1"],
+			["staging", undefined, undefined, "staging"],
+			["integration_${MY_VAR}_auto", undefined, undefined, undefined],
+			["integration_${MY_VAR}_auto", "NOT_SET", "feature_2", undefined],
+			["${MY_GIT_BRANCH}", "MY_GIT_BRANCH", "jira/1234", "jira_1234"],
+			["${MY_GIT_BRANCH", "MY_GIT_BRANCH", "jira/1234", "${MY_GIT_BRANCH"],
+			[undefined, undefined, undefined, undefined],
+		])("envVar - '%s'", (branchEnvValue, templateEnvKey, templateEnvValue, expected) => {
+			process.env["TIGRIS_DB_BRANCH"] = branchEnvValue;
+			if (templateEnvKey) {
+				process.env[templateEnvKey] = templateEnvValue;
+			}
+			expect(Utility.branchNameFromEnv()).toEqual(expected);
+		});
+
+		it.each([
+			["any_given_branch", "any_given_branch"],
 			["", ""],
-			["release", "release"],
-			["zero ops", "zero_ops"],
-			["under_score", "under_score"],
-			["bot/fork1.2#server/main_beta new", "bot_fork1.2_server_main_beta_new"],
-		];
-
-		test.each(nerfingTestCases)("nerfs the name - '%s'", (original, nerfed) => {
-			expect(Utility.nerfGitBranchName(original)).toBe(nerfed);
-		});
-
-		describe("character encoding", () => {
-			it("read back data into utf-8", () => {
-				expect(Utility._base64Decode("4KSo4KSu4KS44KWN4KSk4KWH")).toBe("नमस्ते");
-				expect(Utility._base64Decode("0L/RgNC40LLQtdGC")).toBe("привет");
-				expect(Utility._base64Decode("44GT44KT44Gr44Gh44Gv")).toBe("こんにちは");
-				expect(Utility._base64Decode("7JWI64WV7ZWY7IS47JqU")).toBe("안녕하세요");
-				expect(Utility._base64Decode("8J+Zjw==")).toBe("🙏");
-				expect(Utility._base64Decode("8J+YgQ==")).toBe("😁");
-			});
-		});
-
-		describe("get branch name from environment", () => {
-			const OLD_ENV = Object.assign({}, process.env);
-
-			beforeEach(() => {
-				jest.resetModules();
-			});
-
-			afterEach(() => {
-				process.env = OLD_ENV;
-			});
-
-			it.each([
-				["preview_${GIT_BRANCH}", "GIT_BRANCH", "feature_1", "preview_feature_1"],
-				["staging", undefined, undefined, "staging"],
-				["integration_${MY_VAR}_auto", undefined, undefined, undefined],
-				["integration_${MY_VAR}_auto", "NOT_SET", "feature_2", undefined],
-				["${MY_GIT_BRANCH}", "MY_GIT_BRANCH", "jira/1234", "jira_1234"],
-				["${MY_GIT_BRANCH", "MY_GIT_BRANCH", "jira/1234", "${MY_GIT_BRANCH"],
-				[undefined, undefined, undefined, undefined],
-			])("envVar - '%s'", (branchEnvValue, templateEnvKey, templateEnvValue, expected) => {
-				process.env["TIGRIS_DB_BRANCH"] = branchEnvValue;
-				if (templateEnvKey) {
-					process.env[templateEnvKey] = templateEnvValue;
-				}
-				expect(Utility.branchNameFromEnv()).toEqual(expected);
-			});
-
-			it.each([
-				["any_given_branch", "any_given_branch"],
-				["", ""],
-				[undefined, undefined],
-			])("given branch - '%s'", (givenBranch, expected) => {
-				const actual = Utility.branchNameFromEnv(givenBranch);
-				expect(actual).toBe(expected);
-			});
+			[undefined, undefined],
+		])("given branch - '%s'", (givenBranch, expected) => {
+			const actual = Utility.branchNameFromEnv(givenBranch);
+			expect(actual).toBe(expected);
 		});
 	});
 });

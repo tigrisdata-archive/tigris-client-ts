@@ -18,6 +18,7 @@ import {
 	TigrisSchema,
 	UpdateFields,
 	UpdateQueryOptions,
+	DocumentPaths,
 } from "./types";
 import * as fs from "node:fs";
 import {
@@ -27,6 +28,7 @@ import {
 	SearchRequest as ProtoSearchRequest,
 	UpdateRequestOptions as ProtoUpdateRequestOptions,
 } from "./proto/server/v1/api_pb";
+import { SearchIndexRequest as ProtoSearchIndexRequest } from "./proto/server/v1/search_pb";
 import { TigrisClientConfig } from "./tigris";
 import {
 	FacetFieldsQuery,
@@ -558,21 +560,19 @@ export const Utility = {
 		return this.objToJsonString(sortOrders);
 	},
 
-	createProtoSearchRequest<T>(
-		dbName: string,
-		branch: string,
-		collectionName: string,
+	serializeDocumentPaths<T>(paths: DocumentPaths<T>): Array<string> {
+		return paths.map((p) => p.toString());
+	},
+
+	protoSearchRequestFromQuery<T>(
 		query: SearchQuery<T>,
+		searchRequest: ProtoSearchRequest | ProtoSearchIndexRequest,
 		page?: number
-	): ProtoSearchRequest {
-		const searchRequest = new ProtoSearchRequest()
-			.setProject(dbName)
-			.setBranch(branch)
-			.setCollection(collectionName)
-			.setQ(query.q ?? MATCH_ALL_QUERY_STRING);
+	) {
+		searchRequest.setQ(query.q ?? MATCH_ALL_QUERY_STRING);
 
 		if (query.searchFields !== undefined) {
-			searchRequest.setSearchFieldsList(query.searchFields);
+			searchRequest.setSearchFieldsList(this.serializeDocumentPaths(query.searchFields));
 		}
 
 		if (query.filter !== undefined) {
@@ -588,11 +588,11 @@ export const Utility = {
 		}
 
 		if (query.includeFields !== undefined) {
-			searchRequest.setIncludeFieldsList(query.includeFields);
+			searchRequest.setIncludeFieldsList(this.serializeDocumentPaths(query.includeFields));
 		}
 
 		if (query.excludeFields !== undefined) {
-			searchRequest.setExcludeFieldsList(query.excludeFields);
+			searchRequest.setExcludeFieldsList(this.serializeDocumentPaths(query.excludeFields));
 		}
 
 		if (query.hitsPerPage !== undefined) {
@@ -606,7 +606,5 @@ export const Utility = {
 		if (page !== undefined) {
 			searchRequest.setPage(page);
 		}
-
-		return searchRequest;
 	},
 };
