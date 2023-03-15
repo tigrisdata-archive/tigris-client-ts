@@ -1,19 +1,18 @@
-import { LogicalOperator, Order, SelectorFilterOperator, TigrisDataTypes } from "../types";
+import { TigrisDataTypes } from "../types";
 import { Tigris } from "../tigris";
 import { Status } from "../constants";
 import {
 	IndexedDoc,
 	MATCH_ALL_QUERY_STRING,
+	Search,
 	SearchIndex,
 	SearchIterator,
-	SearchQuery,
 	TigrisIndexSchema,
 	TigrisIndexType,
 } from "../search";
 import { Server, ServerCredentials } from "@grpc/grpc-js";
 import TestSearchService, { SearchServiceFixtures } from "./test-search-service";
 import { SearchService } from "../proto/server/v1/search_grpc_pb";
-import { Search } from "../search";
 import { SearchField } from "../decorators/tigris-search-field";
 import { TigrisSearchIndex } from "../decorators/tigris-search-index";
 
