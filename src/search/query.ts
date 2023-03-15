@@ -1,4 +1,4 @@
-import { Filter, SortOrder, TigrisCollectionType } from "../types";
+import { Filter, Paths, SortOrder, TigrisCollectionType } from "../types";
 
 export const MATCH_ALL_QUERY_STRING = "";
 
@@ -21,7 +21,7 @@ export interface SearchQuery<T extends TigrisCollectionType> {
 	/**
 	 * Facet fields to categorically arrange indexed terms
 	 */
-	facets?: FacetFieldsQuery;
+	facets?: FacetFieldsQuery<T>;
 	/**
 	 * Sort the search results in indicated order
 	 */
@@ -55,19 +55,19 @@ export interface SearchQueryOptions {
 	collation?: Collation;
 }
 
-export type FacetFieldsQuery = FacetFieldOptions | FacetFields;
+export type FacetFieldsQuery<T> = FacetFieldOptions<T> | FacetFields<T>;
 
 /**
  * Map of collection field names and faceting options to include facet results in search response
  */
-export type FacetFieldOptions = {
-	[key: string]: FacetQueryOptions;
-};
+export type FacetFieldOptions<T> = Partial<{
+	[K in Paths<T>]: FacetQueryOptions;
+}>;
 
 /**
  * Array of field names to include facet results for in search response
  */
-export type FacetFields = Array<string>;
+export type FacetFields<T> = Partial<Paths<T>>[];
 
 /**
  * Information to build facets in search results

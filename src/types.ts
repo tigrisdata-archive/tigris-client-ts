@@ -678,7 +678,7 @@ export type PrimaryKeyOptions = {
  * and Paths<IUser> will make these keys available name, id, address (object type) and also in the
  * string form "name", "id", "address.city", "address.state"
  */
-type Paths<T, P extends string = ""> = {
+export type Paths<T, P extends string = ""> = {
 	[K in keyof T]: T[K] extends object
 		? T[K] extends unknown[]
 			? `${P}${K & string}`

@@ -9,6 +9,10 @@ import {
 	MATCH_ALL_QUERY_STRING,
 	SearchQueryOptions,
 } from "../search";
+import { TigrisCollection } from "../decorators/tigris-collection";
+import { PrimaryKey } from "../decorators/tigris-primary-key";
+import * as stream from "stream";
+import { Field } from "../decorators/tigris-field";
 
 describe("utility tests", () => {
 	it("base64encode", () => {
@@ -36,32 +40,32 @@ describe("utility tests", () => {
 	});
 
 	it("serializes FacetFields to string", () => {
-		const fields: FacetFields = ["field_1", "field_2"];
+		const fields: FacetFields<Student> = ["balance", "address.city"];
 		const serialized: string = Utility.facetQueryToString(fields);
 		expect(serialized).toBe(
-			'{"field_1":{"size":10,"type":"value"},"field_2":{"size":10,"type":"value"}}'
+			'{"balance":{"size":10,"type":"value"},"address.city":{"size":10,"type":"value"}}'
 		);
 	});
 
 	it("serializes FacetFieldOptions to string", () => {
-		const fields: FacetFieldOptions = {
-			field_1: Utility.createFacetQueryOptions(),
-			field_2: { size: 10, type: FacetQueryFieldType.VALUE },
+		const fields: FacetFieldOptions<Student> = {
+			name: Utility.createFacetQueryOptions(),
+			"address.street": { size: 10, type: FacetQueryFieldType.VALUE },
 		};
 		const serialized: string = Utility.facetQueryToString(fields);
 		expect(serialized).toBe(
-			'{"field_1":{"size":10,"type":"value"},"field_2":{"size":10,"type":"value"}}'
+			'{"name":{"size":10,"type":"value"},"address.street":{"size":10,"type":"value"}}'
 		);
 	});
 
 	it("equivalent serialization of FacetFieldsQuery", () => {
-		const facetFields: FacetFieldsQuery = ["field_1", "field_2"];
-		const fieldOptions: FacetFieldsQuery = {
-			field_1: Utility.createFacetQueryOptions(),
-			field_2: { size: 10, type: FacetQueryFieldType.VALUE },
+		const facetFields: FacetFieldsQuery<Student> = ["name", "address.street"];
+		const facetWithOptions: FacetFieldsQuery<Student> = {
+			name: Utility.createFacetQueryOptions(),
+			"address.street": { size: 10, type: FacetQueryFieldType.VALUE },
 		};
 		const serializedFields = Utility.facetQueryToString(facetFields);
-		expect(serializedFields).toBe(Utility.facetQueryToString(fieldOptions));
+		expect(serializedFields).toBe(Utility.facetQueryToString(facetWithOptions));
 	});
 
 	it.each([
@@ -199,3 +203,26 @@ describe("utility tests", () => {
 		});
 	});
 });
+
+class Address {
+	@Field()
+	street: string;
+
+	@Field()
+	city: string;
+}
+
+@TigrisCollection("students")
+class Student {
+	@PrimaryKey({ order: 1 })
+	id: string;
+
+	@Field()
+	name: string;
+
+	@Field()
+	balance: number;
+
+	@Field()
+	address: Address;
+}

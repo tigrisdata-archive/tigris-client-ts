@@ -531,11 +531,11 @@ export const Utility = {
 		return { ...defaults, ...options };
 	},
 
-	facetQueryToString(facets: FacetFieldsQuery): string {
+	facetQueryToString<T>(facets: FacetFieldsQuery<T>): string {
 		if (Array.isArray(facets)) {
 			const optionsMap = {};
 			for (const f of facets) {
-				optionsMap[f] = this.createFacetQueryOptions();
+				optionsMap[f.toString()] = this.createFacetQueryOptions();
 			}
 			return this.objToJsonString(optionsMap);
 		} else {
