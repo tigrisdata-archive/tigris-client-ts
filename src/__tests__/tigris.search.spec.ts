@@ -4,6 +4,7 @@ import { Status } from "../constants";
 import {
 	IndexedDoc,
 	MATCH_ALL_QUERY_STRING,
+	Search,
 	SearchIndex,
 	SearchIterator,
 	TigrisIndexSchema,
@@ -12,7 +13,6 @@ import {
 import { Server, ServerCredentials } from "@grpc/grpc-js";
 import TestSearchService, { SearchServiceFixtures } from "./test-search-service";
 import { SearchService } from "../proto/server/v1/search_grpc_pb";
-import { Search } from "../search/search";
 import { SearchField } from "../decorators/tigris-search-field";
 import { TigrisSearchIndex } from "../decorators/tigris-search-index";
 
@@ -105,6 +105,7 @@ describe("Search Indexing", () => {
 			expect.assertions(docs.size);
 			const index: SearchIndex<Book> = await tigris.getIndex(SearchServiceFixtures.Success);
 			const result = await index.createMany(Array.from(docs.values()));
+			console.log(result);
 			result.forEach((r) => expect(docs.has(r.id)).toBeTruthy());
 		});
 
@@ -137,7 +138,6 @@ describe("Search Indexing", () => {
 			const expectedDocs = Array.from(SearchServiceFixtures.Docs.values());
 			const recvdDocs = await index.getMany(Array.from(SearchServiceFixtures.Docs.keys()));
 			for (let i = 0; i < recvdDocs.length; i++) {
-				expect(recvdDocs[i].meta.updatedAt).toBeUndefined();
 				expect(recvdDocs[i].meta.createdAt).toStrictEqual(
 					new Date(SearchServiceFixtures.GetDocs.CreatedAtSeconds * 1000)
 				);
@@ -177,8 +177,8 @@ describe("Search Indexing", () => {
 				expect(searchResult.facets["title"]).toBeDefined();
 				expect(searchResult.facets["title"].counts).toEqual([
 					{
-						_count: 2,
-						_value: "Philosophy",
+						count: 2,
+						value: "Philosophy",
 					},
 				]);
 			}

@@ -1,4 +1,4 @@
-import { TigrisDataTypes, TigrisFieldOptions } from "../../types";
+import { TigrisDataTypes, CollectionFieldOptions } from "../../types";
 
 /**@internal*/
 export interface FieldMetadata {
@@ -7,5 +7,5 @@ export interface FieldMetadata {
 	readonly type: TigrisDataTypes;
 	readonly embedType?: TigrisDataTypes | Function;
 	readonly arrayDepth?: number;
-	readonly schemaFieldOptions?: TigrisFieldOptions;
+	readonly schemaFieldOptions?: CollectionFieldOptions;
 }

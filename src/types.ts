@@ -5,6 +5,7 @@ import {
 } from "./proto/server/v1/api_pb";
 import { Status } from "./constants";
 import { Collation } from "./search/query";
+import { SearchFieldOptions } from "./search";
 
 export class DatabaseInfo {
 	private readonly _name: string;
@@ -480,19 +481,15 @@ export enum SelectorFilterOperator {
 export type NumericType = number | bigint;
 export type FieldTypes = string | boolean | NumericType | BigInteger | Date;
 
-export type ReadFields = {
-	include?: Array<string>;
-	exclude?: Array<string>;
+export type ReadFields<T> = {
+	include?: DocumentPaths<T>;
+	exclude?: DocumentPaths<T>;
 };
-
-type DocumentFields<T, V> = Partial<{
-	[K in Paths<T>]: V;
-}>;
 
 export type UpdateFields<T> =
 	| {
 			$set?: DocumentFields<T, FieldTypes | undefined>;
-			$unset?: Partial<Paths<T>>[];
+			$unset?: DocumentPaths<T>;
 			$increment?: DocumentFields<T, NumericType>;
 			$decrement?: DocumentFields<T, NumericType>;
 			$multiply?: DocumentFields<T, NumericType>;
@@ -503,27 +500,19 @@ export type UpdateFields<T> =
 /**
  * List of fields and their corresponding sort order to order the search results.
  */
-export type SortOrder = SortField | Array<SortField>;
+export type SortOrder<T> = SortField<T> | Array<SortField<T>>;
 
 /**
  * Collection field name and sort order
  */
-export type SortField = {
-	field: string;
-	order: Order;
+export type SortField<T> = {
+	field: Paths<T>;
+
+	/**
+	 * Ascending or Descending order
+	 */
+	order: "$asc" | "$desc";
 };
-
-export enum Order {
-	/**
-	 * Ascending order
-	 */
-	ASC = "$asc",
-
-	/**
-	 * Descending order
-	 */
-	DESC = "$desc",
-}
 
 /**
  * Query builder for reading documents from a collection
@@ -539,12 +528,12 @@ export interface FindQuery<T> {
 	 * Field projection to allow returning only specific document fields. By default
 	 * all document fields are returned.
 	 */
-	readFields?: ReadFields;
+	readFields?: ReadFields<T>;
 
 	/**
 	 * Sort the query results as per indicated order
 	 */
-	sort?: SortOrder;
+	sort?: SortOrder<T>;
 
 	/**
 	 * Optional params
@@ -615,7 +604,7 @@ export enum TigrisDataTypes {
 /**
  * DB generated values for the schema fields
  */
-export enum Generated {
+export enum GeneratedField {
 	NOW = "now()",
 	CUID = "cuid()",
 	UUID = "uuid()",
@@ -623,7 +612,7 @@ export enum Generated {
 
 export type AutoTimestamp = "createdAt" | "updatedAt";
 
-export type TigrisFieldOptions = {
+export type CollectionFieldOptions = {
 	/**
 	 * Max length for "string" type of fields
 	 */
@@ -631,7 +620,7 @@ export type TigrisFieldOptions = {
 	/**
 	 * Default value for the schema field
 	 */
-	default?: Generated | FieldTypes | Array<unknown> | Record<string, unknown>;
+	default?: GeneratedField | FieldTypes | Array<unknown> | Record<string, unknown>;
 
 	/**
 	 * Let DB generate values for `Date` type of fields
@@ -644,7 +633,8 @@ export type TigrisSchema<T extends TigrisCollectionType> = {
 		type: TigrisDataTypes | TigrisSchema<unknown>;
 		primary_key?: PrimaryKeyOptions;
 		items?: TigrisArrayItem;
-	} & TigrisFieldOptions;
+	} & CollectionFieldOptions &
+		SearchFieldOptions;
 };
 
 export type TigrisArrayItem = {
@@ -676,7 +666,7 @@ export type PrimaryKeyOptions = {
  * and Paths<IUser> will make these keys available name, id, address (object type) and also in the
  * string form "name", "id", "address.city", "address.state"
  */
-type Paths<T, P extends string = ""> = {
+export type Paths<T, P extends string = ""> = {
 	[K in keyof T]: T[K] extends object
 		? T[K] extends unknown[]
 			? `${P}${K & string}`
@@ -696,6 +686,12 @@ type PathType<T, P extends string> = P extends keyof T
 		? PathType<T[L], R>
 		: never
 	: never;
+
+export type DocumentFields<T, V> = Partial<{
+	[K in Paths<T>]: V;
+}>;
+
+export type DocumentPaths<T> = Partial<Paths<T>>[];
 
 export type Selector<T> = Partial<{
 	[K in Paths<T>]: Partial<PathType<T, K & string>>;

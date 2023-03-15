@@ -9,7 +9,10 @@
 			"autoGenerate": true
 		},
 		"customerId": {
-			"type": "string"
+			"type": "string",
+			"searchIndex": false,
+			"sort": false,
+			"facet": false
 		},
 		"products": {
 			"type": "array",
@@ -24,7 +27,8 @@
 						"type": "object",
 						"properties": {
 							"name": {
-								"type": "string"
+								"type": "string",
+								"searchIndex": true
 							},
 							"tags": {
 								"type": "array",
@@ -38,7 +42,10 @@
 						"type": "integer"
 					},
 					"price": {
-						"type": "number"
+						"type": "number",
+						"searchIndex": true,
+						"sort": true,
+						"facet": false
 					}
 				}
 			}

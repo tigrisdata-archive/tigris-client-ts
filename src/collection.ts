@@ -6,6 +6,7 @@ import {
 	InsertRequest as ProtoInsertRequest,
 	ReadRequest as ProtoReadRequest,
 	ReplaceRequest as ProtoReplaceRequest,
+	SearchRequest as ProtoSearchRequest,
 	SearchResponse as ProtoSearchResponse,
 	UpdateRequest as ProtoUpdateRequest,
 } from "./proto/server/v1/api_pb";
@@ -676,13 +677,12 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	search(query: SearchQuery<T>, page: number): Promise<SearchResult<T>>;
 
 	search(query: SearchQuery<T>, page?: number): SearchIterator<T> | Promise<SearchResult<T>> {
-		const searchRequest = Utility.createProtoSearchRequest(
-			this.db,
-			this.branch,
-			this.collectionName,
-			query,
-			page
-		);
+		const searchRequest = new ProtoSearchRequest()
+			.setProject(this.db)
+			.setBranch(this.branch)
+			.setCollection(this.collectionName);
+
+		Utility.protoSearchRequestFromQuery(query, searchRequest, page);
 
 		// return a iterator if no explicit page number is specified
 		if (typeof page === "undefined") {

@@ -18,6 +18,7 @@ import {
 	TigrisSchema,
 	UpdateFields,
 	UpdateQueryOptions,
+	DocumentPaths,
 } from "./types";
 import * as fs from "node:fs";
 import {
@@ -27,6 +28,7 @@ import {
 	SearchRequest as ProtoSearchRequest,
 	UpdateRequestOptions as ProtoUpdateRequestOptions,
 } from "./proto/server/v1/api_pb";
+import { SearchIndexRequest as ProtoSearchIndexRequest } from "./proto/server/v1/search_pb";
 import { TigrisClientConfig } from "./tigris";
 import {
 	FacetFieldsQuery,
@@ -162,11 +164,22 @@ export const Utility = {
 		return result;
 	},
 
-	readFieldString(readFields: ReadFields): string {
-		const include = readFields.include?.reduce((acc, field) => ({ ...acc, [field]: true }), {});
-		const exclude = readFields.exclude?.reduce((acc, field) => ({ ...acc, [field]: false }), {});
+	readFieldString<T>(readFields: ReadFields<T>): string {
+		const readFieldsObj = {};
 
-		return this.objToJsonString({ ...include, ...exclude });
+		if (readFields.include) {
+			for (const f of readFields.include) {
+				readFieldsObj[f.toString()] = true;
+			}
+		}
+
+		if (readFields.exclude) {
+			for (const f of readFields.exclude) {
+				readFieldsObj[f.toString()] = false;
+			}
+		}
+
+		return this.objToJsonString(readFieldsObj);
 	},
 
 	updateFieldsString<T>(updateFields: UpdateFields<T>) {
@@ -387,8 +400,8 @@ export const Utility = {
 			}
 
 			// indexing optionals
-			if ("index" in schema[property]) {
-				thisProperty["index"] = schema[property]["index"];
+			if ("searchIndex" in schema[property]) {
+				thisProperty["searchIndex"] = schema[property]["searchIndex"];
 			}
 			if ("sort" in schema[property]) {
 				thisProperty["sort"] = schema[property]["sort"];
@@ -531,11 +544,11 @@ export const Utility = {
 		return { ...defaults, ...options };
 	},
 
-	facetQueryToString(facets: FacetFieldsQuery): string {
+	facetQueryToString<T>(facets: FacetFieldsQuery<T>): string {
 		if (Array.isArray(facets)) {
 			const optionsMap = {};
 			for (const f of facets) {
-				optionsMap[f] = this.createFacetQueryOptions();
+				optionsMap[f.toString()] = this.createFacetQueryOptions();
 			}
 			return this.objToJsonString(optionsMap);
 		} else {
@@ -543,7 +556,7 @@ export const Utility = {
 		}
 	},
 
-	_sortOrderingToString(ordering: SortOrder): string {
+	_sortOrderingToString<T>(ordering: SortOrder<T>): string {
 		if (typeof ordering === "undefined") {
 			return "[]";
 		}
@@ -558,21 +571,19 @@ export const Utility = {
 		return this.objToJsonString(sortOrders);
 	},
 
-	createProtoSearchRequest<T>(
-		dbName: string,
-		branch: string,
-		collectionName: string,
+	serializeDocumentPaths<T>(paths: DocumentPaths<T>): Array<string> {
+		return paths.map((p) => p.toString());
+	},
+
+	protoSearchRequestFromQuery<T>(
 		query: SearchQuery<T>,
+		searchRequest: ProtoSearchRequest | ProtoSearchIndexRequest,
 		page?: number
-	): ProtoSearchRequest {
-		const searchRequest = new ProtoSearchRequest()
-			.setProject(dbName)
-			.setBranch(branch)
-			.setCollection(collectionName)
-			.setQ(query.q ?? MATCH_ALL_QUERY_STRING);
+	) {
+		searchRequest.setQ(query.q ?? MATCH_ALL_QUERY_STRING);
 
 		if (query.searchFields !== undefined) {
-			searchRequest.setSearchFieldsList(query.searchFields);
+			searchRequest.setSearchFieldsList(this.serializeDocumentPaths(query.searchFields));
 		}
 
 		if (query.filter !== undefined) {
@@ -588,11 +599,11 @@ export const Utility = {
 		}
 
 		if (query.includeFields !== undefined) {
-			searchRequest.setIncludeFieldsList(query.includeFields);
+			searchRequest.setIncludeFieldsList(this.serializeDocumentPaths(query.includeFields));
 		}
 
 		if (query.excludeFields !== undefined) {
-			searchRequest.setExcludeFieldsList(query.excludeFields);
+			searchRequest.setExcludeFieldsList(this.serializeDocumentPaths(query.excludeFields));
 		}
 
 		if (query.hitsPerPage !== undefined) {
@@ -606,7 +617,5 @@ export const Utility = {
 		if (page !== undefined) {
 			searchRequest.setPage(page);
 		}
-
-		return searchRequest;
 	},
 };

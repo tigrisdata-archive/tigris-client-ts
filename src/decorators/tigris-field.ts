@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { TigrisDataTypes, TigrisFieldOptions } from "../types";
+import { TigrisDataTypes, CollectionFieldOptions } from "../types";
 import { EmbeddedFieldOptions } from "./options/embedded-field-options";
 import {
 	CannotInferFieldTypeError,
@@ -34,7 +34,7 @@ export function Field(type: TigrisDataTypes): PropertyDecorator;
  * @param options - `EmbeddedFieldOptions` are only applicable to Array and Object types
  * 									of schema field.
  */
-export function Field(options: EmbeddedFieldOptions & TigrisFieldOptions): PropertyDecorator;
+export function Field(options: EmbeddedFieldOptions & CollectionFieldOptions): PropertyDecorator;
 /**
  * Field decorator is used to mark a class property as Collection field. Only properties
  * decorated with `@Field` will be used in Schema.
@@ -47,7 +47,7 @@ export function Field(options: EmbeddedFieldOptions & TigrisFieldOptions): Prope
  */
 export function Field(
 	type: TigrisDataTypes,
-	options?: EmbeddedFieldOptions & TigrisFieldOptions
+	options?: EmbeddedFieldOptions & CollectionFieldOptions
 ): PropertyDecorator;
 
 /**
@@ -55,13 +55,13 @@ export function Field(
  * decorated with `@Field` will be used in Schema.
  */
 export function Field(
-	typeOrOptions?: TigrisDataTypes | (TigrisFieldOptions & EmbeddedFieldOptions),
-	options?: TigrisFieldOptions & EmbeddedFieldOptions
+	typeOrOptions?: TigrisDataTypes | (CollectionFieldOptions & EmbeddedFieldOptions),
+	options?: CollectionFieldOptions & EmbeddedFieldOptions
 ): PropertyDecorator {
 	return function (target, propertyName) {
 		propertyName = propertyName.toString();
 		let propertyType: TigrisDataTypes | undefined;
-		let fieldOptions: TigrisFieldOptions;
+		let fieldOptions: CollectionFieldOptions;
 		let embedOptions: EmbeddedFieldOptions;
 
 		if (typeof typeOrOptions === "string") {
@@ -70,14 +70,14 @@ export function Field(
 			if (isEmbeddedOption(typeOrOptions)) {
 				embedOptions = typeOrOptions as EmbeddedFieldOptions;
 			}
-			fieldOptions = typeOrOptions as TigrisFieldOptions;
+			fieldOptions = typeOrOptions as CollectionFieldOptions;
 		}
 
 		if (typeof options === "object") {
 			if (isEmbeddedOption(options)) {
 				embedOptions = options as EmbeddedFieldOptions;
 			}
-			fieldOptions = options as TigrisFieldOptions;
+			fieldOptions = options as CollectionFieldOptions;
 		}
 
 		// if type or options are not specified, infer using reflection
