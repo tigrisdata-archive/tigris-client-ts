@@ -481,9 +481,9 @@ export enum SelectorFilterOperator {
 export type NumericType = number | bigint;
 export type FieldTypes = string | boolean | NumericType | BigInteger | Date;
 
-export type ReadFields = {
-	include?: Array<string>;
-	exclude?: Array<string>;
+export type ReadFields<T> = {
+	include?: DocumentPaths<T>;
+	exclude?: DocumentPaths<T>;
 };
 
 export type UpdateFields<T> =
@@ -536,7 +536,7 @@ export interface FindQuery<T> {
 	 * Field projection to allow returning only specific document fields. By default
 	 * all document fields are returned.
 	 */
-	readFields?: ReadFields;
+	readFields?: ReadFields<T>;
 
 	/**
 	 * Sort the query results as per indicated order

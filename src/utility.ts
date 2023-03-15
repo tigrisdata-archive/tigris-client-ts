@@ -164,11 +164,22 @@ export const Utility = {
 		return result;
 	},
 
-	readFieldString(readFields: ReadFields): string {
-		const include = readFields.include?.reduce((acc, field) => ({ ...acc, [field]: true }), {});
-		const exclude = readFields.exclude?.reduce((acc, field) => ({ ...acc, [field]: false }), {});
+	readFieldString<T>(readFields: ReadFields<T>): string {
+		const readFieldsObj = {};
 
-		return this.objToJsonString({ ...include, ...exclude });
+		if (readFields.include) {
+			for (const f of readFields.include) {
+				readFieldsObj[f.toString()] = true;
+			}
+		}
+
+		if (readFields.exclude) {
+			for (const f of readFields.exclude) {
+				readFieldsObj[f.toString()] = false;
+			}
+		}
+
+		return this.objToJsonString(readFieldsObj);
 	},
 
 	updateFieldsString<T>(updateFields: UpdateFields<T>) {
