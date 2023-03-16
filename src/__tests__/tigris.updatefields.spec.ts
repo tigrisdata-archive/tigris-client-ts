@@ -2,7 +2,7 @@ import { Utility } from "../utility";
 import { TigrisCollection } from "../decorators/tigris-collection";
 import { PrimaryKey } from "../decorators/tigris-primary-key";
 import { Field } from "../decorators/tigris-field";
-import { UpdateFields } from "../types";
+import { TigrisDataTypes, UpdateFields } from "../types";
 
 describe("updateFields tests", () => {
 	const testCases: Array<{
@@ -33,14 +33,14 @@ describe("updateFields tests", () => {
 		{
 			name: "all operators",
 			input: {
-				$set: { category: "New category" },
+				$set: { title: "Kite Runner" },
 				$unset: ["publisher.name", "active"],
 				$multiply: { rating: 2.2 },
 				$decrement: { quantity: 1, price: 3.53 },
 				$increment: { "publisher.totalPublished": 1, price: 4.1 },
 			},
 			expected:
-				'{"$set":{"category":"New category"},"$unset":["publisher.name","active"],"$multiply":{"rating":2.2},"$decrement":{"quantity":1,"price":3.53},"$increment":{"publisher.totalPublished":1,"price":4.1}}',
+				'{"$set":{"title":"Kite Runner"},"$unset":["publisher.name","active"],"$multiply":{"rating":2.2},"$decrement":{"quantity":1,"price":3.53},"$increment":{"publisher.totalPublished":1,"price":4.1}}',
 		},
 		{
 			name: "division update only",
@@ -48,6 +48,20 @@ describe("updateFields tests", () => {
 				$divide: { rating: 2.34 },
 			},
 			expected: '{"$divide":{"rating":2.34}}',
+		},
+		{
+			name: "setting field to an object",
+			input: {
+				publisher: { totalPublished: 24, name: "Urban books" } as Publisher,
+			},
+			expected: '{"$set":{"publisher":{"totalPublished":24,"name":"Urban books"}}}',
+		},
+		{
+			name: "setting update fields to an array",
+			input: {
+				categories: ["tales", "stories"],
+			},
+			expected: '{"$set":{"categories":["tales","stories"]}}',
 		},
 	];
 
@@ -81,8 +95,8 @@ class Books {
 	@Field()
 	quantity: number;
 
-	@Field()
-	category: string;
+	@Field({ elements: TigrisDataTypes.STRING })
+	categories: string[];
 
 	@Field()
 	rating: number;
