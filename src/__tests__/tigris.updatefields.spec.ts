@@ -2,7 +2,7 @@ import { Utility } from "../utility";
 import { TigrisCollection } from "../decorators/tigris-collection";
 import { PrimaryKey } from "../decorators/tigris-primary-key";
 import { Field } from "../decorators/tigris-field";
-import { UpdateFields } from "../types";
+import { UpdateFields, UpdateQuery } from "../types";
 
 describe("updateFields tests", () => {
 	const testCases: Array<{
@@ -48,6 +48,13 @@ describe("updateFields tests", () => {
 				$divide: { rating: 2.34 },
 			},
 			expected: '{"$divide":{"rating":2.34}}',
+		},
+		{
+			name: "setting field to an object",
+			input: {
+				publisher: { totalPublished: 24, name: "Robert" } as Publisher,
+			},
+			expected: '{"$set":{"publisher":{"totalPublished":24,"name":"Robert"}}}',
 		},
 	];
 
