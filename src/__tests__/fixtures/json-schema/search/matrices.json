@@ -1,0 +1,38 @@
+{
+	"title": "matrices",
+	"type": "object",
+	"properties": {
+		"id": {
+			"type": "string",
+			"searchIndex": true,
+			"facet": false
+		},
+		"cells": {
+			"type": "array",
+			"items": {
+				"type": "array",
+				"items": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"properties": {
+							"x": {
+								"type": "number",
+								"searchIndex": true
+							},
+							"y": {
+								"type": "number",
+								"searchIndex": true
+							},
+							"value": {
+								"type": "string",
+								"searchIndex": true
+							}
+						}
+					}
+				}
+			},
+			"searchIndex": true
+		}
+	}
+}

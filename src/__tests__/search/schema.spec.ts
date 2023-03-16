@@ -3,6 +3,7 @@ import { Order, ORDERS_INDEX_NAME, OrderSchema } from "../fixtures/schema/search
 import { Utility } from "../../utility";
 import { readJSONFileAsObj } from "../utils";
 import { DecoratedSchemaProcessor, IndexSchema } from "../../schema/decorated-schema-processor";
+import { MATRICES_INDEX_NAME, Matrix, MatrixSchema } from "../fixtures/schema/search/matrices";
 
 type SchemaTestCase<T extends TigrisIndexType> = {
 	schemaClass: T;
@@ -17,6 +18,12 @@ const schemas: Array<SchemaTestCase<any>> = [
 		expectedSchema: OrderSchema,
 		name: ORDERS_INDEX_NAME,
 		expectedJSON: "orders.json",
+	},
+	{
+		schemaClass: Matrix,
+		expectedSchema: MatrixSchema,
+		name: MATRICES_INDEX_NAME,
+		expectedJSON: "matrices.json",
 	},
 ];
 
