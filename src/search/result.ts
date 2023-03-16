@@ -36,9 +36,9 @@ export class SearchResult<T> {
 	 * @readonly
 	 * @defaultValue undefined
 	 */
-	readonly meta: SearchMeta | undefined;
+	readonly meta: SearchMeta;
 
-	constructor(hits: Array<IndexedDoc<T>>, facets: Facets, meta: SearchMeta | undefined) {
+	constructor(hits: Array<IndexedDoc<T>>, facets: Facets, meta: SearchMeta) {
 		this.hits = hits;
 		this.facets = facets;
 		this.meta = meta;
@@ -75,14 +75,14 @@ export class IndexedDoc<T extends TigrisCollectionType> {
 	 * Deserialized collection/search index document
 	 * @readonly
 	 */
-	readonly document: T | undefined;
+	readonly document: T;
 	/**
 	 * Relevance metadata for the matched document
 	 * @readonly
 	 */
-	readonly meta: DocMeta | undefined;
+	readonly meta: DocMeta;
 
-	constructor(document: T, meta: DocMeta | undefined) {
+	constructor(document: T, meta: DocMeta) {
 		this.document = document;
 		this.meta = meta;
 	}
@@ -106,17 +106,17 @@ export class DocMeta {
 	 * Time at which document was inserted/replaced to a precision of milliseconds
 	 * @readonly
 	 */
-	readonly createdAt: Date | undefined;
+	readonly createdAt: Date;
 	/**
 	 * Time at which document was updated to a precision of milliseconds
 	 * @readonly
 	 */
-	readonly updatedAt: Date | undefined;
+	readonly updatedAt: Date;
 	/**
 	 * Metadata for matched fields and relevant score
 	 * @readonly
 	 */
-	readonly textMatch: TextMatchInfo | undefined;
+	readonly textMatch: TextMatchInfo;
 
 	constructor(createdAt: Date, updatedAt: Date, textMatch: TextMatchInfo) {
 		this.createdAt = createdAt;
@@ -172,9 +172,9 @@ class FacetCountDistribution {
 	 * Summary of faceted field
 	 * @readonly
 	 */
-	readonly stats: FacetStats | undefined;
+	readonly stats: FacetStats;
 
-	constructor(counts: ReadonlyArray<FacetCount>, stats: FacetStats | undefined) {
+	constructor(counts: ReadonlyArray<FacetCount>, stats: FacetStats) {
 		this.counts = counts;
 		this.stats = stats;
 	}
