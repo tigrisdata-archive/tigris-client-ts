@@ -479,7 +479,7 @@ export enum SelectorFilterOperator {
 }
 
 export type NumericType = number | bigint;
-export type FieldTypes = string | boolean | NumericType | BigInteger | Date;
+export type FieldTypes = string | boolean | NumericType | BigInteger | Date | object;
 
 export type ReadFields<T> = {
 	include?: DocumentPaths<T>;
