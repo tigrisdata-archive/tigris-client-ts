@@ -345,6 +345,9 @@ export const Utility = {
 					pkeyMap,
 					keyMap
 				);
+			} else if (schema[property].type === TigrisDataTypes.OBJECT) {
+				thisProperty["type"] = "object";
+				thisProperty["properties"] = {};
 			} else if (
 				schema[property].type != TigrisDataTypes.ARRAY.valueOf() &&
 				typeof schema[property].type != "object"
