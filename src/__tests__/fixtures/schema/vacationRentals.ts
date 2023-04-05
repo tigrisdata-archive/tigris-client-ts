@@ -62,7 +62,7 @@ export class VacationRentals {
 	attractions: Array<string>;
 
 	@Field({ default: null })
-	host: Object;
+	host: object;
 
 	@Field({ elements: TigrisDataTypes.OBJECT, default: undefined })
 	reviews: Array<Object>;
