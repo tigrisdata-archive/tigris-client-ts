@@ -15,6 +15,7 @@ import { Utility } from "../utility";
 import { Filter } from "../types";
 import { SearchIndexIteratorInitializer, SearchIterator } from "../consumables/search-iterator";
 import * as grpc from "@grpc/grpc-js";
+
 import { SearchQuery } from "./query";
 import { IndexedDoc, SearchResult } from "./result";
 

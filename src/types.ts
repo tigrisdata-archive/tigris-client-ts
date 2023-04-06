@@ -481,15 +481,19 @@ export enum SelectorFilterOperator {
 export type NumericType = number | bigint;
 export type FieldTypes = string | boolean | NumericType | BigInteger | Date | object;
 
-export type ReadFields<T> = {
-	include?: DocumentPaths<T>;
-	exclude?: DocumentPaths<T>;
+export type ReadFields = {
+	include?: Array<string>;
+	exclude?: Array<string>;
 };
+
+type DocumentFields<T, V> = Partial<{
+	[K in Paths<T>]: V;
+}>;
 
 export type UpdateFields<T> =
 	| {
 			$set?: DocumentFields<T, FieldTypes | undefined>;
-			$unset?: DocumentPaths<T>;
+			$unset?: Partial<Paths<T>>[];
 			$increment?: DocumentFields<T, NumericType>;
 			$decrement?: DocumentFields<T, NumericType>;
 			$multiply?: DocumentFields<T, NumericType>;
@@ -500,17 +504,13 @@ export type UpdateFields<T> =
 /**
  * List of fields and their corresponding sort order to order the search results.
  */
-export type SortOrder<T> = SortField<T> | Array<SortField<T>>;
+export type SortOrder = SortField | Array<SortField>;
 
 /**
  * Collection field name and sort order
  */
-export type SortField<T> = {
-	field: Paths<T>;
-
-	/**
-	 * Ascending or Descending order
-	 */
+export type SortField = {
+	field: string;
 	order: "$asc" | "$desc";
 };
 
@@ -528,12 +528,12 @@ export interface FindQuery<T> {
 	 * Field projection to allow returning only specific document fields. By default
 	 * all document fields are returned.
 	 */
-	readFields?: ReadFields<T>;
+	readFields?: ReadFields;
 
 	/**
 	 * Sort the query results as per indicated order
 	 */
-	sort?: SortOrder<T>;
+	sort?: SortOrder;
 
 	/**
 	 * Optional params
@@ -666,7 +666,7 @@ export type PrimaryKeyOptions = {
  * and Paths<IUser> will make these keys available name, id, address (object type) and also in the
  * string form "name", "id", "address.city", "address.state"
  */
-export type Paths<T, P extends string = ""> = {
+type Paths<T, P extends string = ""> = {
 	[K in keyof T]: T[K] extends object
 		? T[K] extends unknown[]
 			? `${P}${K & string}`
@@ -686,12 +686,6 @@ type PathType<T, P extends string> = P extends keyof T
 		? PathType<T[L], R>
 		: never
 	: never;
-
-export type DocumentFields<T, V> = Partial<{
-	[K in Paths<T>]: V;
-}>;
-
-export type DocumentPaths<T> = Partial<Paths<T>>[];
 
 export type Selector<T> = Partial<{
 	[K in Paths<T>]: Partial<PathType<T, K & string>>;

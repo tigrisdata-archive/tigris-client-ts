@@ -1,4 +1,4 @@
-import { DocumentFields, DocumentPaths, Filter, SortOrder, TigrisCollectionType } from "../types";
+import { Filter, SortOrder, TigrisCollectionType } from "../types";
 import { TigrisIndexType } from "./types";
 
 export const MATCH_ALL_QUERY_STRING = "";
@@ -14,7 +14,7 @@ export interface SearchQuery<T extends TigrisCollectionType | TigrisIndexType> {
 	/**
 	 * Fields to project search query on
 	 */
-	searchFields?: DocumentPaths<T>;
+	searchFields?: Array<string>;
 	/**
 	 * Filter to further refine the search results
 	 */
@@ -22,19 +22,19 @@ export interface SearchQuery<T extends TigrisCollectionType | TigrisIndexType> {
 	/**
 	 * Facet fields to categorically arrange indexed terms
 	 */
-	facets?: FacetFieldsQuery<T>;
+	facets?: FacetFieldsQuery;
 	/**
 	 * Sort the search results in indicated order
 	 */
-	sort?: SortOrder<T>;
+	sort?: SortOrder;
 	/**
 	 * Document fields to include when returning search results
 	 */
-	includeFields?: DocumentPaths<T>;
+	includeFields?: Array<string>;
 	/**
 	 * Document fields to exclude when returning search results
 	 */
-	excludeFields?: DocumentPaths<T>;
+	excludeFields?: Array<string>;
 	/**
 	 * Maximum number of search hits (matched documents) to fetch per page
 	 */
@@ -56,17 +56,19 @@ export interface SearchQueryOptions {
 	collation?: Collation;
 }
 
-export type FacetFieldsQuery<T> = FacetFieldOptions<T> | FacetFields<T>;
+export type FacetFieldsQuery = FacetFieldOptions | FacetFields;
 
 /**
  * Map of collection field names and faceting options to include facet results in search response
  */
-export type FacetFieldOptions<T> = DocumentFields<T, FacetQueryOptions>;
+export type FacetFieldOptions = {
+	[key: string]: FacetQueryOptions;
+};
 
 /**
  * Array of field names to include facet results for in search response
  */
-export type FacetFields<T> = DocumentPaths<T>;
+export type FacetFields = Array<string>;
 
 /**
  * Information to build facets in search results

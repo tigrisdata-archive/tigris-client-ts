@@ -6,9 +6,9 @@ import {
 	InsertRequest as ProtoInsertRequest,
 	ReadRequest as ProtoReadRequest,
 	ReplaceRequest as ProtoReplaceRequest,
-	SearchRequest as ProtoSearchRequest,
 	SearchResponse as ProtoSearchResponse,
 	UpdateRequest as ProtoUpdateRequest,
+	SearchRequest as ProtoSearchRequest,
 } from "./proto/server/v1/api_pb";
 import { Session } from "./session";
 import {
@@ -30,8 +30,8 @@ import { TigrisClientConfig } from "./tigris";
 import { MissingArgumentError } from "./error";
 import { Cursor, ReadCursorInitializer } from "./consumables/cursor";
 import { SearchIterator, SearchIteratorInitializer } from "./consumables/search-iterator";
-import { SearchQuery } from "./search/query";
-import { SearchResult } from "./search/result";
+import { SearchQuery } from "./search";
+import { SearchResult } from "./search";
 
 interface ICollection {
 	readonly collectionName: string;
