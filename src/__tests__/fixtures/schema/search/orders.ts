@@ -74,7 +74,6 @@ export const OrderSchema: TigrisIndexSchema<Order> = {
 					searchIndex: true,
 				},
 				brand: {
-					searchIndex: true,
 					type: {
 						name: {
 							type: TigrisDataTypes.STRING,

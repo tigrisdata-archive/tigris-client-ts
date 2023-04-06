@@ -2,8 +2,8 @@ import { CollectionSchema, DecoratedSchemaProcessor } from "../schema/decorated-
 import { TigrisCollectionType, TigrisSchema } from "../types";
 import { User, USERS_COLLECTION_NAME, UserSchema } from "./fixtures/schema/users";
 import {
-	VacationRentals,
 	RENTALS_COLLECTION_NAME,
+	VacationRentals,
 	VacationsRentalSchema,
 } from "./fixtures/schema/vacationRentals";
 import { Field } from "../decorators/tigris-field";

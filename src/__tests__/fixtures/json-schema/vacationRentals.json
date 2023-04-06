@@ -57,6 +57,7 @@
 		},
 		"verifications": {
 			"type": "object",
+			"properties": {},
 			"default": {
 				"stateId": true
 			}
@@ -77,12 +78,14 @@
 		},
 		"host": {
 			"type": "object",
+			"properties": {},
 			"default": null
 		},
 		"reviews": {
 			"type": "array",
 			"items": {
-				"type": "object"
+				"type": "object",
+				"properties": {}
 			},
 			"default": null
 		},

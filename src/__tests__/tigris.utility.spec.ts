@@ -1,5 +1,4 @@
 import { Utility } from "../utility";
-import { SelectorFilterOperator, SortOrder } from "../types";
 import {
 	Case,
 	FacetFieldOptions,
@@ -11,9 +10,10 @@ import {
 	SearchQueryOptions,
 } from "../search";
 import { SearchRequest as ProtoSearchRequest } from "../proto/server/v1/api_pb";
+import { SelectorFilterOperator, SortOrder } from "../types";
+import { Field } from "../decorators/tigris-field";
 import { TigrisCollection } from "../decorators/tigris-collection";
 import { PrimaryKey } from "../decorators/tigris-primary-key";
-import { Field } from "../decorators/tigris-field";
 
 describe("utility tests", () => {
 	it("base64encode", () => {
@@ -41,47 +41,47 @@ describe("utility tests", () => {
 	});
 
 	it("serializes FacetFields to string", () => {
-		const fields: FacetFields<Student> = ["balance", "address.city"];
+		const fields: FacetFields = ["field_1", "field_2"];
 		const serialized: string = Utility.facetQueryToString(fields);
 		expect(serialized).toBe(
-			'{"balance":{"size":10,"type":"value"},"address.city":{"size":10,"type":"value"}}'
+			'{"field_1":{"size":10,"type":"value"},"field_2":{"size":10,"type":"value"}}'
 		);
 	});
 
 	it("serializes FacetFieldOptions to string", () => {
-		const fields: FacetFieldOptions<Student> = {
-			name: Utility.createFacetQueryOptions(),
-			"address.street": { size: 10, type: FacetQueryFieldType.VALUE },
+		const fields: FacetFieldOptions = {
+			field_1: Utility.createFacetQueryOptions(),
+			field_2: { size: 10, type: FacetQueryFieldType.VALUE },
 		};
 		const serialized: string = Utility.facetQueryToString(fields);
 		expect(serialized).toBe(
-			'{"name":{"size":10,"type":"value"},"address.street":{"size":10,"type":"value"}}'
+			'{"field_1":{"size":10,"type":"value"},"field_2":{"size":10,"type":"value"}}'
 		);
 	});
 
 	it("equivalent serialization of FacetFieldsQuery", () => {
-		const facetFields: FacetFieldsQuery<Student> = ["name", "address.street"];
-		const facetWithOptions: FacetFieldsQuery<Student> = {
-			name: Utility.createFacetQueryOptions(),
-			"address.street": { size: 10, type: FacetQueryFieldType.VALUE },
+		const facetFields: FacetFieldsQuery = ["field_1", "field_2"];
+		const fieldOptions: FacetFieldsQuery = {
+			field_1: Utility.createFacetQueryOptions(),
+			field_2: { size: 10, type: FacetQueryFieldType.VALUE },
 		};
 		const serializedFields = Utility.facetQueryToString(facetFields);
-		expect(serializedFields).toBe(Utility.facetQueryToString(facetWithOptions));
+		expect(serializedFields).toBe(Utility.facetQueryToString(fieldOptions));
 	});
 
-	it.each<[string, SortOrder<Student>, string]>([
+	it.each<[string, SortOrder, string]>([
 		["undefined", undefined, "[]"],
 		[
 			"multiple sort fields",
 			[
-				{ field: "name", order: "$asc" },
-				{ field: "address.street", order: "$desc" },
+				{ field: "field_1", order: "$asc" },
+				{ field: "parent.field_2", order: "$desc" },
 			],
-			'[{"name":"$asc"},{"address.street":"$desc"}]',
+			'[{"field_1":"$asc"},{"parent.field_2":"$desc"}]',
 		],
-		["single sort field", { field: "address.city", order: "$desc" }, '[{"address.city":"$desc"}]'],
+		["single sort field", { field: "field_3", order: "$desc" }, '[{"field_3":"$desc"}]'],
 		["empty array", [], "[]"],
-	])("_sortOrderingToString() with '%s'", (testName, input, expected: string) => {
+	])("_sortOrderingToString() with '%s'", (testName, input, expected) => {
 		expect(Utility._sortOrderingToString(input)).toBe(expected);
 	});
 
