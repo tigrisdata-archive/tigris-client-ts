@@ -34,8 +34,9 @@ import {
 	FacetQueryOptions,
 	MATCH_ALL_QUERY_STRING,
 	SearchQuery,
-} from "./search/query";
+} from "./search";
 import { TigrisIndexSchema } from "./search";
+import { SearchIndexRequest as ProtoSearchIndexRequest } from "./proto/server/v1/search_pb";
 
 export const Utility = {
 	stringToUint8Array(input: string): Uint8Array {
@@ -561,18 +562,12 @@ export const Utility = {
 		return this.objToJsonString(sortOrders);
 	},
 
-	createProtoSearchRequest<T>(
-		dbName: string,
-		branch: string,
-		collectionName: string,
+	protoSearchRequestFromQuery<T>(
 		query: SearchQuery<T>,
+		searchRequest: ProtoSearchRequest | ProtoSearchIndexRequest,
 		page?: number
-	): ProtoSearchRequest {
-		const searchRequest = new ProtoSearchRequest()
-			.setProject(dbName)
-			.setBranch(branch)
-			.setCollection(collectionName)
-			.setQ(query.q ?? MATCH_ALL_QUERY_STRING);
+	) {
+		searchRequest.setQ(query.q ?? MATCH_ALL_QUERY_STRING);
 
 		if (query.searchFields !== undefined) {
 			searchRequest.setSearchFieldsList(query.searchFields);
@@ -609,7 +604,5 @@ export const Utility = {
 		if (page !== undefined) {
 			searchRequest.setPage(page);
 		}
-
-		return searchRequest;
 	},
 };

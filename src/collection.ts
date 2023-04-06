@@ -8,6 +8,7 @@ import {
 	ReplaceRequest as ProtoReplaceRequest,
 	SearchResponse as ProtoSearchResponse,
 	UpdateRequest as ProtoUpdateRequest,
+	SearchRequest as ProtoSearchRequest,
 } from "./proto/server/v1/api_pb";
 import { Session } from "./session";
 import {
@@ -29,8 +30,8 @@ import { TigrisClientConfig } from "./tigris";
 import { MissingArgumentError } from "./error";
 import { Cursor, ReadCursorInitializer } from "./consumables/cursor";
 import { SearchIterator, SearchIteratorInitializer } from "./consumables/search-iterator";
-import { SearchQuery } from "./search/query";
-import { SearchResult } from "./search/result";
+import { SearchQuery } from "./search";
+import { SearchResult } from "./search";
 
 interface ICollection {
 	readonly collectionName: string;
@@ -676,13 +677,12 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	search(query: SearchQuery<T>, page: number): Promise<SearchResult<T>>;
 
 	search(query: SearchQuery<T>, page?: number): SearchIterator<T> | Promise<SearchResult<T>> {
-		const searchRequest = Utility.createProtoSearchRequest(
-			this.db,
-			this.branch,
-			this.collectionName,
-			query,
-			page
-		);
+		const searchRequest = new ProtoSearchRequest()
+			.setProject(this.db)
+			.setBranch(this.branch)
+			.setCollection(this.collectionName);
+
+		Utility.protoSearchRequestFromQuery(query, searchRequest, page);
 
 		// return a iterator if no explicit page number is specified
 		if (typeof page === "undefined") {
