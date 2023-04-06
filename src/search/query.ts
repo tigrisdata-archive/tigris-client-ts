@@ -1,11 +1,12 @@
 import { Filter, SortOrder, TigrisCollectionType } from "../types";
+import { TigrisIndexType } from "./types";
 
 export const MATCH_ALL_QUERY_STRING = "";
 
 /**
  * Search query builder
  */
-export interface SearchQuery<T extends TigrisCollectionType> {
+export interface SearchQuery<T extends TigrisCollectionType | TigrisIndexType> {
 	/**
 	 * Text to match
 	 */
