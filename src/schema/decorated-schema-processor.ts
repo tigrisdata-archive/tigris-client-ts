@@ -101,9 +101,9 @@ export class DecoratedSchemaProcessor {
 			// process any field optionals
 			if (field.schemaFieldOptions) {
 				// set value for field,  if any
-				for (const opKey of ["default", "timestamp", "searchIndex", "sort", "facet"])
-					if (opKey in field.schemaFieldOptions) {
-						schema[key][opKey] = field.schemaFieldOptions[opKey];
+				for (const opKey of schemaOptionals)
+					if (opKey.attrName in field.schemaFieldOptions && !opKey.doesNotApplyTo.has(field.type)) {
+						schema[key][opKey.attrName] = field.schemaFieldOptions[opKey.attrName];
 					}
 			}
 		}
@@ -146,3 +146,31 @@ export class DecoratedSchemaProcessor {
 		}
 	}
 }
+
+interface SchemaFieldOptionals {
+	attrName: string;
+	doesNotApplyTo: Set<TigrisDataTypes>;
+}
+
+const schemaOptionals: SchemaFieldOptionals[] = [
+	{
+		attrName: "default",
+		doesNotApplyTo: new Set(),
+	},
+	{
+		attrName: "timestamp",
+		doesNotApplyTo: new Set([TigrisDataTypes.OBJECT]),
+	},
+	{
+		attrName: "searchIndex",
+		doesNotApplyTo: new Set([TigrisDataTypes.OBJECT]),
+	},
+	{
+		attrName: "sort",
+		doesNotApplyTo: new Set([TigrisDataTypes.OBJECT]),
+	},
+	{
+		attrName: "facet",
+		doesNotApplyTo: new Set([TigrisDataTypes.OBJECT]),
+	},
+];

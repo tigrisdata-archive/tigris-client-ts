@@ -36,8 +36,7 @@
 								},
 								"searchIndex": false
 							}
-						},
-						"searchIndex": true
+						}
 					},
 					"upc": {
 						"type": "integer",
