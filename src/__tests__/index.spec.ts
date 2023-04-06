@@ -40,6 +40,7 @@ const EXPECTED_EXPORTS = [
 	"ListCachesResponse",
 	"LogicalOperator",
 	"MATCH_ALL_QUERY_STRING",
+	"Order",
 	"Page",
 	"PrimaryKey",
 	"RollbackTransactionResponse",

@@ -1,58 +1,24 @@
 import { ReadFields } from "../types";
 import { Utility } from "../utility";
-import { Field } from "../decorators/tigris-field";
-import { TigrisCollection } from "../decorators/tigris-collection";
-import { PrimaryKey } from "../decorators/tigris-primary-key";
 
 describe("readFields tests", () => {
-	it("serializes empty object", () => {
-		expect(Utility.readFieldString({})).toBe("{}");
-	});
-
-	it("serializes include only", () => {
-		const readFields: ReadFields<Student> = {
-			include: ["id", "name", "address.street"],
+	it("readFields1", () => {
+		const readFields: ReadFields = {
+			include: ["id", "title"],
 		};
-		expect(Utility.readFieldString(readFields)).toBe(
-			'{"id":true,"name":true,"address.street":true}'
-		);
+		expect(Utility.readFieldString(readFields)).toBe('{"id":true,"title":true}');
 	});
-
-	it("serializes exclude only", () => {
-		const readFields: ReadFields<Student> = {
-			exclude: ["id", "address.city"],
+	it("readFields2", () => {
+		const readFields: ReadFields = {
+			exclude: ["id", "title"],
 		};
-		expect(Utility.readFieldString(readFields)).toBe('{"id":false,"address.city":false}');
+		expect(Utility.readFieldString(readFields)).toBe('{"id":false,"title":false}');
 	});
-
-	it("serializes includes and excludes", () => {
-		const readFields: ReadFields<Student> = {
-			include: ["id", "address"],
-			exclude: ["name"],
+	it("readFields3", () => {
+		const readFields: ReadFields = {
+			include: ["id", "title"],
+			exclude: ["author"],
 		};
-		expect(Utility.readFieldString(readFields)).toBe('{"id":true,"address":true,"name":false}');
+		expect(Utility.readFieldString(readFields)).toBe('{"id":true,"title":true,"author":false}');
 	});
 });
-
-class Address {
-	@Field()
-	street: string;
-
-	@Field()
-	city: string;
-}
-
-@TigrisCollection("students")
-class Student {
-	@PrimaryKey({ order: 1 })
-	id: string;
-
-	@Field()
-	name: string;
-
-	@Field()
-	balance: number;
-
-	@Field()
-	address: Address;
-}

@@ -15,7 +15,8 @@ import { Utility } from "../utility";
 import { Filter } from "../types";
 import { SearchIndexIteratorInitializer, SearchIterator } from "../consumables/search-iterator";
 import * as grpc from "@grpc/grpc-js";
-import { SearchQuery } from "./query";
+import { Collation as ProtoCollation } from "../proto/server/v1/api_pb";
+import { MATCH_ALL_QUERY_STRING, SearchQuery } from "./query";
 import { IndexedDoc, SearchResult } from "./result";
 
 export class SearchIndex<T extends TigrisIndexType> {
@@ -218,9 +219,44 @@ export class SearchIndex<T extends TigrisIndexType> {
 	search(query: SearchQuery<T>, page?: number): SearchIterator<T> | Promise<SearchResult<T>> {
 		const searchRequest = new ProtoSearchIndexRequest()
 			.setProject(this.config.projectName)
-			.setIndex(this.name);
+			.setIndex(this.name)
+			.setQ(query.q ?? MATCH_ALL_QUERY_STRING);
 
-		Utility.protoSearchRequestFromQuery(query, searchRequest, page);
+		if (query.searchFields !== undefined) {
+			searchRequest.setSearchFieldsList(query.searchFields);
+		}
+
+		if (query.filter !== undefined) {
+			searchRequest.setFilter(Utility.stringToUint8Array(Utility.filterToString(query.filter)));
+		}
+
+		if (query.facets !== undefined) {
+			searchRequest.setFacet(Utility.stringToUint8Array(Utility.facetQueryToString(query.facets)));
+		}
+
+		if (query.sort !== undefined) {
+			searchRequest.setSort(Utility.stringToUint8Array(Utility._sortOrderingToString(query.sort)));
+		}
+
+		if (query.includeFields !== undefined) {
+			searchRequest.setIncludeFieldsList(query.includeFields);
+		}
+
+		if (query.excludeFields !== undefined) {
+			searchRequest.setExcludeFieldsList(query.excludeFields);
+		}
+
+		if (query.hitsPerPage !== undefined) {
+			searchRequest.setPageSize(query.hitsPerPage);
+		}
+
+		if (query.options?.collation !== undefined) {
+			searchRequest.setCollation(new ProtoCollation().setCase(query.options.collation.case));
+		}
+
+		if (page !== undefined) {
+			searchRequest.setPage(page);
+		}
 
 		// return a iterator if no explicit page number is specified
 		if (typeof page === "undefined") {
