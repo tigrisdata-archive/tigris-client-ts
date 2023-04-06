@@ -511,20 +511,8 @@ export type SortOrder = SortField | Array<SortField>;
  */
 export type SortField = {
 	field: string;
-	order: Order;
+	order: "$asc" | "$desc";
 };
-
-export enum Order {
-	/**
-	 * Ascending order
-	 */
-	ASC = "$asc",
-
-	/**
-	 * Descending order
-	 */
-	DESC = "$desc",
-}
 
 /**
  * Query builder for reading documents from a collection

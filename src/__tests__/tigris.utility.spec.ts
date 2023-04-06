@@ -1,5 +1,4 @@
 import { Utility } from "../utility";
-import { Order } from "../types";
 import {
 	Case,
 	FacetFieldOptions,
@@ -9,6 +8,7 @@ import {
 	MATCH_ALL_QUERY_STRING,
 	SearchQueryOptions,
 } from "../search";
+import { SortOrder } from "../types";
 
 describe("utility tests", () => {
 	it("base64encode", () => {
@@ -64,17 +64,17 @@ describe("utility tests", () => {
 		expect(serializedFields).toBe(Utility.facetQueryToString(fieldOptions));
 	});
 
-	it.each([
+	it.each<[string, SortOrder, string]>([
 		["undefined", undefined, "[]"],
 		[
 			"multiple sort fields",
 			[
-				{ field: "field_1", order: Order.ASC },
-				{ field: "parent.field_2", order: Order.DESC },
+				{ field: "field_1", order: "$asc" },
+				{ field: "parent.field_2", order: "$desc" },
 			],
 			'[{"field_1":"$asc"},{"parent.field_2":"$desc"}]',
 		],
-		["single sort field", { field: "field_3", order: Order.DESC }, '[{"field_3":"$desc"}]'],
+		["single sort field", { field: "field_3", order: "$desc" }, '[{"field_3":"$desc"}]'],
 		["empty array", [], "[]"],
 	])("_sortOrderingToString() with '%s'", (testName, input, expected) => {
 		expect(Utility._sortOrderingToString(input)).toBe(expected);
