@@ -7,23 +7,28 @@ describe("JSON serde tests", () => {
 			id: bigint;
 			name: string;
 			balance: number;
+			longitude: number;
 		}
 
 		const user: IUser = {
 			id: BigInt("9223372036854775807"),
 			name: "Alice",
 			balance: 123,
+			longitude: -73.96340000000001,
 		};
 		const userString = Utility.objToJsonString(user);
-		expect(userString).toBe('{"id":9223372036854775807,"name":"Alice","balance":123}');
+		expect(userString).toBe(
+			'{"id":9223372036854775807,"name":"Alice","balance":123,"longitude":-73.96340000000001}'
+		);
 
 		const deserializedUser = Utility.jsonStringToObj<IUser>(
-			'{"id":9223372036854775807,"name":"Alice","balance":123}',
+			'{"id":9223372036854775807,"name":"Alice","balance":123,"longitude":-73.96340000000001}',
 			{ serverUrl: "test" }
 		);
 		expect(deserializedUser.id).toBe("9223372036854775807");
 		expect(deserializedUser.name).toBe("Alice");
 		expect(deserializedUser.balance).toBe(123);
+		expect(deserializedUser.longitude).toBe(-73.96340000000001);
 	});
 
 	it("jsonSerDeStringAsBigInt", () => {
