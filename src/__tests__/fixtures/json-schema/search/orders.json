@@ -19,39 +19,46 @@
 				"type": "object",
 				"properties": {
 					"name": {
-						"type": "string",
-						"searchIndex": true
+						"type": "string"
 					},
 					"brand": {
 						"type": "object",
 						"properties": {
 							"name": {
-								"type": "string",
-								"searchIndex": true
+								"type": "string"
 							},
 							"tags": {
 								"type": "array",
 								"items": {
 									"type": "string"
-								},
-								"searchIndex": false
+								}
 							}
 						}
 					},
 					"upc": {
-						"type": "integer",
-						"searchIndex": false,
-						"sort": false
+						"type": "integer"
 					},
 					"price": {
-						"type": "number",
-						"searchIndex": true,
-						"sort": true,
-						"facet": false
+						"type": "number"
 					}
 				}
 			},
 			"searchIndex": true
+		},
+		"status": {
+			"type": "object",
+			"properties": {
+				"statusType": {
+					"type": "string",
+					"searchIndex": true,
+					"facet": true
+				},
+				"createdAt": {
+					"type": "string",
+					"format": "date-time",
+					"searchIndex": true
+				}
+			}
 		}
 	}
 }

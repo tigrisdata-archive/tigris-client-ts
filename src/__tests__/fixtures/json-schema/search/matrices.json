@@ -17,16 +17,13 @@
 						"type": "object",
 						"properties": {
 							"x": {
-								"type": "number",
-								"searchIndex": true
+								"type": "number"
 							},
 							"y": {
-								"type": "number",
-								"searchIndex": true
+								"type": "number"
 							},
 							"value": {
-								"type": "string",
-								"searchIndex": true
+								"type": "string"
 							}
 						}
 					}

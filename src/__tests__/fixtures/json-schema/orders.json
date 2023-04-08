@@ -27,8 +27,7 @@
 						"type": "object",
 						"properties": {
 							"name": {
-								"type": "string",
-								"searchIndex": true
+								"type": "string"
 							},
 							"tags": {
 								"type": "array",
@@ -42,10 +41,7 @@
 						"type": "integer"
 					},
 					"price": {
-						"type": "number",
-						"searchIndex": true,
-						"sort": true,
-						"facet": false
+						"type": "number"
 					}
 				}
 			}
