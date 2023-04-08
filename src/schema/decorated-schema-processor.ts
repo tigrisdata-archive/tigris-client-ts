@@ -1,7 +1,12 @@
 import { DecoratorMetaStorage } from "../decorators/metadata/decorator-meta-storage";
 import { getDecoratorMetaStorage } from "../globals";
-import { TigrisCollectionType, TigrisDataTypes, TigrisSchema } from "../types";
-import { TigrisIndexSchema, TigrisIndexType } from "../search";
+import {
+	CollectionFieldOptions,
+	TigrisCollectionType,
+	TigrisDataTypes,
+	TigrisSchema,
+} from "../types";
+import { SearchFieldOptions, TigrisIndexSchema, TigrisIndexType } from "../search";
 import { SearchFieldMetadata } from "../decorators/metadata/search-field-metadata";
 import { FieldMetadata } from "../decorators/metadata/field-metadata";
 
@@ -52,7 +57,8 @@ export class DecoratedSchemaProcessor {
 
 	private buildTigrisSchema(
 		from: Function,
-		forCollection: boolean
+		forCollection: boolean,
+		parentFieldType?: TigrisDataTypes
 	): TigrisSchema<unknown> | TigrisIndexSchema<unknown> {
 		const schema = {};
 		// get all top level fields matching this target
@@ -74,7 +80,11 @@ export class DecoratedSchemaProcessor {
 					arrayItems =
 						typeof field.embedType === "function"
 							? {
-									type: this.buildTigrisSchema(field.embedType as Function, forCollection),
+									type: this.buildTigrisSchema(
+										field.embedType as Function,
+										forCollection,
+										parentFieldType ?? field.type
+									),
 							  }
 							: { type: field.embedType as TigrisDataTypes };
 					arrayDepth = field.arrayDepth && field.arrayDepth > 1 ? field.arrayDepth : 1;
@@ -82,11 +92,19 @@ export class DecoratedSchemaProcessor {
 					break;
 				case TigrisDataTypes.OBJECT:
 					if (typeof field.embedType === "function") {
-						const embedSchema = this.buildTigrisSchema(field.embedType as Function, forCollection);
+						const embedSchema = this.buildTigrisSchema(
+							field.embedType as Function,
+							forCollection,
+							parentFieldType ?? field.type
+						);
 						// generate embedded schema as its a class
 						if (Object.keys(embedSchema).length > 0) {
 							schema[key] = {
-								type: this.buildTigrisSchema(field.embedType as Function, forCollection),
+								type: this.buildTigrisSchema(
+									field.embedType as Function,
+									forCollection,
+									parentFieldType ?? field.type
+								),
 							};
 						}
 					}
@@ -101,10 +119,11 @@ export class DecoratedSchemaProcessor {
 			// process any field optionals
 			if (field.schemaFieldOptions) {
 				// set value for field,  if any
-				for (const opKey of schemaOptionals)
-					if (opKey.attrName in field.schemaFieldOptions && !opKey.doesNotApplyTo.has(field.type)) {
+				for (const opKey of schemaOptions) {
+					if (schemaOptionSupported(field.schemaFieldOptions, field.type, parentFieldType, opKey)) {
 						schema[key][opKey.attrName] = field.schemaFieldOptions[opKey.attrName];
 					}
+				}
 			}
 		}
 		return forCollection
@@ -147,30 +166,60 @@ export class DecoratedSchemaProcessor {
 	}
 }
 
-interface SchemaFieldOptionals {
+interface SchemaFieldOptions {
 	attrName: string;
 	doesNotApplyTo: Set<TigrisDataTypes>;
+	doesNotApplyToParent: Set<TigrisDataTypes>;
 }
 
-const schemaOptionals: SchemaFieldOptionals[] = [
+const schemaOptions: SchemaFieldOptions[] = [
 	{
 		attrName: "default",
 		doesNotApplyTo: new Set(),
+		doesNotApplyToParent: new Set(),
 	},
 	{
 		attrName: "timestamp",
 		doesNotApplyTo: new Set([TigrisDataTypes.OBJECT]),
+		doesNotApplyToParent: new Set(),
 	},
 	{
 		attrName: "searchIndex",
 		doesNotApplyTo: new Set([TigrisDataTypes.OBJECT]),
+		doesNotApplyToParent: new Set([TigrisDataTypes.ARRAY]),
 	},
 	{
 		attrName: "sort",
 		doesNotApplyTo: new Set([TigrisDataTypes.OBJECT]),
+		doesNotApplyToParent: new Set([TigrisDataTypes.ARRAY]),
 	},
 	{
 		attrName: "facet",
 		doesNotApplyTo: new Set([TigrisDataTypes.OBJECT]),
+		doesNotApplyToParent: new Set([TigrisDataTypes.ARRAY]),
 	},
 ];
+
+// searchIndex, sort and facet tags cannot be defined on top level object
+// and can only be defined on the fields of the object
+// { "field1": { "type": "object", "properties": { "name": { "type": "string" } }, "searchIndex": true } - not supported
+// { "field1": { "type": "object", "properties": { "name": { "type": "string", "searchIndex": true } } } - supported
+// searchIndex, sort and facet tags cannot be defined within a nested array
+// { "field1": { "type": "array", "items": { "type": "object", "properties": { "name": { "type": "string", "searchIndex": true } } } } - not supported
+// { "field1": { "type": "array", "items": { "type": "object", "properties": { "name": { "type": "string" } } }, "searchIndex": true } - supported
+function schemaOptionSupported(
+	fieldOptions: SearchFieldOptions | CollectionFieldOptions,
+	fieldType: TigrisDataTypes,
+	fieldParentType: TigrisDataTypes,
+	attr: SchemaFieldOptions
+): boolean {
+	if (
+		attr.attrName in fieldOptions &&
+		!attr.doesNotApplyTo.has(fieldType) &&
+		!attr.doesNotApplyToParent.has(fieldParentType)
+	) {
+		return true;
+	}
+
+	return false;
+}

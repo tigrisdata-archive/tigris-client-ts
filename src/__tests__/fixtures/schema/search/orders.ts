@@ -35,6 +35,14 @@ export class Product {
 	price: number;
 }
 
+export class OrderStatus {
+	@SearchField({ facet: true })
+	statusType: string;
+
+	@SearchField()
+	createdAt: Date;
+}
+
 @TigrisSearchIndex(ORDERS_INDEX_NAME)
 export class Order {
 	@SearchField(TigrisDataTypes.UUID, { sort: true })
@@ -45,6 +53,9 @@ export class Order {
 
 	@SearchField({ elements: Product })
 	products: Array<Product>;
+
+	@SearchField()
+	status: OrderStatus;
 }
 
 /**
@@ -71,17 +82,14 @@ export const OrderSchema: TigrisIndexSchema<Order> = {
 			type: {
 				name: {
 					type: TigrisDataTypes.STRING,
-					searchIndex: true,
 				},
 				brand: {
 					type: {
 						name: {
 							type: TigrisDataTypes.STRING,
-							searchIndex: true,
 						},
 						tags: {
 							type: TigrisDataTypes.ARRAY,
-							searchIndex: false,
 							items: {
 								type: TigrisDataTypes.STRING,
 							},
@@ -90,15 +98,23 @@ export const OrderSchema: TigrisIndexSchema<Order> = {
 				},
 				upc: {
 					type: TigrisDataTypes.NUMBER_BIGINT,
-					searchIndex: false,
-					sort: false,
 				},
 				price: {
 					type: TigrisDataTypes.NUMBER,
-					searchIndex: true,
-					sort: true,
-					facet: false,
 				},
+			},
+		},
+	},
+	status: {
+		type: {
+			statusType: {
+				type: TigrisDataTypes.STRING,
+				searchIndex: true,
+				facet: true,
+			},
+			createdAt: {
+				type: TigrisDataTypes.DATE_TIME,
+				searchIndex: true,
 			},
 		},
 	},
