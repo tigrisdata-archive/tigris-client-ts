@@ -91,7 +91,6 @@ export const OrderSchema: TigrisSchema<Order> = {
 					type: {
 						name: {
 							type: TigrisDataTypes.STRING,
-							searchIndex: true,
 						},
 						tags: {
 							type: TigrisDataTypes.ARRAY,
@@ -106,9 +105,6 @@ export const OrderSchema: TigrisSchema<Order> = {
 				},
 				price: {
 					type: TigrisDataTypes.NUMBER,
-					searchIndex: true,
-					sort: true,
-					facet: false,
 				},
 			},
 		},

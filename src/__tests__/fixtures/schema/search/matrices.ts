@@ -57,15 +57,12 @@ export const MatrixSchema: TigrisIndexSchema<Matrix> = {
 					type: {
 						x: {
 							type: TigrisDataTypes.NUMBER,
-							searchIndex: true,
 						},
 						y: {
 							type: TigrisDataTypes.NUMBER,
-							searchIndex: true,
 						},
 						value: {
 							type: TigrisDataTypes.STRING,
-							searchIndex: true,
 						},
 					},
 				},
