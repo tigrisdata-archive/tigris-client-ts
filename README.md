@@ -32,8 +32,8 @@ npm run lint
 
 # Installation note for Apple M1
 
-Since ARM binaries are not provided for `grpc-tools` package by the grpc team. Hence, the x86_64
-version of `grpc-tools` must be installed.
+Since ARM binaries are not provided for `grpc-tools` package by the grpc
+team. Hence, the x86_64 version of `grpc-tools` must be installed.
 
 ```shell
 npm_config_target_arch=x64 npm i grpc-tools
