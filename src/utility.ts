@@ -34,6 +34,7 @@ import {
 	FacetQueryOptions,
 	MATCH_ALL_QUERY_STRING,
 	SearchQuery,
+	VectorQuery,
 } from "./search";
 import { TigrisIndexSchema } from "./search";
 import { SearchIndexRequest as ProtoSearchIndexRequest } from "./proto/server/v1/search_pb";
@@ -552,6 +553,16 @@ export const Utility = {
 		}
 	},
 
+	_vectorQueryToString(q: VectorQuery): string {
+		if (typeof q === "undefined") {
+			return "";
+		}
+		const queryObj = {
+			[q.field]: q.vector,
+		};
+		return this.objToJsonString(queryObj);
+	},
+
 	_sortOrderingToString(ordering: SortOrder): string {
 		if (typeof ordering === "undefined") {
 			return "[]";
@@ -584,6 +595,12 @@ export const Utility = {
 
 		if (query.facets !== undefined) {
 			searchRequest.setFacet(Utility.stringToUint8Array(Utility.facetQueryToString(query.facets)));
+		}
+
+		if (query.vectorQuery !== undefined) {
+			searchRequest.setVector(
+				Utility.stringToUint8Array(Utility._vectorQueryToString(query.vectorQuery))
+			);
 		}
 
 		if (query.sort !== undefined) {
