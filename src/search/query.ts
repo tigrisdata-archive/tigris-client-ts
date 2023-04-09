@@ -39,7 +39,6 @@ export interface SearchQuery<T extends TigrisCollectionType | TigrisIndexType> {
 	 * Maximum number of search hits (matched documents) to fetch per page
 	 */
 	hitsPerPage?: number;
-
 	/**
 	 * Other parameters for search query
 	 */
@@ -103,4 +102,10 @@ export enum Case {
  */
 export type Collation = {
 	case: Case;
+};
+
+export type Vector = {
+	field: string;
+	value: Array<number>;
+	size: number;
 };

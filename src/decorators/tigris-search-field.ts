@@ -7,6 +7,7 @@ import { Log } from "../utils/logger";
 import {
 	CannotInferFieldTypeError,
 	IncompleteArrayTypeDefError,
+	IncorrectVectorDefError,
 	ReflectionNotEnabled,
 } from "../error";
 import { getDecoratorMetaStorage } from "../globals";
@@ -60,9 +61,16 @@ export function SearchField(
 				throw new ReflectionNotEnabled(target, propertyName);
 			}
 
-			// if propertyType is Array, subtype is required
-			if (propertyType === TigrisDataTypes.ARRAY && embedOptions?.elements === undefined) {
-				throw new IncompleteArrayTypeDefError(target, propertyName);
+			// if propertyType is Array, type of contents is required unless its a vector
+			if (propertyType === TigrisDataTypes.ARRAY) {
+				if (fieldOptions?.dimensions !== undefined) {
+					if (embedOptions?.elements && embedOptions?.elements !== TigrisDataTypes.NUMBER) {
+						throw new IncorrectVectorDefError(target, propertyName);
+					}
+					embedOptions = { elements: TigrisDataTypes.NUMBER };
+				} else if (embedOptions?.elements === undefined) {
+					throw new IncompleteArrayTypeDefError(target, propertyName);
+				}
 			}
 
 			// if propertyType is still undefined, it probably is a typed object

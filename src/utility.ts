@@ -464,12 +464,17 @@ export const Utility = {
 	): object {
 		const arrayBlock = {};
 		arrayBlock["type"] = "array";
-		arrayBlock["items"] = {};
-		arrayBlock["items"] = this._getSchemaProperties(
-			{ _$arrayItemPlaceholder: arraySchema["items"] },
-			pkeyMap,
-			keyMap
-		)["_$arrayItemPlaceholder"];
+		if (typeof arraySchema === "object" && "dimensions" in arraySchema) {
+			arrayBlock["dimensions"] = arraySchema["dimensions"];
+			arrayBlock["format"] = "vector";
+		} else {
+			arrayBlock["items"] = {};
+			arrayBlock["items"] = this._getSchemaProperties(
+				{ _$arrayItemPlaceholder: arraySchema["items"] },
+				pkeyMap,
+				keyMap
+			)["_$arrayItemPlaceholder"];
+		}
 		return arrayBlock;
 	},
 
