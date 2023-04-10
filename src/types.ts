@@ -626,6 +626,10 @@ export type CollectionFieldOptions = {
 	 * Let DB generate values for `Date` type of fields
 	 */
 	timestamp?: AutoTimestamp;
+	/**
+	 * Dimensions for a vector field
+	 */
+	dimensions?: number;
 };
 
 export type TigrisSchema<T extends TigrisCollectionType> = {

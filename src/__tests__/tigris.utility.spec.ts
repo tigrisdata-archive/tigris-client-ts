@@ -98,6 +98,7 @@ describe("utility tests", () => {
 			expect(request.getSearchFieldsList()).toEqual([]);
 			expect(request.getFilter()).toBe("");
 			expect(request.getFacet()).toBe("");
+			expect(request.getVector()).toBe("");
 			expect(request.getSort()).toBe("");
 			expect(request.getIncludeFieldsList()).toEqual([]);
 			expect(request.getExcludeFieldsList()).toEqual([]);
@@ -130,6 +131,18 @@ describe("utility tests", () => {
 
 			expect(request.getFacet()).toEqual(
 				Utility.stringToUint8Array('{"address.city":{"size":10,"type":"value"}}')
+			);
+		});
+
+		it("sets vector query", () => {
+			const query: SearchQuery<Student> = {
+				vectorQuery: {
+					"address.street": [0.4, -0.15, 0.9],
+				},
+			};
+			Utility.protoSearchRequestFromQuery(query, request);
+			expect(request.getVector()).toEqual(
+				Utility.stringToUint8Array('{"address.street":[0.4,-0.15,0.9]}')
 			);
 		});
 

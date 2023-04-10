@@ -1,5 +1,5 @@
 import { CollectionSchema, DecoratedSchemaProcessor } from "../schema/decorated-schema-processor";
-import { TigrisCollectionType, TigrisSchema } from "../types";
+import { TigrisCollectionType, TigrisDataTypes, TigrisSchema } from "../types";
 import { User, USERS_COLLECTION_NAME, UserSchema } from "./fixtures/schema/users";
 import {
 	RENTALS_COLLECTION_NAME,
@@ -7,7 +7,7 @@ import {
 	VacationsRentalSchema,
 } from "./fixtures/schema/vacationRentals";
 import { Field } from "../decorators/tigris-field";
-import { IncompleteArrayTypeDefError } from "../error";
+import { IncompleteArrayTypeDefError, IncorrectVectorDefError } from "../error";
 import { TigrisCollection } from "../decorators/tigris-collection";
 import { Utility } from "../utility";
 import { Order, ORDERS_COLLECTION_NAME, OrderSchema } from "./fixtures/schema/orders";
@@ -90,4 +90,19 @@ test("throws error when Arrays are not properly decorated", () => {
 		caught = e;
 	}
 	expect(caught).toBeInstanceOf(IncompleteArrayTypeDefError);
+});
+
+test("throws error when Vector fields have incorrect type", () => {
+	let caught;
+
+	try {
+		@TigrisCollection("test_studio")
+		class Studio {
+			@Field({ dimensions: 3, elements: TigrisDataTypes.STRING })
+			actors: Array<string>;
+		}
+	} catch (e) {
+		caught = e;
+	}
+	expect(caught).toBeInstanceOf(IncorrectVectorDefError);
 });

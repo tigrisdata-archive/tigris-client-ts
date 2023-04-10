@@ -30,6 +30,9 @@ export class Matrix {
 
 	@SearchField({ elements: Cell, depth: 3 })
 	cells: Cell[][][];
+
+	@SearchField({ dimensions: 4, sort: false })
+	relevance: Array<number>;
 }
 /********************************** END **************************************/
 
@@ -67,6 +70,15 @@ export const MatrixSchema: TigrisIndexSchema<Matrix> = {
 					},
 				},
 			},
+		},
+	},
+	relevance: {
+		type: TigrisDataTypes.ARRAY,
+		searchIndex: true,
+		sort: false,
+		dimensions: 4,
+		items: {
+			type: TigrisDataTypes.NUMBER,
 		},
 	},
 };

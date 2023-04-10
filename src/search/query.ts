@@ -24,6 +24,10 @@ export interface SearchQuery<T extends TigrisCollectionType | TigrisIndexType> {
 	 */
 	facets?: FacetFieldsQuery;
 	/**
+	 * Perform a nearest neighbor search to find closest documents
+	 */
+	vectorQuery?: VectorQuery;
+	/**
 	 * Sort the search results in indicated order
 	 */
 	sort?: SortOrder;
@@ -39,7 +43,6 @@ export interface SearchQuery<T extends TigrisCollectionType | TigrisIndexType> {
 	 * Maximum number of search hits (matched documents) to fetch per page
 	 */
 	hitsPerPage?: number;
-
 	/**
 	 * Other parameters for search query
 	 */
@@ -103,4 +106,15 @@ export enum Case {
  */
 export type Collation = {
 	case: Case;
+};
+
+/**
+ * A VectorQuery allows you to perform nearest neighbor search.
+ */
+export type VectorQuery = {
+	/**
+	 * Document field to query against and the vector value to find nearest neighbors.
+	 * The field must be of 'Vector' type.
+	 */
+	[key: string]: Array<number>;
 };
