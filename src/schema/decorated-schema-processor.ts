@@ -176,11 +176,14 @@ export class DecoratedSchemaProcessor {
 
 		const fields = [];
 
+		// create a lookup for search fields
 		const searchFieldsLookup = [];
 		for (const field of searchFields) {
 			searchFieldsLookup[field.name] = field;
 		}
 
+		// process the collection fields
+		const visitedFields = new Set();
 		const collectionFields = this.storage.getCollectionFieldsByTarget(from);
 		for (const cf of collectionFields) {
 			let fieldOption = cf.schemaFieldOptions;
@@ -195,6 +198,15 @@ export class DecoratedSchemaProcessor {
 				...cf,
 				schemaFieldOptions: fieldOption,
 			});
+
+			visitedFields.add(cf.name);
+		}
+
+		// process the additional fields that are tagged as search fields
+		for (const sf of searchFields) {
+			if (!visitedFields.has(sf.name)) {
+				fields.push(sf);
+			}
 		}
 
 		return fields;
