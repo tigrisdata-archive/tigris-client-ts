@@ -104,6 +104,7 @@
 		"ts-jest": "^28.0.8",
 		"ts-mockito": "^2.6.1",
 		"tsutils": "^3.21.0",
+		"typescript": "^4.7.2",
 		"uuid": "^8.3.2"
 	},
 	"dependencies": {
@@ -113,7 +114,6 @@
 		"google-protobuf": "^3.21.0",
 		"json-bigint": "github:sidorares/json-bigint",
 		"reflect-metadata": "^0.1.13",
-		"typescript": "^4.7.2",
 		"app-root-path": "^3.1.0"
 	}
 }
