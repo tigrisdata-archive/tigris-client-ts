@@ -30,6 +30,13 @@
 				}
 			},
 			"searchIndex": true
+		},
+		"relevance": {
+			"type": "array",
+			"dimensions": 4,
+			"format": "vector",
+			"searchIndex": true,
+			"sort": false
 		}
 	}
 }

@@ -118,6 +118,12 @@
 			"type": "string",
 			"format": "uuid",
 			"default": "uuid()"
+		},
+		"relevance": {
+			"type": "array",
+			"dimensions": 3,
+			"format": "vector",
+			"default": [1.0, 1.0, 1.0]
 		}
 	},
 	"primary_key": ["id"]

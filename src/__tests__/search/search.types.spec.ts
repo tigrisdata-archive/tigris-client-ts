@@ -173,15 +173,19 @@ describe("SearchResponse parsing", () => {
 			const parsed: TextMatchInfo = TextMatchInfo.from(input);
 			expect(parsed.fields).toStrictEqual([]);
 			expect(parsed.score).toBe("");
+			expect(parsed.vectorDistance).toBeUndefined();
 		});
 		it("generates match field from input", () => {
 			const input: ProtoMatch = new ProtoMatch();
 			input.setScore("456");
 			input.addFields(new ProtoMatchField().setName("person"));
 			input.addFields(new ProtoMatchField().setName("user"));
+			input.setVectorDistance(0.24);
+
 			const parsed: TextMatchInfo = TextMatchInfo.from(input);
 			expect(parsed.fields).toEqual(expect.arrayContaining(["person", "user"]));
 			expect(parsed.score).toBe("456");
+			expect(parsed.vectorDistance).toBe(0.24);
 		});
 	});
 });

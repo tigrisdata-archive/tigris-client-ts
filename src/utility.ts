@@ -34,6 +34,7 @@ import {
 	FacetQueryOptions,
 	MATCH_ALL_QUERY_STRING,
 	SearchQuery,
+	VectorQuery,
 } from "./search";
 import { TigrisIndexSchema } from "./search";
 import { SearchIndexRequest as ProtoSearchIndexRequest } from "./proto/server/v1/search_pb";
@@ -464,12 +465,17 @@ export const Utility = {
 	): object {
 		const arrayBlock = {};
 		arrayBlock["type"] = "array";
-		arrayBlock["items"] = {};
-		arrayBlock["items"] = this._getSchemaProperties(
-			{ _$arrayItemPlaceholder: arraySchema["items"] },
-			pkeyMap,
-			keyMap
-		)["_$arrayItemPlaceholder"];
+		if (typeof arraySchema === "object" && "dimensions" in arraySchema) {
+			arrayBlock["dimensions"] = arraySchema["dimensions"];
+			arrayBlock["format"] = "vector";
+		} else {
+			arrayBlock["items"] = {};
+			arrayBlock["items"] = this._getSchemaProperties(
+				{ _$arrayItemPlaceholder: arraySchema["items"] },
+				pkeyMap,
+				keyMap
+			)["_$arrayItemPlaceholder"];
+		}
 		return arrayBlock;
 	},
 
@@ -547,6 +553,13 @@ export const Utility = {
 		}
 	},
 
+	_vectorQueryToString(q: VectorQuery): string {
+		if (typeof q === "undefined") {
+			return "";
+		}
+		return this.objToJsonString(q);
+	},
+
 	_sortOrderingToString(ordering: SortOrder): string {
 		if (typeof ordering === "undefined") {
 			return "[]";
@@ -579,6 +592,12 @@ export const Utility = {
 
 		if (query.facets !== undefined) {
 			searchRequest.setFacet(Utility.stringToUint8Array(Utility.facetQueryToString(query.facets)));
+		}
+
+		if (query.vectorQuery !== undefined) {
+			searchRequest.setVector(
+				Utility.stringToUint8Array(Utility._vectorQueryToString(query.vectorQuery))
+			);
 		}
 
 		if (query.sort !== undefined) {

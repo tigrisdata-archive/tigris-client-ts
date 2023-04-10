@@ -71,6 +71,16 @@ export class IncompleteArrayTypeDefError extends TigrisError {
 	}
 }
 
+export class IncorrectVectorDefError extends TigrisError {
+	constructor(object: Object, propertyName: string) {
+		super(`'${propertyName}' in '${object.constructor.name}' defines "dimensions" field option identifying it as a Vector data type.
+		The primitive data type for Vector can only be a 'number[]'`);
+	}
+	override get name(): string {
+		return "IncorrectVectorDefError";
+	}
+}
+
 export class IncompletePrimaryKeyDefError extends TigrisError {
 	constructor(object: Object, propertyName: string) {
 		super(`Missing "PrimaryKeyOptions" for '${object.constructor.name}#${propertyName}'`);

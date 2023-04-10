@@ -84,6 +84,9 @@ export class VacationRentals {
 
 	@Field(TigrisDataTypes.UUID, { default: GeneratedField.UUID })
 	referralId: string;
+
+	@Field({ dimensions: 3, default: [1.0, 1.0, 1.0] })
+	relevance: number[];
 }
 /********************************** END **************************************/
 
@@ -199,5 +202,13 @@ export const VacationsRentalSchema: TigrisSchema<VacationRentals> = {
 	referralId: {
 		type: TigrisDataTypes.UUID,
 		default: GeneratedField.UUID,
+	},
+	relevance: {
+		type: TigrisDataTypes.ARRAY,
+		dimensions: 3,
+		default: [1.0, 1.0, 1.0],
+		items: {
+			type: TigrisDataTypes.NUMBER,
+		},
 	},
 };

@@ -146,15 +146,19 @@ export class DocMeta {
 export class TextMatchInfo {
 	readonly fields: ReadonlyArray<string>;
 	readonly score: string;
+	readonly vectorDistance?: number;
 
-	constructor(fields: ReadonlyArray<string>, score: string) {
+	constructor(fields: ReadonlyArray<string>, score: string, vectorDistance?: number) {
 		this.fields = fields;
 		this.score = score;
+		if (vectorDistance) {
+			this.vectorDistance = vectorDistance;
+		}
 	}
 
 	static from(resp: ProtoMatch): TextMatchInfo {
 		const matchFields: Array<string> = resp.getFieldsList().map((f) => f.getName());
-		return new TextMatchInfo(matchFields, resp.getScore());
+		return new TextMatchInfo(matchFields, resp.getScore(), resp.getVectorDistance());
 	}
 }
 
