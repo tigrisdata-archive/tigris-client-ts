@@ -557,10 +557,7 @@ export const Utility = {
 		if (typeof q === "undefined") {
 			return "";
 		}
-		const queryObj = {
-			[q.field]: q.vector,
-		};
-		return this.objToJsonString(queryObj);
+		return this.objToJsonString(q);
 	},
 
 	_sortOrderingToString(ordering: SortOrder): string {

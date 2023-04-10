@@ -137,8 +137,7 @@ describe("utility tests", () => {
 		it("sets vector query", () => {
 			const query: SearchQuery<Student> = {
 				vectorQuery: {
-					field: "address.street",
-					vector: [0.4, -0.15, 0.9],
+					"address.street": [0.4, -0.15, 0.9],
 				},
 			};
 			Utility.protoSearchRequestFromQuery(query, request);

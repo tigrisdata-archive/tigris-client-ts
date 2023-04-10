@@ -113,11 +113,8 @@ export type Collation = {
  */
 export type VectorQuery = {
 	/**
-	 * Document field to query against. The field must be of 'Vector' type.
+	 * Document field to query against and the vector value to find nearest neighbors.
+	 * The field must be of 'Vector' type.
 	 */
-	field: string;
-	/**
-	 * Get nearest neighbors of this array of floating point numbers
-	 */
-	vector: Array<number>;
+	[key: string]: Array<number>;
 };
