@@ -2,6 +2,7 @@ import { TigrisCollection } from "../../../decorators/tigris-collection";
 import { PrimaryKey } from "../../../decorators/tigris-primary-key";
 import { TigrisCollectionType, TigrisDataTypes, TigrisSchema } from "../../../types";
 import { Field } from "../../../decorators/tigris-field";
+import { SearchField } from "../../../decorators/tigris-search-field";
 
 /******************************************************************************
  * `Movie` class demonstrates a Tigris collection schema generated using
@@ -34,6 +35,7 @@ export class Movie {
 	@PrimaryKey(TigrisDataTypes.STRING, { order: 1 })
 	movieId: string;
 
+	@SearchField(TigrisDataTypes.STRING)
 	@Field(TigrisDataTypes.STRING)
 	title: string;
 
@@ -43,6 +45,7 @@ export class Movie {
 	@Field(TigrisDataTypes.ARRAY, { elements: Actor })
 	actors: Array<Actor>;
 
+	@SearchField(TigrisDataTypes.ARRAY, { elements: TigrisDataTypes.STRING, facet: true })
 	@Field(TigrisDataTypes.ARRAY, { elements: TigrisDataTypes.STRING })
 	genres: Array<string>;
 
@@ -68,6 +71,7 @@ export const MovieSchema: TigrisSchema<Movie> = {
 	},
 	title: {
 		type: TigrisDataTypes.STRING,
+		searchIndex: true,
 	},
 	year: {
 		type: TigrisDataTypes.INT32,
@@ -92,6 +96,8 @@ export const MovieSchema: TigrisSchema<Movie> = {
 		items: {
 			type: TigrisDataTypes.STRING,
 		},
+		searchIndex: true,
+		facet: true,
 	},
 	productionHouse: {
 		type: {

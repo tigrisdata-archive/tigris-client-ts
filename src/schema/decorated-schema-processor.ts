@@ -62,11 +62,9 @@ export class DecoratedSchemaProcessor {
 	): TigrisSchema<unknown> | TigrisIndexSchema<unknown> {
 		const schema = {};
 		// get all top level fields matching this target
-		let fields: (SearchFieldMetadata | FieldMetadata)[] =
-			this.storage.getSearchFieldsByTarget(from);
-		if (forCollection) {
-			fields = [...fields, ...this.storage.getCollectionFieldsByTarget(from)];
-		}
+		const fields = this.getSchemaFields(from, forCollection);
+
+		// process each field
 		for (const field of fields) {
 			const key = field.name;
 			if (!(key in schema)) {
@@ -164,6 +162,55 @@ export class DecoratedSchemaProcessor {
 			};
 		}
 	}
+
+	private getSchemaFields(
+		from: Function,
+		forCollection: boolean
+	): (SearchFieldMetadata | FieldMetadata)[] {
+		const searchFields: (SearchFieldMetadata | FieldMetadata)[] =
+			this.storage.getSearchFieldsByTarget(from);
+
+		if (!forCollection) {
+			return searchFields;
+		}
+
+		const fields = [];
+
+		// create a lookup for search fields
+		const searchFieldsLookup = [];
+		for (const field of searchFields) {
+			searchFieldsLookup[field.name] = field;
+		}
+
+		// process the collection fields
+		const visitedFields = new Set();
+		const collectionFields = this.storage.getCollectionFieldsByTarget(from);
+		for (const cf of collectionFields) {
+			let fieldOption = cf.schemaFieldOptions;
+
+			// if a search field is defined for this field, merge its options
+			const searchField = searchFieldsLookup[cf.name];
+			if (searchField) {
+				fieldOption = { ...cf.schemaFieldOptions, ...searchField.schemaFieldOptions };
+			}
+
+			fields.push({
+				...cf,
+				schemaFieldOptions: fieldOption,
+			});
+
+			visitedFields.add(cf.name);
+		}
+
+		// process the additional fields that are tagged as search fields
+		for (const sf of searchFields) {
+			if (!visitedFields.has(sf.name)) {
+				fields.push(sf);
+			}
+		}
+
+		return fields;
+	}
 }
 
 interface SchemaFieldOptions {
@@ -221,7 +268,7 @@ function schemaOptionSupported(
 	if (
 		attr.attrName in fieldOptions &&
 		!attr.doesNotApplyTo.has(fieldType) &&
-		!attr.doesNotApplyToParent.has(fieldParentType)
+		(!fieldParentType || !attr.doesNotApplyToParent.has(fieldParentType))
 	) {
 		return true;
 	}

@@ -7,7 +7,8 @@
 			"type": "string"
 		},
 		"title": {
-			"type": "string"
+			"type": "string",
+			"searchIndex": true
 		},
 		"year": {
 			"type": "integer",
@@ -33,7 +34,9 @@
 			"type": "array",
 			"items": {
 				"type": "string"
-			}
+			},
+			"searchIndex": true,
+			"facet": true
 		},
 		"productionHouse": {
 			"type": "object",
