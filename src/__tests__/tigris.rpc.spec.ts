@@ -508,7 +508,7 @@ describe("rpc tests", () => {
 				const query: SearchQuery<IBook> = {
 					q: "philosophy",
 					facets: {
-						tags: Utility.createFacetQueryOptions(),
+						tags: Utility.defaultFacetingOptions(),
 					},
 				};
 
@@ -530,7 +530,7 @@ describe("rpc tests", () => {
 				const query: SearchQuery<IBook> = {
 					q: "philosophy",
 					facets: {
-						tags: Utility.createFacetQueryOptions(),
+						tags: Utility.defaultFacetingOptions(),
 					},
 				};
 				let bookCounter = 0;

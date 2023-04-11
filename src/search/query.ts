@@ -87,12 +87,8 @@ export type FacetQueryOptions = {
 	/**
 	 * Type of facets to build
 	 */
-	type: FacetQueryFieldType;
+	type?: "value";
 };
-
-export enum FacetQueryFieldType {
-	VALUE = "value",
-}
 
 export enum Case {
 	/**
