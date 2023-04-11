@@ -75,13 +75,12 @@ export type FacetFields = Array<string>;
 
 /**
  * Information to build facets in search results
- * Use `Utility.createFacetQueryOptions()` to generate using defaults
  *
- * @see {@link Utility.createFacetQueryOptions}
  */
 export type FacetQueryOptions = {
 	/**
 	 * Maximum number of facets to include in results
+	 * default - 10
 	 */
 	size: number;
 	/**
