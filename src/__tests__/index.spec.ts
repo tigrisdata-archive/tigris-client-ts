@@ -30,7 +30,6 @@ const EXPECTED_EXPORTS = [
 	"DocStatus",
 	"DropCollectionResponse",
 	"FacetCount",
-	"FacetQueryFieldType",
 	"FacetStats",
 	"Field",
 	"FindQueryOptions",

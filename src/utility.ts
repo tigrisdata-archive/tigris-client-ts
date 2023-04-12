@@ -30,7 +30,6 @@ import {
 import { TigrisClientConfig } from "./tigris";
 import {
 	FacetFieldsQuery,
-	FacetQueryFieldType,
 	FacetQueryOptions,
 	MATCH_ALL_QUERY_STRING,
 	SearchQuery,
@@ -536,21 +535,23 @@ export const Utility = {
 		return this.jsonStringToObj(Buffer.from(b64String, "base64").toString("utf8"), config);
 	},
 
-	createFacetQueryOptions(options?: Partial<FacetQueryOptions>): FacetQueryOptions {
-		const defaults = { size: 10, type: FacetQueryFieldType.VALUE };
+	defaultFacetingOptions(options?: Partial<FacetQueryOptions>): FacetQueryOptions {
+		const defaults: FacetQueryOptions = { size: 10, type: "value" };
 		return { ...defaults, ...options };
 	},
 
 	facetQueryToString(facets: FacetFieldsQuery): string {
+		const optionsMap = {};
 		if (Array.isArray(facets)) {
-			const optionsMap = {};
 			for (const f of facets) {
-				optionsMap[f] = this.createFacetQueryOptions();
+				optionsMap[f] = this.defaultFacetingOptions();
 			}
-			return this.objToJsonString(optionsMap);
-		} else {
-			return this.objToJsonString(facets);
+		} else if (typeof facets === "object") {
+			for (const f in facets) {
+				optionsMap[f] = this.defaultFacetingOptions(facets[f]);
+			}
 		}
+		return this.objToJsonString(optionsMap);
 	},
 
 	_vectorQueryToString(q: VectorQuery): string {
