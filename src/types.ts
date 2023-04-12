@@ -683,6 +683,7 @@ type Paths<T, P extends string = ""> = {
 /**
  * This type helps to infer the type of the path that Paths (above) has generated.
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 type PathType<T, P extends string> = P extends keyof T
 	? T[P]
 	: P extends `${infer L}.${infer R}`
@@ -691,8 +692,9 @@ type PathType<T, P extends string> = P extends keyof T
 		: never
 	: never;
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export type Selector<T> = Partial<{
-	[K in Paths<T>]: Partial<PathType<T, K & string>>;
+	[K in string]: unknown;
 }>;
 
 export type SelectorFilter<T> = Partial<{
