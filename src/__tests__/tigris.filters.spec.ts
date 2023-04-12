@@ -251,7 +251,10 @@ describe("filters tests", () => {
 					},
 				},
 				{
-					"address.city": "Paris",
+					// Selector filter on nested field as an object. Alternate: "address.city": "Paris"
+					address: {
+						city: "Paris",
+					},
 				},
 			],
 		};
@@ -261,6 +264,7 @@ describe("filters tests", () => {
 				{
 					op: SelectorFilterOperator.GTE,
 					fields: {
+						// filter on nested field as dot notation
 						"address.zipcode": 1200,
 					},
 				},
