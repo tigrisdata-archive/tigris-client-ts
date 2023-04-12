@@ -142,9 +142,7 @@ describe("filters tests", () => {
 				id: BigInt(1),
 				name: "alice",
 				balance: 12.34,
-				address: {
-					city: "San Francisco",
-				},
+				"address.city": "San Francisco",
 			},
 		};
 		expect(Utility.filterToString(tigrisFilter)).toBe(
@@ -166,9 +164,7 @@ describe("filters tests", () => {
 		const tigrisFilter: SelectorFilter<Student> = {
 			op: SelectorFilterOperator.LTE,
 			fields: {
-				address: {
-					zipcode: 10,
-				},
+				"address.zipcode": 10,
 			},
 		};
 		expect(Utility.filterToString(tigrisFilter)).toBe('{"address.zipcode":{"$lte":10}}');
@@ -255,9 +251,7 @@ describe("filters tests", () => {
 					},
 				},
 				{
-					address: {
-						city: "Paris",
-					},
+					"address.city": "Paris",
 				},
 			],
 		};
@@ -267,9 +261,7 @@ describe("filters tests", () => {
 				{
 					op: SelectorFilterOperator.GTE,
 					fields: {
-						address: {
-							zipcode: 1200,
-						},
+						"address.zipcode": 1200,
 					},
 				},
 				{
