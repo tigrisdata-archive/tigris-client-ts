@@ -400,6 +400,9 @@ export const Utility = {
 			if ("facet" in schema[property]) {
 				thisProperty["facet"] = schema[property]["facet"];
 			}
+			if ("id" in schema[property]) {
+				thisProperty["id"] = schema[property]["id"];
+			}
 
 			// 'timestamp' values for schema fields
 			if ("timestamp" in schema[property]) {

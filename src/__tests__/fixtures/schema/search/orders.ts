@@ -48,7 +48,7 @@ export class Order {
 	@SearchField(TigrisDataTypes.UUID, { sort: true })
 	orderId: string;
 
-	@SearchField({ facet: false })
+	@SearchField({ facet: false, id: true })
 	customerId: string;
 
 	@SearchField({ elements: Product })
@@ -74,6 +74,7 @@ export const OrderSchema: TigrisIndexSchema<Order> = {
 		type: TigrisDataTypes.STRING,
 		searchIndex: true,
 		facet: false,
+		id: true,
 	},
 	products: {
 		type: TigrisDataTypes.ARRAY,

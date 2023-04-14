@@ -250,6 +250,20 @@ const schemaOptions: SchemaFieldOptions[] = [
 		doesNotApplyTo: new Set([TigrisDataTypes.OBJECT, TigrisDataTypes.NUMBER]),
 		doesNotApplyToParent: new Set([TigrisDataTypes.ARRAY]),
 	},
+	{
+		attrName: "id",
+		doesNotApplyTo: new Set([
+			TigrisDataTypes.OBJECT,
+			TigrisDataTypes.ARRAY,
+			TigrisDataTypes.NUMBER,
+			TigrisDataTypes.BOOLEAN,
+			TigrisDataTypes.NUMBER_BIGINT,
+			TigrisDataTypes.INT64,
+			TigrisDataTypes.INT32,
+			TigrisDataTypes.DATE_TIME,
+		]),
+		doesNotApplyToParent: new Set([TigrisDataTypes.ARRAY]),
+	},
 ];
 
 // searchIndex, sort and facet tags cannot be defined on top level object
