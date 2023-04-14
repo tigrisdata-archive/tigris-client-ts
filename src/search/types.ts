@@ -14,6 +14,7 @@ export type SearchFieldOptions = {
 	sort?: boolean;
 	facet?: boolean;
 	dimensions?: number;
+	id?: boolean;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface

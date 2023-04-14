@@ -11,7 +11,8 @@
 		"customerId": {
 			"type": "string",
 			"searchIndex": true,
-			"facet": false
+			"facet": false,
+			"id": true
 		},
 		"products": {
 			"type": "array",
