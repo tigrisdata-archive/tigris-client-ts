@@ -19,7 +19,7 @@ export class Cell {
 	@SearchField()
 	y: number;
 
-	@SearchField()
+	@SearchField({ id: true })
 	value: string;
 }
 

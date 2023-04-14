@@ -23,7 +23,7 @@ export class Studio {
 }
 
 export class Actor {
-	@Field(TigrisDataTypes.STRING, { maxLength: 64 })
+	@Field(TigrisDataTypes.STRING, { maxLength: 64, index: true })
 	firstName: string;
 
 	@Field(TigrisDataTypes.STRING, { maxLength: 64 })

@@ -390,6 +390,11 @@ export const Utility = {
 				}
 			}
 
+			// whether secondary index is enabled for this field
+			if ("index" in schema[property]) {
+				thisProperty["index"] = schema[property]["index"];
+			}
+
 			// indexing optionals
 			if ("searchIndex" in schema[property]) {
 				thisProperty["searchIndex"] = schema[property]["searchIndex"];
@@ -399,6 +404,9 @@ export const Utility = {
 			}
 			if ("facet" in schema[property]) {
 				thisProperty["facet"] = schema[property]["facet"];
+			}
+			if ("id" in schema[property]) {
+				thisProperty["id"] = schema[property]["id"];
 			}
 
 			// 'timestamp' values for schema fields

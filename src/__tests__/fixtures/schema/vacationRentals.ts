@@ -16,7 +16,7 @@ class Address {
 	@Field()
 	city: string;
 
-	@Field({ default: "US", maxLength: 2 })
+	@Field({ default: "US", maxLength: 2, index: true })
 	countryCode: string;
 }
 
@@ -61,7 +61,7 @@ export class VacationRentals {
 	@Field({ elements: TigrisDataTypes.STRING, default: [] })
 	attractions: Array<string>;
 
-	@Field({ default: null })
+	@Field({ default: null, index: true })
 	host: object;
 
 	@Field({ elements: TigrisDataTypes.OBJECT, default: undefined })
@@ -79,10 +79,10 @@ export class VacationRentals {
 	@Field({ timestamp: "updatedAt" })
 	lastModified: Date;
 
-	@Field({ default: GeneratedField.CUID })
+	@Field({ default: GeneratedField.CUID, index: true })
 	partnerId: string;
 
-	@Field(TigrisDataTypes.UUID, { default: GeneratedField.UUID })
+	@Field(TigrisDataTypes.UUID, { default: GeneratedField.UUID, index: true })
 	referralId: string;
 
 	@Field({ dimensions: 3, default: [1.0, 1.0, 1.0] })
@@ -198,10 +198,12 @@ export const VacationsRentalSchema: TigrisSchema<VacationRentals> = {
 	partnerId: {
 		type: TigrisDataTypes.STRING,
 		default: GeneratedField.CUID,
+		index: true,
 	},
 	referralId: {
 		type: TigrisDataTypes.UUID,
 		default: GeneratedField.UUID,
+		index: true,
 	},
 	relevance: {
 		type: TigrisDataTypes.ARRAY,
