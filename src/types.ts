@@ -630,6 +630,10 @@ export type CollectionFieldOptions = {
 	 * Dimensions for a vector field
 	 */
 	dimensions?: number;
+	/**
+	 * Create a secondary index on the field
+	 */
+	index?: boolean;
 };
 
 export type TigrisSchema<T extends TigrisCollectionType> = {

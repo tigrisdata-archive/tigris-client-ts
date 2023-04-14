@@ -112,12 +112,14 @@
 		},
 		"partnerId": {
 			"type": "string",
-			"default": "cuid()"
+			"default": "cuid()",
+			"index": true
 		},
 		"referralId": {
 			"type": "string",
 			"format": "uuid",
-			"default": "uuid()"
+			"default": "uuid()",
+			"index": true
 		},
 		"relevance": {
 			"type": "array",

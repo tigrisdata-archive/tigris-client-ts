@@ -32,7 +32,7 @@ export class User {
 	@PrimaryKey({ order: 1 })
 	id: number;
 
-	@Field()
+	@Field({ index: true })
 	created: Date;
 
 	@Field({ elements: Identity })
@@ -60,6 +60,7 @@ export const UserSchema: TigrisSchema<User> = {
 	},
 	created: {
 		type: TigrisDataTypes.DATE_TIME,
+		index: true,
 	},
 	identities: {
 		type: TigrisDataTypes.ARRAY,
