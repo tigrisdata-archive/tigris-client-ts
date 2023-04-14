@@ -101,7 +101,6 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 							clonedDocs = this.setCreatedAtForDocsIfNotExists(clonedDocs, 
 								new Date(response.getMetadata()?.getCreatedAt()?.getSeconds() * 1000));
 						}
-						console.log('CLONE :: ', clonedDocs);
 						resolve(clonedDocs);
 					}
 				}
