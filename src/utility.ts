@@ -218,9 +218,17 @@ export const Utility = {
 			// convert bigint to string based on configuration
 			if (typeof v === "bigint" && (config.supportBigInt === undefined || !config.supportBigInt)) {
 				return v.toString();
+			} else if (typeof v === "string" && this._isISODateRegex(v)) {
+				return new Date(v);
 			}
+
 			return v;
 		});
+	},
+	_isISODateRegex(value: string) {
+		const isoDateRegex =
+			/(\d{4}-[01]\d-[0-3]\dT[0-2](?:\d:[0-5]){2}\d\.\d+([+-][0-2]\d:[0-5]\d|Z))|(\d{4}-[01]\d-[0-3]\dT[0-2](?:\d:[0-5]){2}\d([+-][0-2]\d:[0-5]\d|Z))|(\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d([+-][0-2]\d:[0-5]\d|Z))/;
+		return isoDateRegex.test(value);
 	},
 	txToMetadata(tx: Session): Metadata {
 		const metadata = new Metadata();
