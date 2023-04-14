@@ -32,6 +32,8 @@ import { Cursor, ReadCursorInitializer } from "./consumables/cursor";
 import { SearchIterator, SearchIteratorInitializer } from "./consumables/search-iterator";
 import { SearchQuery } from "./search";
 import { SearchResult } from "./search";
+import { DecoratorMetaStorage } from "./decorators/metadata/decorator-meta-storage";
+import { getDecoratorMetaStorage } from "./globals";
 
 interface ICollection {
 	readonly collectionName: string;
@@ -49,6 +51,8 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	readonly branch: string;
 	readonly grpcClient: TigrisClient;
 	readonly config: TigrisClientConfig;
+	private readonly _metadataStorage: DecoratorMetaStorage;
+
 
 	constructor(
 		collectionName: string,
@@ -61,6 +65,7 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 		this.db = db;
 		this.branch = branch;
 		this.grpcClient = grpcClient;
+		this._metadataStorage = getDecoratorMetaStorage();
 		this.config = config;
 	}
 
@@ -90,7 +95,13 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 					if (error) {
 						reject(error);
 					} else {
-						const clonedDocs = this.setDocsMetadata(docs, response.getKeysList_asU8());
+						let clonedDocs: Array<T>;
+						clonedDocs = this.setDocsMetadata(docs, response.getKeysList_asU8());
+						if (response.getMetadata().hasCreatedAt()) {
+							clonedDocs = this.setCreatedAtForDocsIfNotExists(clonedDocs, 
+								new Date(response.getMetadata()?.getCreatedAt()?.getSeconds() * 1000));
+						}
+						console.log('CLONE :: ', clonedDocs);
 						resolve(clonedDocs);
 					}
 				}
@@ -720,6 +731,31 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 			for (const fieldName of Object.keys(keyValueJsonObj)) {
 				Reflect.set(clonedDocs[docIndex], fieldName, keyValueJsonObj[fieldName]);
 			}
+			docIndex++;
+		}
+
+		return clonedDocs;
+	}
+
+	private setCreatedAtForDocsIfNotExists(docs: Array<T>, createdAt: Date): Array<T> {
+		const collectionTarget = this._metadataStorage.collections.get(this.collectionName)?.target;
+		const collectionFields = this._metadataStorage.getCollectionFieldsByTarget(collectionTarget);
+
+		const collectionCreatedAtFieldNames = collectionFields.filter((field) => {
+			return field?.schemaFieldOptions?.timestamp === "createdAt";
+		}).map(f => f.name);
+
+
+		const clonedDocs: T[] = Object.assign([], docs);
+		let docIndex = 0;
+
+		for (const doc of docs) {
+			
+			collectionCreatedAtFieldNames.map((fieldName) => {
+				if (!Reflect.has(doc, fieldName)) {
+					Reflect.set(clonedDocs[docIndex], fieldName, createdAt);
+				}
+			});
 			docIndex++;
 		}
 

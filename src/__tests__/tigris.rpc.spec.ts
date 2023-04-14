@@ -147,6 +147,25 @@ describe("rpc tests", () => {
 		});
 		insertionPromise.then((insertedBook) => {
 			expect(insertedBook.id).toBe(1);
+			expect(insertedBook.createdAt).toBeDefined();
+		});
+		return insertionPromise;
+	});
+
+	it("insert_with_createdAt_value", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+		const db1 = tigris.getDatabase();
+		const book: IBook = {
+			author: "author name",
+			id: 0,
+			tags: ["science"],
+			title: "science book",
+			createdAt: new Date(),
+		}
+		const insertionPromise = db1.getCollection<IBook>("books").insertOne(book);
+		insertionPromise.then((insertedBook) => {
+			expect(insertedBook.id).toBe(1);
+			expect(insertedBook.createdAt).toEqual(book.createdAt);
 		});
 		return insertionPromise;
 	});
@@ -915,6 +934,8 @@ export class IBook implements TigrisCollectionType {
 	author: string;
 	@Field({ elements: TigrisDataTypes.STRING })
 	tags?: string[];
+	@Field(TigrisDataTypes.DATE_TIME, { timestamp: "createdAt" })
+  	createdAt?: Date;
 }
 
 export interface IBook1 extends TigrisCollectionType {
