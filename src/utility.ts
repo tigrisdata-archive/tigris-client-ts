@@ -390,6 +390,11 @@ export const Utility = {
 				}
 			}
 
+			// whether secondary index is enabled for this field
+			if ("index" in schema[property]) {
+				thisProperty["index"] = schema[property]["index"];
+			}
+
 			// indexing optionals
 			if ("searchIndex" in schema[property]) {
 				thisProperty["searchIndex"] = schema[property]["searchIndex"];
