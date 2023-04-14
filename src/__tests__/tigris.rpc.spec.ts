@@ -161,7 +161,7 @@ describe("rpc tests", () => {
 			tags: ["science"],
 			title: "science book",
 			createdAt: new Date(),
-		}
+		};
 		const insertionPromise = db1.getCollection<IBook>("books").insertOne(book);
 		insertionPromise.then((insertedBook) => {
 			expect(insertedBook.id).toBe(1);
@@ -935,7 +935,7 @@ export class IBook implements TigrisCollectionType {
 	@Field({ elements: TigrisDataTypes.STRING })
 	tags?: string[];
 	@Field(TigrisDataTypes.DATE_TIME, { timestamp: "createdAt" })
-  	createdAt?: Date;
+	createdAt?: Date;
 }
 
 export interface IBook1 extends TigrisCollectionType {
