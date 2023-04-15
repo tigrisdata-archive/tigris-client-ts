@@ -1,11 +1,11 @@
 # Tigris TypeScript Client Library
 
-[![npm](https://img.shields.io/npm/v/@tigrisdata/core)](https://www.npmjs.com/package/@tigrisdata/core)
-[![ts-ci](https://github.com/tigrisdata/tigris-client-ts/actions/workflows/ts-ci.yml/badge.svg?branch=main)](https://github.com/tigrisdata/tigris-client-ts/actions/workflows/ts-ci.yml)
+[![npm](https://img.shields.io/npm/v/@tigrisdata/core?logo=npm&logoColor=white)](https://www.npmjs.com/package/@tigrisdata/core)
+[![build](https://github.com/tigrisdata/tigris-client-ts/actions/workflows/ts-ci.yml/badge.svg?branch=main)](https://github.com/tigrisdata/tigris-client-ts/actions/workflows/ts-ci.yml)
 [![codecov](https://codecov.io/gh/tigrisdata/tigris-client-ts/branch/main/graph/badge.svg)](https://codecov.io/gh/tigrisdata/tigris-client-ts)
-![LGTM Grade](https://img.shields.io/lgtm/grade/javascript/github/tigrisdata/tigris-client-ts)
-[![discord](https://img.shields.io/badge/discord-tigrisdata-34D058.svg?logo=discord)](https://www.tigrisdata.com/discord/)
 [![GitHub](https://img.shields.io/github/license/tigrisdata/tigris-client-ts)](https://github.com/tigrisdata/tigris-client-ts/blob/main/LICENSE)
+[![Discord](https://img.shields.io/discord/1033842669983633488?color=%23596fff&label=Discord&logo=discord&logoColor=%23ffffff)](https://tigris.dev/discord)
+[![Twitter Follow](https://img.shields.io/twitter/follow/tigrisdata?style=social)](https://twitter.com/tigrisdata)
 
 # Documentation
 
