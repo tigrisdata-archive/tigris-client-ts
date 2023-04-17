@@ -3,8 +3,7 @@ name: Bug report
 about: File a bug
 title: "[BUG]: <replace title>"
 labels: bug
-assignees: ''
-
+assignees: ""
 ---
 
 # Prerequisites
@@ -41,8 +40,8 @@ Please provide any relevant information about your setup. This is important in c
 
 > You can find Tigris SDK version on your local dev project by executing `npm list | grep "tigrisdata/core"`
 
-* [Tigris SDK version](https://www.npmjs.com/package/@tigrisdata/core?activeTab=versions):
-* Operating System:
+- [Tigris SDK version](https://www.npmjs.com/package/@tigrisdata/core?activeTab=versions):
+- Operating System:
 
 ## Failure Logs
 

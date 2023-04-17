@@ -26,16 +26,18 @@ automatically close the issue.
 
 - [ ] Yes
 - [ ] No, and this is why: _please replace this line with details on why tests
-  have not been included_
+      have not been included_
 - [ ] I need help with writing tests
 
 ### Is this change backwards compatible?
+
 - [ ] Yes
 - [ ] No, and this is why: _please replace this line with details on why?_
 
 ### Does it require updates to [Tigris docs](https://docs.tigrisdata.com/)?
+
 - [ ] Yes, and here is the link: _please create an issue in [tigris-docs](https://github.com/tigrisdata/tigris-docs/issues) repo
-and link here as `tigrisdata/tigris-docs#123`_
+      and link here as `tigrisdata/tigris-docs#123`_
 - [ ] No
 
 ## [optional] Are there any post deployment tasks we need to perform?
