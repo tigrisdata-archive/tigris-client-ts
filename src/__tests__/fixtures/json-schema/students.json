@@ -1,0 +1,27 @@
+{
+	"title": "students",
+	"additionalProperties": false,
+	"type": "object",
+	"properties": {
+		"id": {
+			"type": "integer",
+			"format": "int64",
+			"autoGenerate": true
+		},
+		"email": {
+			"type": "string"
+		},
+		"firstName": {
+			"type": "string"
+		},
+		"lastName": {
+			"type": "string"
+		},
+		"createdAt": {
+			"type": "string",
+			"format": "date-time",
+			"createdAt": true
+		}
+	},
+	"primary_key": ["id", "email"]
+}
