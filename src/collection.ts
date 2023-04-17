@@ -16,9 +16,11 @@ import {
 	DeleteQueryOptions,
 	DeleteResponse,
 	DMLMetadata,
+	ExplainResponse,
 	Filter,
 	FindQuery,
 	FindQueryOptions,
+	ReadType,
 	SelectorFilterOperator,
 	TigrisCollectionType,
 	UpdateQuery,
@@ -553,6 +555,41 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 
 		const initializer = new ReadCursorInitializer(this.grpcClient, readRequest, tx);
 		return new Cursor<T>(initializer, this.config);
+	}
+
+	/**
+	 * Returns a explain response on how Tigris would process a query
+	 *
+	 * @returns - The explain response
+	 *
+	 * @example
+	 * ```
+	 * 	const explain = await db.getCollection<Book>(Book).explain({"author": "Brandon Sanderson"});
+	 *	console.log(`Read Type: ${explain.readType}, Key Ranges: ${explain.KeyRange}, field: ${explain.field}`)
+	 *
+	 * ```
+	 */
+	explain(query: FindQuery<T>): Promise<ExplainResponse> {
+		const readRequest = new ProtoReadRequest()
+			.setProject(this.db)
+			.setBranch(this.branch)
+			.setCollection(this.collectionName)
+			.setFilter(Utility.stringToUint8Array(Utility.filterToString(query.filter)));
+		return new Promise((resolve, reject) => {
+			this.grpcClient.explain(readRequest, (err, resp) => {
+				if (err) {
+					return reject(err);
+				}
+
+				const explainResp = resp.toObject();
+				explainResp.readType =
+					resp.getReadType() === "secondary index"
+						? ("secondary index" as ReadType)
+						: ("primary index" as ReadType);
+
+				resolve(explainResp as ExplainResponse);
+			});
+		});
 	}
 
 	/**

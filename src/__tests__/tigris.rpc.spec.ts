@@ -473,6 +473,22 @@ describe("rpc tests", () => {
 		return readOnePromise;
 	});
 
+	it("explain", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+
+		const db = tigris.getDatabase();
+		const explainResp = await db.getCollection<IBook>("books").explain({
+			filter: {
+				op: SelectorFilterOperator.EQ,
+				fields: {
+					author: "Marcel Proust",
+				},
+			},
+		});
+		expect(explainResp.readType).toEqual("secondary index");
+		expect(explainResp.filter).toEqual(JSON.stringify({ author: "Marcel Proust" }));
+	});
+
 	describe("findMany", () => {
 		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
 
