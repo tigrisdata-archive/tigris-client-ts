@@ -18,6 +18,7 @@ import {
 	TigrisSchema,
 	UpdateFields,
 	UpdateQueryOptions,
+	GroupByField,
 } from "./types";
 import * as fs from "node:fs";
 import {
@@ -592,6 +593,20 @@ export const Utility = {
 		return this.objToJsonString(sortOrders);
 	},
 
+	_groupByToString(fields: string[]): string {
+		const groupBy: GroupByField = {
+			fields: [],
+		};
+
+		if (typeof fields === "undefined") {
+			return this.objToJsonString(groupBy);
+		}
+
+		groupBy.fields = [...fields];
+
+		return this.objToJsonString(groupBy);
+	},
+
 	protoSearchRequestFromQuery<T>(
 		query: SearchQuery<T>,
 		searchRequest: ProtoSearchRequest | ProtoSearchIndexRequest,
@@ -619,6 +634,10 @@ export const Utility = {
 
 		if (query.sort !== undefined) {
 			searchRequest.setSort(Utility.stringToUint8Array(Utility._sortOrderingToString(query.sort)));
+		}
+
+		if (query.groupBy !== undefined) {
+			searchRequest.setGroupBy(Utility.stringToUint8Array(Utility._groupByToString(query.groupBy)));
 		}
 
 		if (query.includeFields !== undefined) {
