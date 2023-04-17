@@ -29,6 +29,7 @@ import {
 	DescribeDatabaseResponse,
 	DropCollectionRequest,
 	DropCollectionResponse,
+	ExplainResponse,
 	FacetCount,
 	InsertRequest,
 	InsertResponse,
@@ -182,6 +183,10 @@ export class TestTigrisService {
 		listCollections(
 			call: ServerUnaryCall<ListCollectionsRequest, ListCollectionsResponse>,
 			callback: sendUnaryData<ListCollectionsResponse>
+		): void;
+		explain(
+			call: ServerUnaryCall<ReadRequest, ExplainResponse>,
+			callback: sendUnaryData<ExplainResponse>
 		): void;
 	} = {
 		createBranch(
@@ -647,6 +652,25 @@ export class TestTigrisService {
 					.setCreatedAt(new google_protobuf_timestamp_pb.Timestamp())
 					.setUpdatedAt(new google_protobuf_timestamp_pb.Timestamp())
 			);
+			callback(undefined, reply);
+		},
+		explain(
+			call: ServerUnaryCall<ReadRequest, ExplainResponse>,
+			callback: sendUnaryData<ExplainResponse>
+		): void {
+			assert(call.request.getBranch() === TestTigrisService.ExpectedBranch);
+
+			if (call.request.getProject() === "test-tx") {
+				const txIdHeader = call.metadata.get("Tigris-Tx-Id").toString();
+				const txOriginHeader = call.metadata.get("Tigris-Tx-Origin").toString();
+				if (txIdHeader != TestTigrisService.txId || txOriginHeader != TestTigrisService.txOrigin) {
+					callback(new Error("transaction mismatch - explain"));
+					return;
+				}
+			}
+			const reply: ExplainResponse = new ExplainResponse();
+			reply.setFilter(JSON.stringify({ author: "Marcel Proust" }));
+			reply.setReadType("secondary index");
 			callback(undefined, reply);
 		},
 	};
