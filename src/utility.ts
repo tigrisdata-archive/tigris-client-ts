@@ -79,21 +79,39 @@ export const Utility = {
 	},
 
 	filterToString<T>(filter: Filter<T>): string {
-		if (
-			Object.prototype.hasOwnProperty.call(filter, "op") &&
-			(filter["op"] === LogicalOperator.AND || filter["op"] === LogicalOperator.OR)
-		) {
-			// LogicalFilter
-			return Utility._logicalFilterToString(filter as LogicalFilter<T>);
-			// eslint-disable-next-line no-prototype-builtins
-		} else if (filter.hasOwnProperty("op")) {
-			// SelectorFilter
-			return Utility._selectorFilterToString(filter as SelectorFilter<T>);
+		if (typeof filter === "object" && !Array.isArray(filter)) {
+			const keys = Object.keys(filter);
+
+			if (keys.length === 1 && keys[0] in LogicalOperator) {
+				// logical filter
+				const operator = keys[0] as LogicalOperator;
+				const filters = Array.isArray(filter[operator]) ? filter[operator] : [filter[operator]];
+
+				const filterStrings = filters.map((str) => this.filterToString(str));
+				return `(${filterStrings.join(`${operator.toLowerCase()}`)})`;
+			} else {
+				// the selector filter
+				const selector = filter as Selector<T>;
+				const selectorStrings = Object.keys(selector).map((key) => {
+					const value = selector[key];
+					
+					if (typeof value === "object" && !Array.isArray(value)) {
+						const op = Object.keys(value)[0] as LogicalOperator;
+						const operatorValue = value[op];
+						return `${key} ${op} ${JSON.stringify(operatorValue)}`;
+					} else {
+						// "$eq" ----> equality
+						return `${key}=${JSON.stringify(value)}`;
+					}
+				});
+				return selectorStrings.join("&");
+			}
 		} else {
-			// Selector (default operator $eq)
-			return Utility.objToJsonString(filter);
+			// return the default selector operator ---> "$eq"
+			return JSON.stringify(filter);
 		}
 	},
+
 	_getRandomInt(upperBound: number): number {
 		return Math.floor(Math.random() * upperBound);
 	},
@@ -162,6 +180,7 @@ export const Utility = {
 		}
 		return result;
 	},
+	
 
 	readFieldString(readFields: ReadFields): string {
 		const include = readFields.include?.reduce((acc, field) => ({ ...acc, [field]: true }), {});

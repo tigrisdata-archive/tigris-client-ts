@@ -88,13 +88,14 @@
 		"@semantic-release/npm": "^9.0.1",
 		"@types/jest": "^28.1.8",
 		"@types/json-bigint": "^1.0.1",
+		"@types/node": "^18.15.11",
 		"@typescript-eslint/eslint-plugin": "^5.35.1",
 		"@typescript-eslint/parser": "^5.35.1",
-		"eslint-plugin-tsdoc": "0.2.17",
 		"copyfiles": "^2.4.1",
 		"eslint": "^8.22.0",
 		"eslint-config-prettier": "^8.5.0",
 		"eslint-plugin-functional": "^4.2.2",
+		"eslint-plugin-tsdoc": "0.2.17",
 		"eslint-plugin-unicorn": "^43.0.2",
 		"eslint-plugin-unused-imports": "^2.0.0",
 		"grpc_tools_node_protoc_ts": "^5.3.2",
@@ -109,11 +110,11 @@
 	},
 	"dependencies": {
 		"@grpc/grpc-js": "^1.6.10",
+		"app-root-path": "^3.1.0",
 		"chalk": "4.1.2",
 		"dotenv": "^16.0.3",
 		"google-protobuf": "^3.21.0",
 		"json-bigint": "github:sidorares/json-bigint",
-		"reflect-metadata": "^0.1.13",
-		"app-root-path": "^3.1.0"
+		"reflect-metadata": "^0.1.13"
 	}
 }

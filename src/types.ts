@@ -697,19 +697,34 @@ type PathType<T, P extends string> = P extends keyof T
 	: never;
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export type Selector<T> = Partial<{
-	[K in string]: unknown;
-}>;
 
-export type SelectorFilter<T> = Partial<{
-	op?: SelectorFilterOperator;
-	fields: Selector<T>;
+
+// export type Selector<T> = Partial<{
+// 	[K in string]: unknown;
+// }>;
+
+// export type SelectorFilter<T> = Partial<{
+// 	op?: SelectorFilterOperator;
+// 	fields: Selector<T>;
+// }>;
+
+// export type LogicalFilter<T> = {
+// 	op: LogicalOperator;
+// 	selectorFilters?: Array<SelectorFilter<T> | Selector<T>>;
+// 	logicalFilters?: Array<LogicalFilter<T>>;
+// };
+
+// export type Filter<T> = SelectorFilter<T> | LogicalFilter<T> | Selector<T>;
+
+
+type Operator = "$eq" | "$ne" | "$gt" | "$gte" | "$lt" | "$lte" | "$in" | "$nin" | "$all";
+
+export type Selector<T> = Partial<{
+	[K in keyof T]?: T[K] | {[P in Operator]?: T[K] | T[K][]}
 }>;
 
 export type LogicalFilter<T> = {
-	op: LogicalOperator;
-	selectorFilters?: Array<SelectorFilter<T> | Selector<T>>;
-	logicalFilters?: Array<LogicalFilter<T>>;
+	[P in LogicalOperator]? : Array<Filter<T>> | Filter<T>
 };
 
-export type Filter<T> = SelectorFilter<T> | LogicalFilter<T> | Selector<T>;
+export type Filter<T> = Selector<T> | LogicalFilter<T>;
