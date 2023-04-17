@@ -720,7 +720,7 @@ type PathType<T, P extends string> = P extends keyof T
 type Operator = "$eq" | "$ne" | "$gt" | "$gte" | "$lt" | "$lte" | "$in" | "$nin" | "$all";
 
 export type Selector<T> = Partial<{
-	[K in keyof T]?: T[K] | {[P in Operator]?: T[K] | T[K][]}
+	[K in keyof T]?: T[K] | {[P in SelectorOperator]?: T[K] | T[K][]}
 }>;
 
 export type LogicalFilter<T> = {
