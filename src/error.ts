@@ -91,6 +91,18 @@ export class IncompletePrimaryKeyDefError extends TigrisError {
 	}
 }
 
+export class IncompletePrimaryKeyOrderError extends TigrisError {
+	constructor(name: string, collectionName: string) {
+		super(
+			`Missing 'order' value in "PrimaryKeyOptions" for variable '${name}' in ${collectionName} collection`
+		);
+	}
+
+	override get name(): string {
+		return "IncompletePrimaryKeyOrderError";
+	}
+}
+
 export class CollectionNotFoundError extends TigrisError {
 	constructor(name: string) {
 		super(`Collection not found : '${name}'`);

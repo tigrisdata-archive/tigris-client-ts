@@ -9,6 +9,8 @@ import {
 import { SearchFieldOptions, TigrisIndexSchema, TigrisIndexType } from "../search";
 import { SearchFieldMetadata } from "../decorators/metadata/search-field-metadata";
 import { FieldMetadata } from "../decorators/metadata/field-metadata";
+import { PrimaryKeyMetadata } from "../decorators/metadata/primary-key-metadata";
+import { IncompletePrimaryKeyOrderError } from "../error";
 
 export type CollectionSchema<T extends TigrisCollectionType> = {
 	name: string;
@@ -150,16 +152,28 @@ export class DecoratedSchemaProcessor {
 		targetSchema: TigrisSchema<T>,
 		collectionClass: Function
 	) {
-		for (const pk of this.storage.getPKsByTarget(collectionClass)) {
+		const primaryKeysMetadata: PrimaryKeyMetadata[] = this.storage.getPKsByTarget(collectionClass);
+		this.validatePrimaryKeysOrder(primaryKeysMetadata, collectionClass);
+		for (const pk of primaryKeysMetadata) {
 			if (!(pk.name in targetSchema)) {
 				targetSchema[pk.name] = {
 					type: pk.type,
 				};
 			}
 			targetSchema[pk.name]["primary_key"] = {
-				order: pk.options?.order,
-				autoGenerate: pk.options.autoGenerate === true,
+				order: pk.options?.order ?? 1,
+				autoGenerate: pk.options?.autoGenerate === true,
 			};
+		}
+	}
+
+	private validatePrimaryKeysOrder(primaryKeys: PrimaryKeyMetadata[], collectionClass: Function) {
+		if (primaryKeys.length > 1) {
+			for (const pk of primaryKeys) {
+				if (!pk?.options?.order) {
+					throw new IncompletePrimaryKeyOrderError(pk.name, collectionClass.name);
+				}
+			}
 		}
 	}
 

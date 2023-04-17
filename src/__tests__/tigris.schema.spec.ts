@@ -7,13 +7,23 @@ import {
 	VacationsRentalSchema,
 } from "./fixtures/schema/vacationRentals";
 import { Field } from "../decorators/tigris-field";
-import { IncompleteArrayTypeDefError, IncorrectVectorDefError } from "../error";
+import {
+	IncompleteArrayTypeDefError,
+	IncompletePrimaryKeyOrderError,
+	IncorrectVectorDefError,
+} from "../error";
 import { TigrisCollection } from "../decorators/tigris-collection";
 import { Utility } from "../utility";
 import { Order, ORDERS_COLLECTION_NAME, OrderSchema } from "./fixtures/schema/orders";
 import { Movie, MOVIES_COLLECTION_NAME, MovieSchema } from "./fixtures/schema/movies";
 import { MATRICES_COLLECTION_NAME, Matrix, MatrixSchema } from "./fixtures/schema/matrices";
 import { readJSONFileAsObj } from "./utils";
+import {
+	InvalidStudent,
+	STUDENT_COLLECTION_NAME,
+	Student,
+	StudentSchema,
+} from "./fixtures/schema/student";
 
 type SchemaTestCase<T extends TigrisCollectionType> = {
 	schemaClass: T;
@@ -53,6 +63,12 @@ const schemas: Array<SchemaTestCase<any>> = [
 		name: RENTALS_COLLECTION_NAME,
 		expectedJson: "vacationRentals.json",
 	},
+	{
+		schemaClass: Student,
+		expectedSchema: StudentSchema,
+		name: STUDENT_COLLECTION_NAME,
+		expectedJson: "students.json",
+	},
 ];
 
 /*
@@ -75,6 +91,17 @@ describe.each(schemas)("Schema conversion for: '$name'", (tc) => {
 			readJSONFileAsObj("src/__tests__/fixtures/json-schema/" + tc.expectedJson)
 		);
 	});
+});
+
+test("throws error when Schema is invalid with more than one primary key but no orders specified", () => {
+	const processor = DecoratedSchemaProcessor.Instance;
+	let caught;
+	try {
+		processor.processCollection(InvalidStudent);
+	} catch (err) {
+		caught = err;
+	}
+	expect(caught).toBeInstanceOf(IncompletePrimaryKeyOrderError);
 });
 
 test("throws error when Arrays are not properly decorated", () => {
