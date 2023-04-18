@@ -12,7 +12,7 @@ import {
 	ReadFields,
 	Selector,
 	SelectorFilter,
-	SelectorFilterOperator,
+	SelectorOperator,
 	TigrisCollectionType,
 	TigrisDataTypes,
 	TigrisSchema,
@@ -94,7 +94,7 @@ export const Utility = {
 				const selector = filter as Selector<T>;
 				const selectorStrings = Object.keys(selector).map((key) => {
 					const value = selector[key];
-					
+
 					if (typeof value === "object" && !Array.isArray(value)) {
 						const op = Object.keys(value)[0] as LogicalOperator;
 						const operatorValue = value[op];
@@ -116,36 +116,34 @@ export const Utility = {
 		return Math.floor(Math.random() * upperBound);
 	},
 	_selectorFilterToString<T extends TigrisCollectionType>(filter: SelectorFilter<T>): string {
-		switch (filter.op) {
-			case SelectorFilterOperator.NONE:
+		switch (filter) {
+			case "$none":
 				// filter nothing
 				return "{}";
-			case SelectorFilterOperator.EQ:
-			case SelectorFilterOperator.LT:
-			case SelectorFilterOperator.LTE:
-			case SelectorFilterOperator.GT:
-			case SelectorFilterOperator.GTE:
-				return Utility.objToJsonString(
-					Utility._selectorFilterToFlatJSONObj(filter.op, filter.fields)
-				);
+			case "$eq":
+			case "$lt":
+			case "$lte":
+			case "$gt":
+			case "$gte":
+				return Utility.objToJsonString(Utility._selectorFilterToFlatJSONObj(filter, filter.fields));
 			default:
 				return "";
 		}
 	},
 
-	_selectorFilterToFlatJSONObj(op: SelectorFilterOperator, fields: object): object {
-		switch (op) {
-			case SelectorFilterOperator.NONE:
+	_selectorFilterToFlatJSONObj(filter: SelectorOperator, fields: object): object {
+		switch (filter) {
+			case "$none":
 				return {};
-			case SelectorFilterOperator.EQ:
+			case "$eq":
 				return Utility._flattenObj(fields);
-			case SelectorFilterOperator.LT:
-			case SelectorFilterOperator.LTE:
-			case SelectorFilterOperator.GT:
-			case SelectorFilterOperator.GTE: {
+			case "$lt":
+			case "$lte":
+			case "$gt":
+			case "$gte": {
 				const flattenedFields = Utility._flattenObj(fields);
 				for (const key in flattenedFields) {
-					flattenedFields[key] = { [op]: flattenedFields[key] };
+					flattenedFields[key] = { [filter]: flattenedFields[key] };
 				}
 				return flattenedFields;
 			}
@@ -161,26 +159,33 @@ export const Utility = {
 	_logicalFilterToJSONObj<T>(filter: LogicalFilter<T>): object {
 		const result = {};
 		const innerFilters = [];
-		result[filter.op] = innerFilters;
-		if (filter.selectorFilters) {
-			for (const value of filter.selectorFilters) {
-				// eslint-disable-next-line no-prototype-builtins
-				if (value.hasOwnProperty("op")) {
-					const v = value as SelectorFilter<T>;
-					innerFilters.push(Utility._selectorFilterToFlatJSONObj(v.op, v.fields));
-				} else {
-					const v = value as Selector<T>;
-					innerFilters.push(Utility._selectorFilterToFlatJSONObj(SelectorFilterOperator.EQ, v));
+		const firstKey = Object.keys(filter)[0];
+
+		// check if the first matches a particular logical operator
+		if (firstKey === "$and" || firstKey === "$or") {
+			result[firstKey] = innerFilters;
+
+			if (Array.isArray(filter)) {
+				for (const value of filter) {
+					if (Object.keys(value)[0] === "$and" || Object.keys(value)[0] === "$or") {
+						const v = value as LogicalFilter<T>;
+						innerFilters.push(Utility._logicalFilterToJSONObj(v));
+					} else {
+						const v = value as SelectorFilter<T>;
+						const operator = Object.keys(value)[0] as SelectorOperator;
+						innerFilters.push(Utility._selectorFilterToFlatJSONObj(operator, v[operator]));
+					}
 				}
+			} else {
+				console.log("filter spec is not an array!");
 			}
+		} else {
+			// for cases where the slectorOperator is "$eq"
+			result[SelectorFilter.$eq] = Utility._selectorFilterToFlatJSONObj(SelectorFilter.$eq, filter);
 		}
-		if (filter.logicalFilters) {
-			for (const value of filter.logicalFilters)
-				innerFilters.push(Utility._logicalFilterToJSONObj(value));
-		}
+
 		return result;
 	},
-	
 
 	readFieldString(readFields: ReadFields): string {
 		const include = readFields.include?.reduce((acc, field) => ({ ...acc, [field]: true }), {});
