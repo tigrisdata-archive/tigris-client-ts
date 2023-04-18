@@ -11,7 +11,6 @@ import {
 	SortOrder,
 	ReadFields,
 	Selector,
-	SelectorFilter,
 	SelectorOperator,
 	TigrisCollectionType,
 	TigrisDataTypes,
@@ -82,7 +81,7 @@ export const Utility = {
 		if (typeof filter === "object" && !Array.isArray(filter)) {
 			const keys = Object.keys(filter);
 
-			if (keys.length === 1 && keys[0] in LogicalOperator) {
+			if (keys.length === 1 && keys[0] in { $and: "", $or: "" }) {
 				// logical filter
 				const operator = keys[0] as LogicalOperator;
 				const filters = Array.isArray(filter[operator]) ? filter[operator] : [filter[operator]];
@@ -115,17 +114,22 @@ export const Utility = {
 	_getRandomInt(upperBound: number): number {
 		return Math.floor(Math.random() * upperBound);
 	},
-	_selectorFilterToString<T extends TigrisCollectionType>(filter: SelectorFilter<T>): string {
+
+	_selectorFilterToString<T extends TigrisCollectionType>(filter: Selector<T>): string {
 		switch (filter) {
 			case "$none":
 				// filter nothing
 				return "{}";
 			case "$eq":
+				return Utility.objToJsonString(Utility._selectorFilterToFlatJSONObj("$eq", filter));
 			case "$lt":
+				return Utility.objToJsonString(Utility._selectorFilterToFlatJSONObj("$lt", filter));
 			case "$lte":
+				return Utility.objToJsonString(Utility._selectorFilterToFlatJSONObj("$lte", filter));
 			case "$gt":
+				return Utility.objToJsonString(Utility._selectorFilterToFlatJSONObj("$gt", filter));
 			case "$gte":
-				return Utility.objToJsonString(Utility._selectorFilterToFlatJSONObj(filter, filter.fields));
+				return Utility.objToJsonString(Utility._selectorFilterToFlatJSONObj("$gte", filter));
 			default:
 				return "";
 		}
@@ -171,7 +175,7 @@ export const Utility = {
 						const v = value as LogicalFilter<T>;
 						innerFilters.push(Utility._logicalFilterToJSONObj(v));
 					} else {
-						const v = value as SelectorFilter<T>;
+						const v = value as Selector<T>;
 						const operator = Object.keys(value)[0] as SelectorOperator;
 						innerFilters.push(Utility._selectorFilterToFlatJSONObj(operator, v[operator]));
 					}
@@ -181,7 +185,7 @@ export const Utility = {
 			}
 		} else {
 			// for cases where the slectorOperator is "$eq"
-			result[SelectorFilter.$eq] = Utility._selectorFilterToFlatJSONObj(SelectorFilter.$eq, filter);
+			result["$eq"] = Utility._selectorFilterToFlatJSONObj("$eq", filter);
 		}
 
 		return result;
