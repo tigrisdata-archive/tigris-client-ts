@@ -680,7 +680,7 @@ export type TigrisArrayItem = {
 };
 
 export type PrimaryKeyOptions = {
-	order: number;
+	order?: number;
 	autoGenerate?: boolean;
 };
 

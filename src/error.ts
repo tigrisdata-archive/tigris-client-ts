@@ -80,14 +80,23 @@ export class IncorrectVectorDefError extends TigrisError {
 		return "IncorrectVectorDefError";
 	}
 }
-
-export class IncompletePrimaryKeyDefError extends TigrisError {
-	constructor(object: Object, propertyName: string) {
-		super(`Missing "PrimaryKeyOptions" for '${object.constructor.name}#${propertyName}'`);
+export class MissingPrimaryKeyOrderInSchemaDefinitionError extends TigrisError {
+	constructor(propertyName: string) {
+		super(`Missing 'order' value for '${propertyName}' primary key`);
 	}
 
 	override get name(): string {
-		return "IncompletePrimaryKeyDefError";
+		return "MissingPrimaryKeyOrderInSchemaDefinitionError";
+	}
+}
+
+export class DuplicatePrimaryKeyOrderError extends TigrisError {
+	constructor(order: string, propertyName: string) {
+		super(`Primary Key order '${order}' already exists for '${propertyName}'`);
+	}
+
+	override get name(): string {
+		return "DuplicatePrimaryKeyOrderError";
 	}
 }
 

@@ -32,33 +32,6 @@ export class Student {
 
 /********************************** END **************************************/
 
-/******************************************************************************
- * `InvalidStudent` class demonstrates a Tigris collection schema validation,
- *  Schema is INVALID as it contains two primary keys but no order was specified
- *  in decorator under PrimaryKeyOptions.
- *****************************************************************************/
-export const INVALID_STUDENT_COLLECTION_NAME = "invalid_students";
-
-@TigrisCollection(INVALID_STUDENT_COLLECTION_NAME)
-export class InvalidStudent {
-	@PrimaryKey(TigrisDataTypes.INT64)
-	id?: string;
-
-	@PrimaryKey(TigrisDataTypes.STRING)
-	email: string;
-
-	@Field()
-	firstName!: string;
-
-	@Field()
-	lastName!: string;
-
-	@Field({ timestamp: "createdAt" })
-	createdAt?: Date;
-}
-
-/********************************** END **************************************/
-
 /**
  * `TigrisSchema` representation of the `Student` collection class .
  *

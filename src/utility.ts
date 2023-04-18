@@ -37,6 +37,10 @@ import {
 } from "./search";
 import { TigrisIndexSchema } from "./search";
 import { SearchIndexRequest as ProtoSearchIndexRequest } from "./proto/server/v1/search_pb";
+import {
+	DuplicatePrimaryKeyOrderError,
+	MissingPrimaryKeyOrderInSchemaDefinitionError,
+} from "./error";
 
 export const Utility = {
 	stringToUint8Array(input: string): Uint8Array {
@@ -356,7 +360,25 @@ export const Utility = {
 
 				// flat property could be a primary key
 				if (schema[property].primary_key) {
-					pkeyMap[schema[property].primary_key["order"]] = property;
+					if (!schema[property].primary_key["order"]) {
+						/**
+						 * if the order doesn't exists then default to 1.
+						 * Check if order 1 already exists, if true then throw MissingPrimaryKeyOrderInSchemaDefinitionError
+						 */
+						if (pkeyMap["1"]) {
+							throw new MissingPrimaryKeyOrderInSchemaDefinitionError(property.toString());
+						}
+						pkeyMap["1"] = property;
+					} else {
+						// validate duplicate order for primary key
+						if (pkeyMap[schema[property].primary_key["order"]]) {
+							throw new DuplicatePrimaryKeyOrderError(
+								schema[property].primary_key["order"],
+								pkeyMap[schema[property].primary_key["order"]]
+							);
+						}
+						pkeyMap[schema[property].primary_key["order"]] = property;
+					}
 					//  autogenerate?
 					if (schema[property].primary_key["autoGenerate"]) {
 						thisProperty["autoGenerate"] = true;

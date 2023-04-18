@@ -22,7 +22,11 @@ import { PrimaryKey } from "../decorators/tigris-primary-key";
 import { Field } from "../decorators/tigris-field";
 import { SearchIterator } from "../consumables/search-iterator";
 import { CacheService } from "../proto/server/v1/cache_grpc_pb";
-import { BranchNameRequiredError } from "../error";
+import {
+	BranchNameRequiredError,
+	DuplicatePrimaryKeyOrderError,
+	MissingPrimaryKeyOrderInSchemaDefinitionError,
+} from "../error";
 import { Status } from "@grpc/grpc-js/build/src/constants";
 import { Status as TigrisStatus } from "../constants";
 import { Case, Collation, SearchQuery } from "../search";
@@ -735,6 +739,114 @@ describe("rpc tests", () => {
 		return db3.createOrUpdateCollection("books", bookSchema).then((value) => {
 			expect(value).toBeDefined();
 		});
+	});
+
+	it("createOrUpdateCollections with no order specified for primary key", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+		const db3 = tigris.getDatabase();
+		const bookSchema: TigrisSchema<IBook> = {
+			id: {
+				type: TigrisDataTypes.INT64,
+				primary_key: {
+					autoGenerate: true,
+				},
+			},
+			author: {
+				type: TigrisDataTypes.STRING,
+			},
+			title: {
+				type: TigrisDataTypes.STRING,
+			},
+			tags: {
+				type: TigrisDataTypes.ARRAY,
+				items: {
+					type: TigrisDataTypes.STRING,
+				},
+			},
+		};
+		return db3.createOrUpdateCollection("books", bookSchema).then((value) => {
+			expect(value).toBeDefined();
+		});
+	});
+
+	it("createOrUpdateCollections should throw IncompletePrimaryKeyOrderError", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+		const db3 = tigris.getDatabase();
+		const bookSchema: TigrisSchema<IBookMPK> = {
+			id: {
+				type: TigrisDataTypes.INT64,
+				primary_key: {
+					autoGenerate: true,
+				},
+			},
+			id2: {
+				type: TigrisDataTypes.INT64,
+				primary_key: {
+					autoGenerate: true,
+				},
+			},
+			title: {
+				type: TigrisDataTypes.STRING,
+			},
+			metadata: {
+				type: {
+					publishedDate: {
+						type: TigrisDataTypes.DATE_TIME,
+					},
+					authorName: {
+						type: TigrisDataTypes.STRING,
+					},
+				},
+			},
+		};
+		let caught;
+		try {
+			await db3.createOrUpdateCollection("books", bookSchema);
+		} catch (e) {
+			caught = e;
+		}
+		expect(caught).toBeInstanceOf(MissingPrimaryKeyOrderInSchemaDefinitionError);
+	});
+
+	it("createOrUpdateCollections should throw DuplicatePrimaryKeyOrderError", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+		const db3 = tigris.getDatabase();
+		const bookSchema: TigrisSchema<IBookMPK> = {
+			id: {
+				type: TigrisDataTypes.INT64,
+				primary_key: {
+					order: 1,
+					autoGenerate: true,
+				},
+			},
+			id2: {
+				type: TigrisDataTypes.INT64,
+				primary_key: {
+					order: 1,
+					autoGenerate: true,
+				},
+			},
+			title: {
+				type: TigrisDataTypes.STRING,
+			},
+			metadata: {
+				type: {
+					publishedDate: {
+						type: TigrisDataTypes.DATE_TIME,
+					},
+					authorName: {
+						type: TigrisDataTypes.STRING,
+					},
+				},
+			},
+		};
+		let caught;
+		try {
+			await db3.createOrUpdateCollection("books", bookSchema);
+		} catch (e) {
+			caught = e;
+		}
+		expect(caught).toBeInstanceOf(DuplicatePrimaryKeyOrderError);
 	});
 
 	it("serverMetadata", async () => {
