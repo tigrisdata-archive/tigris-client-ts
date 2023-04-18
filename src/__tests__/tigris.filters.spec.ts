@@ -2,8 +2,7 @@ import {
 	LogicalFilter,
 	LogicalOperator,
 	Selector,
-	SelectorFilter,
-	SelectorFilterOperator,
+	SelectorOperator,
 	TigrisCollectionType,
 	TigrisDataTypes,
 } from "../types";
@@ -14,37 +13,36 @@ import { Field } from "../decorators/tigris-field";
 
 describe("filters tests", () => {
 	it("simpleSelectorFilterTest", () => {
-		const filterNothing: SelectorFilter<IUser> = {
-			op: SelectorFilterOperator.NONE,
-		};
+		const filterNothing: Selector<IUser> = {};
 		expect(Utility.filterToString(filterNothing)).toBe("{}");
+
 		const filter1: Selector<IUser> = {
-			name: "Alice",
+			name: {$eq: "Alice"},
 		};
 		expect(Utility.filterToString(filter1)).toBe('{"name":"Alice"}');
 
 		const filter2: Selector<IUser> = {
-			balance: 100,
+			balance: {$eq: 100},
 		};
 		expect(Utility.filterToString(filter2)).toBe('{"balance":100}');
 
 		const filter3: Selector<IUser1> = {
-			isActive: true,
+			isActive: {$eq: true},
 		};
 		expect(Utility.filterToString(filter3)).toBe('{"isActive":true}');
 	});
 
 	it("persists date string as it is", () => {
-		const dateFilter: SelectorFilter<IUser1> = {
-			op: SelectorFilterOperator.GT,
-			fields: {
-				createdAt: "1980-01-01T18:29:28.000Z",
-			},
+		const dateFilter: Selector<IUser1> = {
+		  $gt: {
+			createdAt: "1980-01-01T18:29:28.000Z",
+		  },
 		};
 		expect(Utility.filterToString(dateFilter)).toBe(
-			'{"createdAt":{"$gt":"1980-01-01T18:29:28.000Z"}}'
+		  '{"$gt":{"createdAt":"1980-01-01T18:29:28.000Z"}}'
 		);
 	});
+	  
 
 	it("serializes Date object to string", () => {
 		const dateFilter: SelectorFilter<IUser1> = {
@@ -60,8 +58,8 @@ describe("filters tests", () => {
 
 	it("simplerSelectorWithinLogicalFilterTest", () => {
 		const filter1: LogicalFilter<IUser> = {
-			op: LogicalOperator.AND,
-			selectorFilters: [
+			"$and",
+			selector: [
 				{
 					name: "Alice",
 				},
