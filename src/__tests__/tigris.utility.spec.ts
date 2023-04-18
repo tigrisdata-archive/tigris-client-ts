@@ -99,6 +99,7 @@ describe("utility tests", () => {
 			expect(request.getFacet()).toBe("");
 			expect(request.getVector()).toBe("");
 			expect(request.getSort()).toBe("");
+			expect(request.getGroupBy()).toBe("");
 			expect(request.getIncludeFieldsList()).toEqual([]);
 			expect(request.getExcludeFieldsList()).toEqual([]);
 			expect(request.getPage()).toBe(0);
@@ -152,6 +153,15 @@ describe("utility tests", () => {
 			Utility.protoSearchRequestFromQuery(query, request);
 
 			expect(request.getSort()).toEqual(Utility.stringToUint8Array('[{"balance":"$desc"}]'));
+		});
+
+		it("sets group by", () => {
+			const query: SearchQuery<Student> = {
+				groupBy: ["city"],
+			};
+			Utility.protoSearchRequestFromQuery(query, request);
+
+			expect(request.getGroupBy()).toEqual(Utility.stringToUint8Array('{"fields":["city"]}'));
 		});
 
 		it("sets includeFields", () => {

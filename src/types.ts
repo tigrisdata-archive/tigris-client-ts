@@ -515,6 +515,13 @@ export type SortField = {
 };
 
 /**
+ * Group by fields
+ */
+export type GroupByField = {
+	fields: Array<string>;
+};
+
+/**
  * Query builder for reading documents from a collection
  * @public
  */
