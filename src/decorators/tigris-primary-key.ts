@@ -1,10 +1,6 @@
 import "reflect-metadata";
 import { PrimaryKeyOptions, TigrisDataTypes } from "../types";
-import {
-	CannotInferFieldTypeError,
-	IncompletePrimaryKeyDefError,
-	ReflectionNotEnabled,
-} from "../error";
+import { CannotInferFieldTypeError, ReflectionNotEnabled } from "../error";
 import { getDecoratorMetaStorage } from "../globals";
 import { PrimaryKeyMetadata } from "./metadata/primary-key-metadata";
 import { Log } from "../utils/logger";
@@ -16,7 +12,7 @@ import { Log } from "../utils/logger";
  *
  * @param options - Additional properties
  */
-export function PrimaryKey(options: PrimaryKeyOptions): PropertyDecorator;
+export function PrimaryKey(options?: PrimaryKeyOptions): PropertyDecorator;
 /**
  * PrimaryKey decorator is used to mark a class property as Primary Key in a collection.
  *
@@ -25,7 +21,7 @@ export function PrimaryKey(options: PrimaryKeyOptions): PropertyDecorator;
  * @param type - Schema field's data type
  * @param options - Additional properties
  */
-export function PrimaryKey(type: TigrisDataTypes, options: PrimaryKeyOptions): PropertyDecorator;
+export function PrimaryKey(type: TigrisDataTypes, options?: PrimaryKeyOptions): PropertyDecorator;
 
 /**
  * PrimaryKey decorator is used to mark a class property as Primary Key in a collection.
@@ -42,11 +38,6 @@ export function PrimaryKey(
 			propertyType = typeOrOptions as TigrisDataTypes;
 		} else if (typeof typeOrOptions === "object") {
 			options = typeOrOptions as PrimaryKeyOptions;
-		}
-
-		// throw error if options are undefined
-		if (!options) {
-			throw new IncompletePrimaryKeyDefError(target, propertyName);
 		}
 
 		// infer type from reflection

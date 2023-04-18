@@ -578,6 +578,35 @@ export interface UpdateQuery<T> {
 	options?: UpdateQueryOptions;
 }
 
+export type ReadType = "primary index" | "secondary index";
+/**
+ * Explain Response
+ *  @public
+ */
+export interface ExplainResponse {
+	/**
+	 * Filter used to match the documents
+	 */
+	filter: string;
+	/**
+	 * Sets whether the query read from the primary index or a secondary index
+	 */
+	readType: ReadType;
+	/**
+	 * The field used to read from the secondary index
+	 */
+	field?: string;
+	/**
+	 * The key range used to query the secondary index
+	 */
+	keyRange?: string[];
+
+	/**
+	 * Sort field
+	 */
+	sort?: string;
+}
+
 export enum TigrisDataTypes {
 	STRING = "string",
 	BOOLEAN = "boolean",

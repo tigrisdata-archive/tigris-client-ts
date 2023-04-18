@@ -32,7 +32,8 @@ export class Actor {
 
 @TigrisCollection(MOVIES_COLLECTION_NAME)
 export class Movie {
-	@PrimaryKey(TigrisDataTypes.STRING, { order: 1 })
+	// Ignored order in primary key options as it was only primary key.
+	@PrimaryKey(TigrisDataTypes.STRING)
 	movieId: string;
 
 	@SearchField(TigrisDataTypes.STRING)

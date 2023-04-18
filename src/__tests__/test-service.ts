@@ -29,6 +29,7 @@ import {
 	DescribeDatabaseResponse,
 	DropCollectionRequest,
 	DropCollectionResponse,
+	ExplainResponse,
 	FacetCount,
 	InsertRequest,
 	InsertResponse,
@@ -83,6 +84,11 @@ export class TestTigrisService {
 		["5", "eyJpZCI6NSwidGl0bGUiOiJUaW1lIFJlZ2FpbmVkIiwiYXV0aG9yIjoiTWFyY2VsIFByb3VzdCJ9"],
 		// base64 of {"id":6,"title":"The Prisoner","author":"Marcel Proust"}
 		["6", "eyJpZCI6NiwidGl0bGUiOiJUaGUgUHJpc29uZXIiLCJhdXRob3IiOiJNYXJjZWwgUHJvdXN0In0="],
+		// base64 of {"id":7,"title":"A Passage to India","author":"E.M. Forster","tags":["Novel","India"], "purchasedOn": "2023-04-14T09:39:19.288Z"}
+		[
+			"7",
+			"eyJpZCI6NywidGl0bGUiOiJBIFBhc3NhZ2UgdG8gSW5kaWEiLCJhdXRob3IiOiJFLk0uIEZvcnN0ZXIiLCJ0YWdzIjpbIk5vdmVsIiwiSW5kaWEiXSwgInB1cmNoYXNlZE9uIjogIjIwMjMtMDQtMTRUMDk6Mzk6MTkuMjg4WiJ9",
+		],
 	]);
 
 	public static readonly ALERTS_B64_BY_ID: ReadonlyMap<number, string> = new Map([
@@ -177,6 +183,10 @@ export class TestTigrisService {
 		listCollections(
 			call: ServerUnaryCall<ListCollectionsRequest, ListCollectionsResponse>,
 			callback: sendUnaryData<ListCollectionsResponse>
+		): void;
+		explain(
+			call: ServerUnaryCall<ReadRequest, ExplainResponse>,
+			callback: sendUnaryData<ExplainResponse>
 		): void;
 	} = {
 		createBranch(
@@ -482,6 +492,16 @@ export class TestTigrisService {
 				// base64 of book id "1"
 				call.write(new ReadResponse().setData(TestTigrisService.BOOKS_B64_BY_ID.get("1")));
 				call.end();
+			}
+			// for date type test purpose if id = 7, we find the record, else we don't
+			else if (
+				call.request.getOptions() != undefined &&
+				call.request.getOptions().getLimit() == 1 &&
+				filter["id"] == 7
+			) {
+				// base64 of book id "7"
+				call.write(new ReadResponse().setData(TestTigrisService.BOOKS_B64_BY_ID.get("7")));
+				call.end();
 			} else if (
 				call.request.getOptions() != undefined &&
 				call.request.getOptions().getLimit() == 1 &&
@@ -632,6 +652,25 @@ export class TestTigrisService {
 					.setCreatedAt(new google_protobuf_timestamp_pb.Timestamp())
 					.setUpdatedAt(new google_protobuf_timestamp_pb.Timestamp())
 			);
+			callback(undefined, reply);
+		},
+		explain(
+			call: ServerUnaryCall<ReadRequest, ExplainResponse>,
+			callback: sendUnaryData<ExplainResponse>
+		): void {
+			assert(call.request.getBranch() === TestTigrisService.ExpectedBranch);
+
+			if (call.request.getProject() === "test-tx") {
+				const txIdHeader = call.metadata.get("Tigris-Tx-Id").toString();
+				const txOriginHeader = call.metadata.get("Tigris-Tx-Origin").toString();
+				if (txIdHeader != TestTigrisService.txId || txOriginHeader != TestTigrisService.txOrigin) {
+					callback(new Error("transaction mismatch - explain"));
+					return;
+				}
+			}
+			const reply: ExplainResponse = new ExplainResponse();
+			reply.setFilter(JSON.stringify({ author: "Marcel Proust" }));
+			reply.setReadType("secondary index");
 			callback(undefined, reply);
 		},
 	};

@@ -147,6 +147,25 @@ describe("rpc tests", () => {
 		});
 		insertionPromise.then((insertedBook) => {
 			expect(insertedBook.id).toBe(1);
+			expect(insertedBook.createdAt).toBeDefined();
+		});
+		return insertionPromise;
+	});
+
+	it("insert_with_createdAt_value", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+		const db1 = tigris.getDatabase();
+		const book: IBook = {
+			author: "author name",
+			id: 0,
+			tags: ["science"],
+			title: "science book",
+			createdAt: new Date(),
+		};
+		const insertionPromise = db1.getCollection<IBook>("books").insertOne(book);
+		insertionPromise.then((insertedBook) => {
+			expect(insertedBook.id).toBe(1);
+			expect(insertedBook.createdAt).toEqual(book.createdAt);
 		});
 		return insertionPromise;
 	});
@@ -382,6 +401,29 @@ describe("rpc tests", () => {
 		return readOnePromise;
 	});
 
+	it("readOne_with_date_field", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+		const db1 = tigris.getDatabase();
+		const readOnePromise = db1.getCollection<IBook>("books").findOne({
+			filter: {
+				op: SelectorFilterOperator.EQ,
+				fields: {
+					id: 7,
+				},
+			},
+		});
+		readOnePromise.then((value) => {
+			const book: IBook = <IBook>value;
+			console.log("BOOK ::", value);
+			expect(book.id).toBe(7);
+			expect(book.title).toBe("A Passage to India");
+			expect(book.author).toBe("E.M. Forster");
+			expect(book.tags).toStrictEqual(["Novel", "India"]);
+			expect(book.purchasedOn).toBeInstanceOf(Date);
+		});
+		return readOnePromise;
+	});
+
 	it("readOneRecordNotFound", async () => {
 		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
 		const db1 = tigris.getDatabase();
@@ -429,6 +471,22 @@ describe("rpc tests", () => {
 			expect(book.tags).toStrictEqual(["Novel", "Childhood"]);
 		});
 		return readOnePromise;
+	});
+
+	it("explain", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+
+		const db = tigris.getDatabase();
+		const explainResp = await db.getCollection<IBook>("books").explain({
+			filter: {
+				op: SelectorFilterOperator.EQ,
+				fields: {
+					author: "Marcel Proust",
+				},
+			},
+		});
+		expect(explainResp.readType).toEqual("secondary index");
+		expect(explainResp.filter).toEqual(JSON.stringify({ author: "Marcel Proust" }));
 	});
 
 	describe("findMany", () => {
@@ -915,6 +973,10 @@ export class IBook implements TigrisCollectionType {
 	author: string;
 	@Field({ elements: TigrisDataTypes.STRING })
 	tags?: string[];
+	@Field(TigrisDataTypes.DATE_TIME, { timestamp: "createdAt" })
+	createdAt?: Date;
+	@Field()
+	purchasedOn?: Date;
 }
 
 export interface IBook1 extends TigrisCollectionType {
