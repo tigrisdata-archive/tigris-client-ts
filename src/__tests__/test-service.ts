@@ -31,6 +31,7 @@ import {
 	DropCollectionResponse,
 	ExplainResponse,
 	FacetCount,
+	GroupedSearchHits,
 	InsertRequest,
 	InsertResponse,
 	ListCollectionsRequest,
@@ -534,9 +535,40 @@ export class TestTigrisService {
 			assert(call.request.getBranch() === TestTigrisService.ExpectedBranch);
 
 			const searchMeta = new SearchMetadata().setFound(5).setTotalPages(5);
+			const isGroupByQuery = Utility.uint8ArrayToString(call.request.getGroupBy_asU8()).length;
+			if (isGroupByQuery) {
+				const searchHitArray1: SearchHit[] = [];
+				const searchHitArray2: SearchHit[] = [];
 
+				const setSearchHitFn = (searchHitArray, id) => {
+					const searchHitMeta = new SearchHitMeta().setUpdatedAt(
+						new google_protobuf_timestamp_pb.Timestamp()
+					);
+					const searchHit = new SearchHit().setMetadata(searchHitMeta);
+					searchHit.setData(TestTigrisService.BOOKS_B64_BY_ID.get(id));
+					searchHitArray.push(searchHit);
+				};
+
+				for (const id of ["1", "7"]) {
+					setSearchHitFn(searchHitArray1, id);
+				}
+				for (const id of ["3", "4", "5", "6"]) {
+					setSearchHitFn(searchHitArray2, id);
+				}
+
+				const groupedSearchHits1 = new GroupedSearchHits()
+					.setGroupKeysList(["E.M. Forster"])
+					.setHitsList(searchHitArray1);
+				const groupedSearchHits2 = new GroupedSearchHits()
+					.setGroupKeysList(["Marcel Proust"])
+					.setHitsList(searchHitArray2);
+
+				const resp = new SearchResponse().setGroupList([groupedSearchHits1, groupedSearchHits2]);
+				call.write(resp);
+				call.end();
+			}
 			// paginated search impl
-			if (call.request.getPage() > 0) {
+			else if (call.request.getPage() > 0) {
 				const searchPage = new Page()
 					.setSize(call.request.getPageSize())
 					.setCurrent(call.request.getPage());
