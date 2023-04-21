@@ -41,6 +41,7 @@ automatically close the issue.
 - [ ] No
 
 ### Checklist
+
 - [ ] `npm run build` - builds successfully
 - [ ] `npm run test` - tests passing
 - [ ] `npm run lint` - no lint errors
