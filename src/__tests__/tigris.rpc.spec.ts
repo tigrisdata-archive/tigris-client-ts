@@ -609,6 +609,28 @@ describe("rpc tests", () => {
 				expect(bookCounter).toBe(TestTigrisService.BOOKS_B64_BY_ID.size);
 			});
 		});
+
+		describe("with group by", () => {
+			it("returns promise", async () => {
+				const pageNumber = 1;
+				const db = tigris.getDatabase();
+				const query: SearchQuery<IBook> = {
+					groupBy: ["author"],
+				};
+
+				const maybePromise = db.getCollection<IBook>("books").search(query, pageNumber);
+				expect(maybePromise).toBeInstanceOf(Promise);
+
+				maybePromise.then((res: SearchResult<IBook>) => {
+					expect(res.groupedHits?.length).toEqual(2);
+					expect(res.groupedHits?.[0]?.hits?.length).toEqual(2);
+					expect(res.groupedHits?.[1]?.hits?.length).toEqual(4);
+					expect(res.groupedHits?.[0]?.groupKeys).toEqual(["E.M. Forster"]);
+					expect(res.groupedHits?.[1]?.groupKeys).toEqual(["Marcel Proust"]);
+				});
+				return maybePromise;
+			});
+		});
 	});
 
 	it("beginTx", async () => {

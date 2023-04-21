@@ -8,6 +8,7 @@ import {
 	SearchMetadata as ProtoSearchMetadata,
 	SearchResponse as ProtoSearchResponse,
 	Match as ProtoMatch,
+	GroupedSearchHits,
 } from "../proto/server/v1/api_pb";
 import { SearchIndexResponse as ProtoSearchIndexResponse } from "../proto/server/v1/search_pb";
 import { TigrisClientConfig } from "../tigris";
@@ -15,6 +16,7 @@ import { TigrisCollectionType } from "../types";
 import { Utility } from "../utility";
 
 export type Facets = { [key: string]: FacetCountDistribution };
+export type GroupedHits<T> = { groupKeys: string[]; hits: Array<IndexedDoc<T>> };
 
 /**
  * Outcome of executing search query
@@ -37,15 +39,27 @@ export class SearchResult<T> {
 	 * @defaultValue undefined
 	 */
 	readonly meta: SearchMeta;
+	/**
+	 * Array of matched documents when group_by is used in the search request.
+	 * @readonly
+	 * @defaultValue []
+	 */
+	readonly groupedHits: GroupedHits<T>[];
 
-	constructor(hits: Array<IndexedDoc<T>>, facets: Facets, meta: SearchMeta) {
+	constructor(
+		hits: Array<IndexedDoc<T>>,
+		facets: Facets,
+		meta: SearchMeta,
+		groupedHits: GroupedHits<T>[]
+	) {
 		this.hits = hits;
 		this.facets = facets;
 		this.meta = meta;
+		this.groupedHits = groupedHits;
 	}
 
 	static get empty(): SearchResult<never> {
-		return new SearchResult([], {}, SearchMeta.default);
+		return new SearchResult([], {}, SearchMeta.default, []);
 	}
 
 	static from<T>(
@@ -62,7 +76,14 @@ export class SearchResult<T> {
 		for (const [k, _] of resp.getFacetsMap().toArray()) {
 			_facets[k] = FacetCountDistribution.from(resp.getFacetsMap().get(k));
 		}
-		return new SearchResult(_hits, _facets, _meta);
+		const _groupedHits = resp.getGroupList().map((g: GroupedSearchHits) => {
+			return {
+				groupKeys: g.getGroupKeysList(),
+				hits: g.getHitsList().map((h: ProtoSearchHit) => IndexedDoc.from<T>(h, config)),
+			};
+		});
+
+		return new SearchResult(_hits, _facets, _meta, _groupedHits);
 	}
 }
 
