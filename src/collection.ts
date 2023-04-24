@@ -594,10 +594,19 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	}
 
 	/**
-	 * count the number of documents in a collection
-	 * @returns the number of documents in a collection
+	 * Count the number of documents in a collection
+	 * @returns - the number of documents in a collection
+	 *
+	 * @example
+	 * ```
+	 * const countPromise = db.getCollection<Book>(Book).count();
+	 *
+	 * countPromise
+	 * 		.then(count: number) => console.log(count);
+	 * 		.catch( // catch the error)
+	 * 		.finally( // finally do something)
+	 * ```
 	 */
-
 	count(filter?: Filter<T>): Promise<number> {
 	    if (!filter) {
 		filter = { op: SelectorFilterOperator.NONE };
