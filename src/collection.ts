@@ -21,7 +21,6 @@ import {
 	FindQuery,
 	FindQueryOptions,
 	ReadType,
-	SelectorFilterOperator,
 	TigrisCollectionType,
 	UpdateQuery,
 	UpdateQueryOptions,
@@ -528,7 +527,7 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 			}
 		}
 
-		const findAll: Filter<T> = { op: SelectorFilterOperator.NONE };
+		const findAll: Filter<T> = {};
 
 		if (!query) {
 			query = { filter: findAll };

@@ -464,20 +464,6 @@ export interface TigrisCollectionType {
 	// TODO: add a discriminator here
 }
 
-export enum LogicalOperator {
-	AND = "$and",
-	OR = "$or",
-}
-
-export enum SelectorFilterOperator {
-	EQ = "$eq",
-	LT = "$lt",
-	LTE = "$lte",
-	GT = "$gt",
-	GTE = "$gte",
-	NONE = "$none",
-}
-
 export type NumericType = number | bigint;
 export type FieldTypes = string | boolean | NumericType | BigInteger | Date | object;
 
@@ -737,15 +723,27 @@ export type Selector<T> = Partial<{
 	[K in string]: unknown;
 }>;
 
-export type SelectorFilter<T> = Partial<{
-	op?: SelectorFilterOperator;
-	fields: Selector<T>;
-}>;
+type PathsForFilter<T, P extends string = ""> = {
+	[K in keyof T]: T[K] extends object
+		? T[K] extends unknown[]
+			? `${P}${K & string}`
+			: Paths<T[K], `${P}${K & string}.`> extends infer O
+			? T[K] extends Date | BigInt
+				? `${O & string}` | `${P}${K & string}`
+				: `${O & string}`
+			: never
+		: `${P}${K & string}`;
+}[keyof T];
 
-export type LogicalFilter<T> = {
-	op: LogicalOperator;
-	selectorFilters?: Array<SelectorFilter<T> | Selector<T>>;
-	logicalFilters?: Array<LogicalFilter<T>>;
+export type SelectorOperator = "$eq" | "$gt" | "$gte" | "$lt" | "$lte" | "$none";
+export type LogicalOperator = "$or" | "$and";
+
+export type SelectorFilter<T> = {
+	[K in PathsForFilter<T>]?: PathType<T, K> | { [P in SelectorOperator]?: PathType<T, K> };
 };
 
-export type Filter<T> = SelectorFilter<T> | LogicalFilter<T> | Selector<T>;
+export type LogicalFilter<T> = {
+	[P in LogicalOperator]?: Array<Filter<T>>;
+};
+
+export type Filter<T> = SelectorFilter<T> | LogicalFilter<T>;
