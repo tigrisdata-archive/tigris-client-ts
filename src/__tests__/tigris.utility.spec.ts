@@ -9,7 +9,7 @@ import {
 	SearchQueryOptions,
 } from "../search";
 import { SearchRequest as ProtoSearchRequest } from "../proto/server/v1/api_pb";
-import { SelectorFilterOperator, SortOrder } from "../types";
+import { SortOrder } from "../types";
 import { Field } from "../decorators/tigris-field";
 import { TigrisCollection } from "../decorators/tigris-collection";
 import { PrimaryKey } from "../decorators/tigris-primary-key";
@@ -116,7 +116,11 @@ describe("utility tests", () => {
 
 		it("sets filter", () => {
 			const query: SearchQuery<Student> = {
-				filter: { op: SelectorFilterOperator.GT, fields: { balance: 25 } },
+				filter: {
+					balance: {
+						$gt: 25,
+					},
+				},
 			};
 			Utility.protoSearchRequestFromQuery(query, request);
 
