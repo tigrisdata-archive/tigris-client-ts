@@ -493,6 +493,20 @@ describe("rpc tests", () => {
 		expect(explainResp.filter).toEqual(JSON.stringify({ author: "Marcel Proust" }));
 	});
 
+	it("count", async () => {
+		const tigris = new Tigris({...testConfig, projectName: "db3"})
+		const db = tigris.getDatabase()
+		const countResponse = await db.getCollection<IBook>("books").count({
+			filter: {
+				op: SelectorFilterOperator.EQ,
+				feilds: {
+					author: "Marcel Proust",
+				}
+			}
+		})
+		expect(countResponse).toEqual(1)
+	})
+
 	describe("findMany", () => {
 		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
 
