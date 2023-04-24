@@ -598,7 +598,10 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	 * @returns the number of documents in a collection
 	 */
 
-	count(filter: Filter<T>): Promise<number> {
+	count(filter?: Filter<T>): Promise<number> {
+	    if (!filter) {
+		filter = { op: SelectorFilterOperator.NONE };
+	    }
 		const countRequest = new ProtoCountRequest()
 			.setProject(this.db)
 			.setCollection(this.collectionName)
