@@ -9,6 +9,7 @@ import {
 	SearchResponse as ProtoSearchResponse,
 	UpdateRequest as ProtoUpdateRequest,
 	SearchRequest as ProtoSearchRequest,
+	CountRequest as ProtoCountRequest,
 } from "./proto/server/v1/api_pb";
 import { Session } from "./session";
 import {
@@ -590,6 +591,27 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 				resolve(explainResp as ExplainResponse);
 			});
 		});
+	}
+
+	/**
+	 * count the number of documents in a collection
+	 * @returns the number of documents in a collection
+	 */
+
+	count(filter: Filter<T>): Promise<number> {
+		const countRequest = new ProtoCountRequest()
+			.setProject(this.db)
+			.setCollection(this.collectionName)
+			.setFilter(Utility.stringToUint8Array(Utility.filterToString(filter)));
+
+		return new Promise((resolve, reject) => {
+			this.grpcClient.count(countRequest, (err, response) => {
+				if(err) {
+					return reject(err);
+				}
+				resolve(response.getCount());
+			});
+		}); 
 	}
 
 	/**
