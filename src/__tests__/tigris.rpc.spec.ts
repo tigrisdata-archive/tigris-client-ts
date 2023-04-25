@@ -493,6 +493,19 @@ describe("rpc tests", () => {
 		expect(explainResp.filter).toEqual(JSON.stringify({ author: "Marcel Proust" }));
 	});
 
+	it("describe collection", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+
+		const db = tigris.getDatabase();
+		const describe = await db.getCollection<IBook>("books").describe();
+		expect(describe.collection).toEqual("books");
+		expect(describe.indexDescriptions).toHaveLength(2);
+		expect(describe.indexDescriptions[0].name).toEqual("title");
+		expect(describe.indexDescriptions[0].state).toEqual("INDEX ACTIVE");
+		expect(describe.indexDescriptions[1].name).toEqual("author");
+		expect(describe.indexDescriptions[1].state).toEqual("INDEX WRITE MODE");
+	});
+
 	describe("findMany", () => {
 		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
 

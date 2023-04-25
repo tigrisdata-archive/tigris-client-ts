@@ -130,15 +130,34 @@ export class DatabaseDescription {
 	}
 }
 
+type IndexState = "INDEX WRITE MODE" | "INDEX ACTIVE";
+
+export type IndexField = {
+	name: string;
+};
+
+export type IndexDescription = {
+	name: string;
+	state: IndexState;
+	fields?: IndexField[];
+};
+
 export class CollectionDescription {
 	private readonly _collection: string;
 	private readonly _metadata: CollectionMetadata;
 	private readonly _schema: string;
+	private readonly _indexDescriptions?: IndexDescription[];
 
-	constructor(collection: string, metadata: CollectionMetadata, schema: string) {
+	constructor(
+		collection: string,
+		metadata: CollectionMetadata,
+		schema: string,
+		indexDescriptions?: IndexDescription[]
+	) {
 		this._collection = collection;
 		this._metadata = metadata;
 		this._schema = schema;
+		this._indexDescriptions = indexDescriptions;
 	}
 
 	get collection(): string {
@@ -151,6 +170,14 @@ export class CollectionDescription {
 
 	get schema(): string {
 		return this._schema;
+	}
+
+	get indexDescriptions(): IndexDescription[] {
+		if (!this._indexDescriptions) {
+			return [];
+		}
+
+		return this._indexDescriptions;
 	}
 }
 
