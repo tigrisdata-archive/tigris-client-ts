@@ -6,14 +6,8 @@ import {
 	DeleteQueryOptions,
 	Filter,
 	FindQueryOptions,
-	LogicalFilter,
-	LogicalOperator,
 	SortOrder,
 	ReadFields,
-	Selector,
-	SelectorFilter,
-	SelectorFilterOperator,
-	TigrisCollectionType,
 	TigrisDataTypes,
 	TigrisSchema,
 	UpdateFields,
@@ -84,90 +78,16 @@ export const Utility = {
 	},
 
 	filterToString<T>(filter: Filter<T>): string {
-		if (
-			Object.prototype.hasOwnProperty.call(filter, "op") &&
-			(filter["op"] === LogicalOperator.AND || filter["op"] === LogicalOperator.OR)
-		) {
-			// LogicalFilter
-			return Utility._logicalFilterToString(filter as LogicalFilter<T>);
-			// eslint-disable-next-line no-prototype-builtins
-		} else if (filter.hasOwnProperty("op")) {
-			// SelectorFilter
-			return Utility._selectorFilterToString(filter as SelectorFilter<T>);
-		} else {
-			// Selector (default operator $eq)
-			return Utility.objToJsonString(filter);
+		for (const key of Object.keys(filter)) {
+			if (filter[key].constructor.name === "Date") {
+				filter[key] = (filter[key] as Date).toJSON();
+			}
 		}
+		return Utility.objToJsonString(filter);
 	},
 	_getRandomInt(upperBound: number): number {
 		return Math.floor(Math.random() * upperBound);
 	},
-	_selectorFilterToString<T extends TigrisCollectionType>(filter: SelectorFilter<T>): string {
-		switch (filter.op) {
-			case SelectorFilterOperator.NONE:
-				// filter nothing
-				return "{}";
-			case SelectorFilterOperator.EQ:
-			case SelectorFilterOperator.LT:
-			case SelectorFilterOperator.LTE:
-			case SelectorFilterOperator.GT:
-			case SelectorFilterOperator.GTE:
-				return Utility.objToJsonString(
-					Utility._selectorFilterToFlatJSONObj(filter.op, filter.fields)
-				);
-			default:
-				return "";
-		}
-	},
-
-	_selectorFilterToFlatJSONObj(op: SelectorFilterOperator, fields: object): object {
-		switch (op) {
-			case SelectorFilterOperator.NONE:
-				return {};
-			case SelectorFilterOperator.EQ:
-				return Utility._flattenObj(fields);
-			case SelectorFilterOperator.LT:
-			case SelectorFilterOperator.LTE:
-			case SelectorFilterOperator.GT:
-			case SelectorFilterOperator.GTE: {
-				const flattenedFields = Utility._flattenObj(fields);
-				for (const key in flattenedFields) {
-					flattenedFields[key] = { [op]: flattenedFields[key] };
-				}
-				return flattenedFields;
-			}
-			default:
-				return Utility._flattenObj(fields);
-		}
-	},
-
-	_logicalFilterToString<T>(filter: LogicalFilter<T>): string {
-		return this.objToJsonString(Utility._logicalFilterToJSONObj(filter));
-	},
-
-	_logicalFilterToJSONObj<T>(filter: LogicalFilter<T>): object {
-		const result = {};
-		const innerFilters = [];
-		result[filter.op] = innerFilters;
-		if (filter.selectorFilters) {
-			for (const value of filter.selectorFilters) {
-				// eslint-disable-next-line no-prototype-builtins
-				if (value.hasOwnProperty("op")) {
-					const v = value as SelectorFilter<T>;
-					innerFilters.push(Utility._selectorFilterToFlatJSONObj(v.op, v.fields));
-				} else {
-					const v = value as Selector<T>;
-					innerFilters.push(Utility._selectorFilterToFlatJSONObj(SelectorFilterOperator.EQ, v));
-				}
-			}
-		}
-		if (filter.logicalFilters) {
-			for (const value of filter.logicalFilters)
-				innerFilters.push(Utility._logicalFilterToJSONObj(value));
-		}
-		return result;
-	},
-
 	readFieldString(readFields: ReadFields): string {
 		const include = readFields.include?.reduce((acc, field) => ({ ...acc, [field]: true }), {});
 		const exclude = readFields.exclude?.reduce((acc, field) => ({ ...acc, [field]: false }), {});

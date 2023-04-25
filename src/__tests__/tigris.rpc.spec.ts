@@ -5,8 +5,6 @@ import TestServiceCache, { TestCacheService } from "./test-cache-service";
 
 import {
 	DeleteQueryOptions,
-	LogicalOperator,
-	SelectorFilterOperator,
 	TigrisCollectionType,
 	TigrisDataTypes,
 	TigrisSchema,
@@ -337,10 +335,7 @@ describe("rpc tests", () => {
 		const db1 = tigris.getDatabase();
 		const updatePromise = db1.getCollection<IBook>("books").updateMany({
 			filter: {
-				op: SelectorFilterOperator.EQ,
-				fields: {
-					id: 1,
-				},
+				id: 1,
 			},
 			fields: {
 				title: "New Title",
@@ -389,10 +384,7 @@ describe("rpc tests", () => {
 		const db1 = tigris.getDatabase();
 		const readOnePromise = db1.getCollection<IBook>("books").findOne({
 			filter: {
-				op: SelectorFilterOperator.EQ,
-				fields: {
-					id: 1,
-				},
+				id: 1,
 			},
 		});
 		readOnePromise.then((value) => {
@@ -410,10 +402,7 @@ describe("rpc tests", () => {
 		const db1 = tigris.getDatabase();
 		const readOnePromise = db1.getCollection<IBook>("books").findOne({
 			filter: {
-				op: SelectorFilterOperator.EQ,
-				fields: {
-					id: 7,
-				},
+				id: 7,
 			},
 		});
 		readOnePromise.then((value) => {
@@ -433,10 +422,7 @@ describe("rpc tests", () => {
 		const db1 = tigris.getDatabase();
 		const readOnePromise = db1.getCollection<IBook>("books").findOne({
 			filter: {
-				op: SelectorFilterOperator.EQ,
-				fields: {
-					id: 2,
-				},
+				id: 2,
 			},
 		});
 		readOnePromise.then((value) => {
@@ -450,19 +436,12 @@ describe("rpc tests", () => {
 		const db1 = tigris.getDatabase();
 		const readOnePromise: Promise<IBook | void> = db1.getCollection<IBook>("books").findOne({
 			filter: {
-				op: LogicalOperator.AND,
-				selectorFilters: [
+				$and: [
 					{
-						op: SelectorFilterOperator.EQ,
-						fields: {
-							id: 3,
-						},
+						id: 3,
 					},
 					{
-						op: SelectorFilterOperator.EQ,
-						fields: {
-							title: "In Search of Lost Time",
-						},
+						title: "In Search of Lost Time",
 					},
 				],
 			},
@@ -483,10 +462,7 @@ describe("rpc tests", () => {
 		const db = tigris.getDatabase();
 		const explainResp = await db.getCollection<IBook>("books").explain({
 			filter: {
-				op: SelectorFilterOperator.EQ,
-				fields: {
-					author: "Marcel Proust",
-				},
+				author: "Marcel Proust",
 			},
 		});
 		expect(explainResp.readType).toEqual("secondary index");
@@ -506,6 +482,19 @@ describe("rpc tests", () => {
 		})
 		expect(countResponse).toEqual(1)
 	})
+=======
+	it("describe collection", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+
+		const db = tigris.getDatabase();
+		const describe = await db.getCollection<IBook>("books").describe();
+		expect(describe.collection).toEqual("books");
+		expect(describe.indexDescriptions).toHaveLength(2);
+		expect(describe.indexDescriptions[0].name).toEqual("title");
+		expect(describe.indexDescriptions[0].state).toEqual("INDEX ACTIVE");
+		expect(describe.indexDescriptions[1].name).toEqual("author");
+		expect(describe.indexDescriptions[1].state).toEqual("INDEX WRITE MODE");
+	});
 
 	describe("findMany", () => {
 		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
@@ -514,10 +503,7 @@ describe("rpc tests", () => {
 			const db = tigris.getDatabase();
 			const cursor = db.getCollection<IBook>("books").findMany({
 				filter: {
-					op: SelectorFilterOperator.EQ,
-					fields: {
-						author: "Marcel Proust",
-					},
+					author: "Marcel Proust",
 				},
 			});
 
@@ -555,10 +541,7 @@ describe("rpc tests", () => {
 			const db = tigris.getDatabase();
 			const cursor = db.getCollection<IBook>("books").findMany({
 				filter: {
-					op: SelectorFilterOperator.EQ,
-					fields: {
-						id: -1,
-					},
+					id: -1,
 				},
 			});
 
@@ -704,10 +687,7 @@ describe("rpc tests", () => {
 						.findOne(
 							{
 								filter: {
-									op: SelectorFilterOperator.EQ,
-									fields: {
-										id: 1,
-									},
+									id: 1,
 								},
 							},
 							tx
@@ -717,10 +697,7 @@ describe("rpc tests", () => {
 								.updateMany(
 									{
 										filter: {
-											op: SelectorFilterOperator.EQ,
-											fields: {
-												id: 1,
-											},
+											id: 1,
 										},
 										fields: {
 											author: "Dr. Author",
@@ -733,10 +710,7 @@ describe("rpc tests", () => {
 										.deleteMany(
 											{
 												filter: {
-													op: SelectorFilterOperator.EQ,
-													fields: {
-														id: 1,
-													},
+													id: 1,
 												},
 											},
 											tx

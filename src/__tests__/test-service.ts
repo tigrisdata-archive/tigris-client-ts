@@ -6,6 +6,7 @@ import {
 	BeginTransactionRequest,
 	BeginTransactionResponse,
 	CollectionDescription,
+	CollectionIndex,
 	CollectionInfo,
 	CollectionMetadata,
 	CommitTransactionRequest,
@@ -320,9 +321,21 @@ export class TestTigrisService {
 		describeCollection(
 			call: ServerUnaryCall<DescribeCollectionRequest, DescribeCollectionResponse>,
 			// eslint-disable-next-line @typescript-eslint/no-unused-vars
-			_callback: sendUnaryData<DescribeCollectionResponse>
+			callback: sendUnaryData<DescribeCollectionResponse>
 		): void {
 			assert(call.request.getBranch() === TestTigrisService.ExpectedBranch);
+
+			const indexList: CollectionIndex[] = [
+				new CollectionIndex().setName("title").setState("INDEX ACTIVE").setFieldsList([]),
+				new CollectionIndex().setName("author").setState("INDEX WRITE MODE").setFieldsList([]),
+			];
+
+			const reply = new DescribeCollectionResponse()
+				.setSchema("schema")
+				.setCollection(call.request.getCollection())
+				.setIndexesList(indexList);
+
+			callback(undefined, reply);
 		},
 		describeDatabase(
 			call: ServerUnaryCall<DescribeDatabaseRequest, DescribeDatabaseResponse>,
