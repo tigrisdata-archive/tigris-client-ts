@@ -9,9 +9,11 @@ import {
 	SearchResponse as ProtoSearchResponse,
 	UpdateRequest as ProtoUpdateRequest,
 	SearchRequest as ProtoSearchRequest,
+	DescribeCollectionRequest as ProtoDescribeCollectionRequest,
 } from "./proto/server/v1/api_pb";
 import { Session } from "./session";
 import {
+	CollectionDescription,
 	DeleteQuery,
 	DeleteQueryOptions,
 	DeleteResponse,
@@ -20,6 +22,7 @@ import {
 	Filter,
 	FindQuery,
 	FindQueryOptions,
+	IndexDescription,
 	ReadType,
 	TigrisCollectionType,
 	UpdateQuery,
@@ -77,6 +80,30 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 				})
 				.map((f) => f.name);
 		})();
+	}
+
+	describe(): Promise<CollectionDescription> {
+		return new Promise((resolve, reject) => {
+			const req = new ProtoDescribeCollectionRequest()
+				.setProject(this.db)
+				.setBranch(this.branch)
+				.setCollection(this.collectionName);
+
+			this.grpcClient.describeCollection(req, (error, resp) => {
+				if (error) {
+					return reject(error);
+				}
+				const schema = Buffer.from(resp.getSchema_asB64(), "base64").toString();
+				const desc = new CollectionDescription(
+					this.collectionName,
+					resp.getMetadata(),
+					schema,
+					resp.toObject().indexesList as IndexDescription[]
+				);
+
+				resolve(desc);
+			});
+		});
 	}
 
 	/**
