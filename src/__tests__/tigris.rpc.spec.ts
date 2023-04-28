@@ -470,19 +470,14 @@ describe("rpc tests", () => {
 	});
 
 	it("count", async () => {
-		const tigris = new Tigris({...testConfig, projectName: "db3"})
-		const db = tigris.getDatabase()
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+		const db = tigris.getDatabase();
 		const countResponse = await db.getCollection<IBook>("books").count({
-			filter: {
-				op: SelectorFilterOperator.EQ,
-				feilds: {
-					author: "Marcel Proust",
-				}
-			}
-		})
-		expect(countResponse).toEqual(1)
-	})
-=======
+			author: "Marcel Proust",
+		});
+		expect(countResponse).toEqual(1);
+	});
+
 	it("describe collection", async () => {
 		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
 

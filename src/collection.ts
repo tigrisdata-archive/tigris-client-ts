@@ -634,9 +634,9 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	 * ```
 	 */
 	count(filter?: Filter<T>): Promise<number> {
-	    if (!filter) {
-		filter = { op: SelectorFilterOperator.NONE };
-	    }
+		if (!filter) {
+			filter = {};
+		}
 		const countRequest = new ProtoCountRequest()
 			.setProject(this.db)
 			.setCollection(this.collectionName)
@@ -644,12 +644,12 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 
 		return new Promise((resolve, reject) => {
 			this.grpcClient.count(countRequest, (err, response) => {
-				if(err) {
+				if (err) {
 					return reject(err);
 				}
 				resolve(response.getCount());
 			});
-		}); 
+		});
 	}
 
 	/**

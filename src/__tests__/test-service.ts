@@ -11,6 +11,8 @@ import {
 	CollectionMetadata,
 	CommitTransactionRequest,
 	CommitTransactionResponse,
+	CountRequest,
+	CountResponse,
 	CreateBranchRequest,
 	CreateBranchResponse,
 	CreateOrUpdateCollectionRequest,
@@ -62,6 +64,8 @@ import * as google_protobuf_timestamp_pb from "google-protobuf/google/protobuf/t
 import { Utility } from "../utility";
 import { Status } from "@grpc/grpc-js/build/src/constants";
 import assert from "assert";
+import { Tigris } from "../tigris";
+import { Collection } from "../collection";
 
 export class TestTigrisService {
 	public static readonly ExpectedBranch = "unit-tests";
@@ -92,6 +96,8 @@ export class TestTigrisService {
 			"eyJpZCI6NywidGl0bGUiOiJBIFBhc3NhZ2UgdG8gSW5kaWEiLCJhdXRob3IiOiJFLk0uIEZvcnN0ZXIiLCJ0YWdzIjpbIk5vdmVsIiwiSW5kaWEiXSwgInB1cmNoYXNlZE9uIjogIjIwMjMtMDQtMTRUMDk6Mzk6MTkuMjg4WiJ9",
 		],
 	]);
+
+	private myDatabase: any;
 
 	public static readonly ALERTS_B64_BY_ID: ReadonlyMap<number, string> = new Map([
 		// base64 of {"id":1,"text":"test"}
@@ -317,6 +323,7 @@ export class TestTigrisService {
 			);
 			callback(undefined, reply);
 		},
+
 		/* eslint-disable @typescript-eslint/no-empty-function */
 		describeCollection(
 			call: ServerUnaryCall<DescribeCollectionRequest, DescribeCollectionResponse>,
@@ -337,6 +344,7 @@ export class TestTigrisService {
 
 			callback(undefined, reply);
 		},
+
 		describeDatabase(
 			call: ServerUnaryCall<DescribeDatabaseRequest, DescribeDatabaseResponse>,
 			callback: sendUnaryData<DescribeDatabaseResponse>
@@ -719,6 +727,26 @@ export class TestTigrisService {
 			callback(undefined, reply);
 		},
 	};
+
+	count(
+		call: ServerUnaryCall<CountRequest, CountResponse>,
+		callback: sendUnaryData<CountResponse>
+	): void {
+		const collectionName = call.request.getCollection();
+		const filter = Utility.uint8ArrayToString(call.request.getFilter_asU8());
+
+		const collection = this.myDatabase.collection(collectionName);
+
+		collection
+			.countDocuments(filter)
+			.then((count) => {
+				const response = new CountResponse().setCount(count);
+				callback(null, response);
+			})
+			.catch((error) => {
+				callback(error, null);
+			});
+	}
 }
 
 export default {
