@@ -9,7 +9,7 @@ import {
 	SearchQueryOptions,
 } from "../search";
 import { SearchRequest as ProtoSearchRequest } from "../proto/server/v1/api_pb";
-import { SelectorFilterOperator, SortOrder } from "../types";
+import { SortOrder } from "../types";
 import { Field } from "../decorators/tigris-field";
 import { TigrisCollection } from "../decorators/tigris-collection";
 import { PrimaryKey } from "../decorators/tigris-primary-key";
@@ -99,6 +99,7 @@ describe("utility tests", () => {
 			expect(request.getFacet()).toBe("");
 			expect(request.getVector()).toBe("");
 			expect(request.getSort()).toBe("");
+			expect(request.getGroupBy()).toBe("");
 			expect(request.getIncludeFieldsList()).toEqual([]);
 			expect(request.getExcludeFieldsList()).toEqual([]);
 			expect(request.getPage()).toBe(0);
@@ -115,7 +116,11 @@ describe("utility tests", () => {
 
 		it("sets filter", () => {
 			const query: SearchQuery<Student> = {
-				filter: { op: SelectorFilterOperator.GT, fields: { balance: 25 } },
+				filter: {
+					balance: {
+						$gt: 25,
+					},
+				},
 			};
 			Utility.protoSearchRequestFromQuery(query, request);
 
@@ -152,6 +157,15 @@ describe("utility tests", () => {
 			Utility.protoSearchRequestFromQuery(query, request);
 
 			expect(request.getSort()).toEqual(Utility.stringToUint8Array('[{"balance":"$desc"}]'));
+		});
+
+		it("sets group by", () => {
+			const query: SearchQuery<Student> = {
+				groupBy: ["city"],
+			};
+			Utility.protoSearchRequestFromQuery(query, request);
+
+			expect(request.getGroupBy()).toEqual(Utility.stringToUint8Array('{"fields":["city"]}'));
 		});
 
 		it("sets includeFields", () => {

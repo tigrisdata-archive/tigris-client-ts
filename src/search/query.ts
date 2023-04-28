@@ -32,6 +32,10 @@ export interface SearchQuery<T extends TigrisCollectionType | TigrisIndexType> {
 	 */
 	sort?: SortOrder;
 	/**
+	 * Group by single or multiple fields in the index
+	 */
+	groupBy?: Array<string>;
+	/**
 	 * Document fields to include when returning search results
 	 */
 	includeFields?: Array<string>;

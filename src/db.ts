@@ -237,17 +237,12 @@ export class DB {
 		});
 	}
 
-	public dropAllCollections(): Promise<void> {
-		return new Promise<void>((resolve, reject) => {
-			this.listCollections()
-				.then((value: Array<CollectionInfo>) => {
-					for (const collectionInfo of value) {
-						this.dropCollection(collectionInfo.name);
-					}
-					resolve();
-				})
-				.catch((error) => reject(error));
+	public async dropAllCollections(): Promise<PromiseSettledResult<DropCollectionResponse>[]> {
+		const collections = await this.listCollections();
+		const dropPromises = collections.map((coll) => {
+			return this.dropCollection(coll.name);
 		});
+		return Promise.allSettled(dropPromises);
 	}
 
 	public describe(): Promise<DatabaseDescription> {

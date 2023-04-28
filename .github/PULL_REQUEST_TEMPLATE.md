@@ -37,7 +37,13 @@ automatically close the issue.
 ### Does it require updates to [Tigris docs](https://docs.tigrisdata.com/)?
 
 - [ ] Yes, and here is the link: _please create an issue in [tigris-docs](https://github.com/tigrisdata/tigris-docs/issues) repo
-      and link here as `tigrisdata/tigris-docs#123`_
+      and replace this text as `tigrisdata/tigris-docs#123`_
 - [ ] No
+
+### Checklist
+
+- [ ] `npm run build` - builds successfully
+- [ ] `npm run test` - tests passing
+- [ ] `npm run lint` - no lint errors
 
 ## [optional] Are there any post deployment tasks we need to perform?

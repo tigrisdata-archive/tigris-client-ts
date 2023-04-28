@@ -5,8 +5,6 @@ import TestServiceCache, { TestCacheService } from "./test-cache-service";
 
 import {
 	DeleteQueryOptions,
-	LogicalOperator,
-	SelectorFilterOperator,
 	TigrisCollectionType,
 	TigrisDataTypes,
 	TigrisSchema,
@@ -22,7 +20,11 @@ import { PrimaryKey } from "../decorators/tigris-primary-key";
 import { Field } from "../decorators/tigris-field";
 import { SearchIterator } from "../consumables/search-iterator";
 import { CacheService } from "../proto/server/v1/cache_grpc_pb";
-import { BranchNameRequiredError } from "../error";
+import {
+	BranchNameRequiredError,
+	DuplicatePrimaryKeyOrderError,
+	MissingPrimaryKeyOrderInSchemaDefinitionError,
+} from "../error";
 import { Status } from "@grpc/grpc-js/build/src/constants";
 import { Status as TigrisStatus } from "../constants";
 import { Case, Collation, SearchQuery } from "../search";
@@ -333,10 +335,7 @@ describe("rpc tests", () => {
 		const db1 = tigris.getDatabase();
 		const updatePromise = db1.getCollection<IBook>("books").updateMany({
 			filter: {
-				op: SelectorFilterOperator.EQ,
-				fields: {
-					id: 1,
-				},
+				id: 1,
 			},
 			fields: {
 				title: "New Title",
@@ -385,10 +384,7 @@ describe("rpc tests", () => {
 		const db1 = tigris.getDatabase();
 		const readOnePromise = db1.getCollection<IBook>("books").findOne({
 			filter: {
-				op: SelectorFilterOperator.EQ,
-				fields: {
-					id: 1,
-				},
+				id: 1,
 			},
 		});
 		readOnePromise.then((value) => {
@@ -406,10 +402,7 @@ describe("rpc tests", () => {
 		const db1 = tigris.getDatabase();
 		const readOnePromise = db1.getCollection<IBook>("books").findOne({
 			filter: {
-				op: SelectorFilterOperator.EQ,
-				fields: {
-					id: 7,
-				},
+				id: 7,
 			},
 		});
 		readOnePromise.then((value) => {
@@ -429,10 +422,7 @@ describe("rpc tests", () => {
 		const db1 = tigris.getDatabase();
 		const readOnePromise = db1.getCollection<IBook>("books").findOne({
 			filter: {
-				op: SelectorFilterOperator.EQ,
-				fields: {
-					id: 2,
-				},
+				id: 2,
 			},
 		});
 		readOnePromise.then((value) => {
@@ -446,19 +436,12 @@ describe("rpc tests", () => {
 		const db1 = tigris.getDatabase();
 		const readOnePromise: Promise<IBook | void> = db1.getCollection<IBook>("books").findOne({
 			filter: {
-				op: LogicalOperator.AND,
-				selectorFilters: [
+				$and: [
 					{
-						op: SelectorFilterOperator.EQ,
-						fields: {
-							id: 3,
-						},
+						id: 3,
 					},
 					{
-						op: SelectorFilterOperator.EQ,
-						fields: {
-							title: "In Search of Lost Time",
-						},
+						title: "In Search of Lost Time",
 					},
 				],
 			},
@@ -479,14 +462,24 @@ describe("rpc tests", () => {
 		const db = tigris.getDatabase();
 		const explainResp = await db.getCollection<IBook>("books").explain({
 			filter: {
-				op: SelectorFilterOperator.EQ,
-				fields: {
-					author: "Marcel Proust",
-				},
+				author: "Marcel Proust",
 			},
 		});
 		expect(explainResp.readType).toEqual("secondary index");
 		expect(explainResp.filter).toEqual(JSON.stringify({ author: "Marcel Proust" }));
+	});
+
+	it("describe collection", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+
+		const db = tigris.getDatabase();
+		const describe = await db.getCollection<IBook>("books").describe();
+		expect(describe.collection).toEqual("books");
+		expect(describe.indexDescriptions).toHaveLength(2);
+		expect(describe.indexDescriptions[0].name).toEqual("title");
+		expect(describe.indexDescriptions[0].state).toEqual("INDEX ACTIVE");
+		expect(describe.indexDescriptions[1].name).toEqual("author");
+		expect(describe.indexDescriptions[1].state).toEqual("INDEX WRITE MODE");
 	});
 
 	describe("findMany", () => {
@@ -496,10 +489,7 @@ describe("rpc tests", () => {
 			const db = tigris.getDatabase();
 			const cursor = db.getCollection<IBook>("books").findMany({
 				filter: {
-					op: SelectorFilterOperator.EQ,
-					fields: {
-						author: "Marcel Proust",
-					},
+					author: "Marcel Proust",
 				},
 			});
 
@@ -537,10 +527,7 @@ describe("rpc tests", () => {
 			const db = tigris.getDatabase();
 			const cursor = db.getCollection<IBook>("books").findMany({
 				filter: {
-					op: SelectorFilterOperator.EQ,
-					fields: {
-						id: -1,
-					},
+					id: -1,
 				},
 			});
 
@@ -605,6 +592,28 @@ describe("rpc tests", () => {
 				expect(bookCounter).toBe(TestTigrisService.BOOKS_B64_BY_ID.size);
 			});
 		});
+
+		describe("with group by", () => {
+			it("returns promise", async () => {
+				const pageNumber = 1;
+				const db = tigris.getDatabase();
+				const query: SearchQuery<IBook> = {
+					groupBy: ["author"],
+				};
+
+				const maybePromise = db.getCollection<IBook>("books").search(query, pageNumber);
+				expect(maybePromise).toBeInstanceOf(Promise);
+
+				maybePromise.then((res: SearchResult<IBook>) => {
+					expect(res.groupedHits?.length).toEqual(2);
+					expect(res.groupedHits?.[0]?.hits?.length).toEqual(2);
+					expect(res.groupedHits?.[1]?.hits?.length).toEqual(4);
+					expect(res.groupedHits?.[0]?.groupKeys).toEqual(["E.M. Forster"]);
+					expect(res.groupedHits?.[1]?.groupKeys).toEqual(["Marcel Proust"]);
+				});
+				return maybePromise;
+			});
+		});
 	});
 
 	it("beginTx", async () => {
@@ -664,10 +673,7 @@ describe("rpc tests", () => {
 						.findOne(
 							{
 								filter: {
-									op: SelectorFilterOperator.EQ,
-									fields: {
-										id: 1,
-									},
+									id: 1,
 								},
 							},
 							tx
@@ -677,10 +683,7 @@ describe("rpc tests", () => {
 								.updateMany(
 									{
 										filter: {
-											op: SelectorFilterOperator.EQ,
-											fields: {
-												id: 1,
-											},
+											id: 1,
 										},
 										fields: {
 											author: "Dr. Author",
@@ -693,10 +696,7 @@ describe("rpc tests", () => {
 										.deleteMany(
 											{
 												filter: {
-													op: SelectorFilterOperator.EQ,
-													fields: {
-														id: 1,
-													},
+													id: 1,
 												},
 											},
 											tx
@@ -735,6 +735,114 @@ describe("rpc tests", () => {
 		return db3.createOrUpdateCollection("books", bookSchema).then((value) => {
 			expect(value).toBeDefined();
 		});
+	});
+
+	it("createOrUpdateCollections with no order specified for primary key", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+		const db3 = tigris.getDatabase();
+		const bookSchema: TigrisSchema<IBook> = {
+			id: {
+				type: TigrisDataTypes.INT64,
+				primary_key: {
+					autoGenerate: true,
+				},
+			},
+			author: {
+				type: TigrisDataTypes.STRING,
+			},
+			title: {
+				type: TigrisDataTypes.STRING,
+			},
+			tags: {
+				type: TigrisDataTypes.ARRAY,
+				items: {
+					type: TigrisDataTypes.STRING,
+				},
+			},
+		};
+		return db3.createOrUpdateCollection("books", bookSchema).then((value) => {
+			expect(value).toBeDefined();
+		});
+	});
+
+	it("createOrUpdateCollections should throw IncompletePrimaryKeyOrderError", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+		const db3 = tigris.getDatabase();
+		const bookSchema: TigrisSchema<IBookMPK> = {
+			id: {
+				type: TigrisDataTypes.INT64,
+				primary_key: {
+					autoGenerate: true,
+				},
+			},
+			id2: {
+				type: TigrisDataTypes.INT64,
+				primary_key: {
+					autoGenerate: true,
+				},
+			},
+			title: {
+				type: TigrisDataTypes.STRING,
+			},
+			metadata: {
+				type: {
+					publishedDate: {
+						type: TigrisDataTypes.DATE_TIME,
+					},
+					authorName: {
+						type: TigrisDataTypes.STRING,
+					},
+				},
+			},
+		};
+		let caught;
+		try {
+			await db3.createOrUpdateCollection("books", bookSchema);
+		} catch (e) {
+			caught = e;
+		}
+		expect(caught).toBeInstanceOf(MissingPrimaryKeyOrderInSchemaDefinitionError);
+	});
+
+	it("createOrUpdateCollections should throw DuplicatePrimaryKeyOrderError", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+		const db3 = tigris.getDatabase();
+		const bookSchema: TigrisSchema<IBookMPK> = {
+			id: {
+				type: TigrisDataTypes.INT64,
+				primary_key: {
+					order: 1,
+					autoGenerate: true,
+				},
+			},
+			id2: {
+				type: TigrisDataTypes.INT64,
+				primary_key: {
+					order: 1,
+					autoGenerate: true,
+				},
+			},
+			title: {
+				type: TigrisDataTypes.STRING,
+			},
+			metadata: {
+				type: {
+					publishedDate: {
+						type: TigrisDataTypes.DATE_TIME,
+					},
+					authorName: {
+						type: TigrisDataTypes.STRING,
+					},
+				},
+			},
+		};
+		let caught;
+		try {
+			await db3.createOrUpdateCollection("books", bookSchema);
+		} catch (e) {
+			caught = e;
+		}
+		expect(caught).toBeInstanceOf(DuplicatePrimaryKeyOrderError);
 	});
 
 	it("serverMetadata", async () => {

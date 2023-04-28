@@ -18,12 +18,8 @@ import { Order, ORDERS_COLLECTION_NAME, OrderSchema } from "./fixtures/schema/or
 import { Movie, MOVIES_COLLECTION_NAME, MovieSchema } from "./fixtures/schema/movies";
 import { MATRICES_COLLECTION_NAME, Matrix, MatrixSchema } from "./fixtures/schema/matrices";
 import { readJSONFileAsObj } from "./utils";
-import {
-	InvalidStudent,
-	STUDENT_COLLECTION_NAME,
-	Student,
-	StudentSchema,
-} from "./fixtures/schema/student";
+import { STUDENT_COLLECTION_NAME, Student, StudentSchema } from "./fixtures/schema/student";
+import { PrimaryKey } from "../decorators/tigris-primary-key";
 
 type SchemaTestCase<T extends TigrisCollectionType> = {
 	schemaClass: T;
@@ -97,6 +93,29 @@ test("throws error when Schema is invalid with more than one primary key but no 
 	const processor = DecoratedSchemaProcessor.Instance;
 	let caught;
 	try {
+		/**
+		 * Schema is INVALID as it contains two primary keys but no order was specified
+		 * in decorator under PrimaryKeyOptions.
+		 */
+		const INVALID_STUDENT_COLLECTION_NAME = "invalid_students";
+		@TigrisCollection(INVALID_STUDENT_COLLECTION_NAME)
+		class InvalidStudent {
+			@PrimaryKey(TigrisDataTypes.INT64)
+			id?: string;
+
+			@PrimaryKey(TigrisDataTypes.STRING)
+			email: string;
+
+			@Field()
+			firstName!: string;
+
+			@Field()
+			lastName!: string;
+
+			@Field({ timestamp: "createdAt" })
+			createdAt?: Date;
+		}
+
 		processor.processCollection(InvalidStudent);
 	} catch (err) {
 		caught = err;
