@@ -762,7 +762,17 @@ type PathsForFilter<T, P extends string = ""> = {
 		: `${P}${K & string}`;
 }[keyof T];
 
-export type SelectorOperator = "$eq" | "$gt" | "$gte" | "$lt" | "$lte" | "$none";
+export type SelectorOperator =
+	| "$eq"
+	| "$gt"
+	| "$gte"
+	| "$lt"
+	| "$lte"
+	| "$none"
+	| "$not"
+	| "$regex"
+	| "$none"
+	| "$contains";
 export type LogicalOperator = "$or" | "$and";
 
 export type SelectorFilter<T> = {
