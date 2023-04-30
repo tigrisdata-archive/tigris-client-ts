@@ -166,8 +166,8 @@ describe("filters tests", () => {
 	it("contains Filter(string)", () => {
 		const tigrisFilter: Filter<Student> = {
 			name: {
-				$contains: "Adam"
-			}
+				$contains: "Adam",
+			},
 		};
 		expect(Utility.filterToString(tigrisFilter)).toBe('{"name":{"$contains":"Adam"}}');
 	});
@@ -175,17 +175,19 @@ describe("filters tests", () => {
 	it("contains Filter(string[])", () => {
 		const tigrisFilter: Filter<Student> = {
 			name: {
-				$contains: ["Adam", "Warlock", "Steven"]
-			}
+				$contains: ["Adam", "Warlock", "Steven"],
+			},
 		};
-		expect(Utility.filterToString(tigrisFilter)).toBe('{"name":{"$contains":["Adam","Warlock","Steven"]}}');
+		expect(Utility.filterToString(tigrisFilter)).toBe(
+			'{"name":{"$contains":["Adam","Warlock","Steven"]}}'
+		);
 	});
 
 	it("regex Filter", () => {
 		const tigrisFilter: Filter<Student> = {
 			name: {
-				$regex: "/andy/i"
-			}
+				$regex: "/andy/i",
+			},
 		};
 		expect(Utility.filterToString(tigrisFilter)).toBe('{"name":{"$regex":"/andy/i"}}');
 	});
@@ -247,7 +249,7 @@ describe("filters tests", () => {
 					balance: {
 						$lte: 1000,
 					},
-				}
+				},
 			],
 		};
 		const nestedLogicalFilter: Filter<Student> = {
