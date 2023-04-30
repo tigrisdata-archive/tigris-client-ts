@@ -154,6 +154,42 @@ describe("filters tests", () => {
 		expect(Utility.filterToString(tigrisFilter)).toBe('{"balance":{"$gte":10}}');
 	});
 
+	it("not Filter", () => {
+		const tigrisFilter: Filter<Student> = {
+			name: {
+				$not: "Jack",
+			},
+		};
+		expect(Utility.filterToString(tigrisFilter)).toBe('{"balance":{"$not":"Jack"}}');
+	});
+
+	it("contains Filter(string)", () => {
+		const tigrisFilter: Filter<Student> = {
+			name: {
+				$contains: "Adam"
+			}
+		};
+		expect(Utility.filterToString(tigrisFilter)).toBe('{"name":{"$contains":"Adam"}}');
+	});
+
+	it("contains Filter(string[])", () => {
+		const tigrisFilter: Filter<Student> = {
+			name: {
+				$contains: ["Adam", "Warlock", "Steven"]
+			}
+		};
+		expect(Utility.filterToString(tigrisFilter)).toBe('{"name":{"$contains":["Adam","Warlock","Steven"]}}');
+	});
+
+	it("regex Filter", () => {
+		const tigrisFilter: Filter<Student> = {
+			name: {
+				$regex: "/andy/i"
+			}
+		};
+		expect(Utility.filterToString(tigrisFilter)).toBe('{"name":{"$regex":"/andy/i"}}');
+	});
+
 	it("logicalFilterTest1", () => {
 		const logicalFilter: Filter<IUser> = {
 			$or: [
@@ -211,7 +247,7 @@ describe("filters tests", () => {
 					balance: {
 						$lte: 1000,
 					},
-				},
+				}
 			],
 		};
 		const nestedLogicalFilter: Filter<Student> = {
