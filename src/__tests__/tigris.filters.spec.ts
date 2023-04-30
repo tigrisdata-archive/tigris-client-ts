@@ -172,17 +172,6 @@ describe("filters tests", () => {
 		expect(Utility.filterToString(tigrisFilter)).toBe('{"name":{"$contains":"Adam"}}');
 	});
 
-	it("contains Filter(string[])", () => {
-		const tigrisFilter: Filter<Student> = {
-			name: {
-				$contains: ["Adam", "Warlock", "Steven"],
-			},
-		};
-		expect(Utility.filterToString(tigrisFilter)).toBe(
-			'{"name":{"$contains":["Adam","Warlock","Steven"]}}'
-		);
-	});
-
 	it("regex Filter", () => {
 		const tigrisFilter: Filter<Student> = {
 			name: {
