@@ -766,7 +766,7 @@ export type SelectorOperator = "$eq" | "$gt" | "$gte" | "$lt" | "$lte" | "$not" 
 export type LogicalOperator = "$or" | "$and";
 
 export type SelectorFilter<T> = {
-	[K in PathsForFilter<T>]?: PathType<T, K> | { [P in SelectorOperator]?: PathType<T, K> };
+	[K in PathsForFilter<T>]?: PathType<T, K> | { [P in SelectorOperator]?: P extends "$contains" ? PathType<T, K> | PathType<T, K>[] : PathType<T, K> };
 };
 
 export type LogicalFilter<T> = {

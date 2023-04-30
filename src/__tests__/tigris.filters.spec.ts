@@ -160,7 +160,7 @@ describe("filters tests", () => {
 				$not: "Jack",
 			},
 		};
-		expect(Utility.filterToString(tigrisFilter)).toBe('{"balance":{"$not":"Jack"}}');
+		expect(Utility.filterToString(tigrisFilter)).toBe('{"name":{"$not":"Jack"}}');
 	});
 
 	it("contains Filter(string)", () => {
