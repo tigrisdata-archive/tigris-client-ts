@@ -63,3 +63,11 @@ On every `git commit` we check the code quality using prettier and eslint.
 # License
 
 This software is licensed under the [Apache 2.0](LICENSE).
+
+# Contributors
+
+Thanks to all the people who contributed!
+
+<a href="https://github.com/tigrisdata/tigris-client-ts/graphs/contributors">
+	<img src="https://contrib.rocks/image?repo=tigrisdata/tigris-client-ts" />
+</a>
