@@ -640,6 +640,7 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 		const countRequest = new ProtoCountRequest()
 			.setProject(this.db)
 			.setCollection(this.collectionName)
+			.setBranch(this.branch)
 			.setFilter(Utility.stringToUint8Array(Utility.filterToString(filter)));
 
 		return new Promise((resolve, reject) => {

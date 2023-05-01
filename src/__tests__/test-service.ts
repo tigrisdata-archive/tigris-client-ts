@@ -735,6 +735,8 @@ export class TestTigrisService {
 			call: ServerUnaryCall<CountRequest, CountResponse>,
 			callback: sendUnaryData<CountResponse>
 		): void {
+			assert(call.request.getBranch() === TestTigrisService.ExpectedBranch);
+
 			const reply: CountResponse = new CountResponse();
 			reply.setCount(3);
 			callback(undefined, reply);
