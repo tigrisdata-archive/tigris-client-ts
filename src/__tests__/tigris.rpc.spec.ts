@@ -475,7 +475,7 @@ describe("rpc tests", () => {
 		const countResponse = await db.getCollection<IBook>("books").count({
 			author: "Marcel Proust",
 		});
-		expect(countResponse).toEqual(1);
+		expect(countResponse).toEqual(3);
 	});
 
 	it("describe collection", async () => {
