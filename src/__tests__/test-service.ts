@@ -1,6 +1,6 @@
 import { TigrisService } from "../proto/server/v1/api_grpc_pb";
 import * as grpc from "@grpc/grpc-js";
-import { sendUnaryData, ServerUnaryCall, ServerWritableStream } from "@grpc/grpc-js";
+import { sendUnaryData, Server, ServerUnaryCall, ServerWritableStream } from "@grpc/grpc-js";
 import { v4 as uuidv4 } from "uuid";
 import {
 	BeginTransactionRequest,
@@ -195,6 +195,10 @@ export class TestTigrisService {
 		explain(
 			call: ServerUnaryCall<ReadRequest, ExplainResponse>,
 			callback: sendUnaryData<ExplainResponse>
+		): void;
+		count(
+			call: ServerUnaryCall<CountRequest, CountResponse>,
+			callback: sendUnaryData<CountResponse>
 		): void;
 	} = {
 		createBranch(
@@ -726,27 +730,18 @@ export class TestTigrisService {
 			reply.setReadType("secondary index");
 			callback(undefined, reply);
 		},
+
+		count(
+			call: ServerUnaryCall<CountRequest, CountResponse>,
+			callback: sendUnaryData<CountResponse>
+		): void {
+			assert(call.request.getBranch() === TestTigrisService.ExpectedBranch);
+
+			const reply: CountResponse = new CountResponse();
+			reply.setCount(3);
+			callback(undefined, reply);
+		},
 	};
-
-	count(
-		call: ServerUnaryCall<CountRequest, CountResponse>,
-		callback: sendUnaryData<CountResponse>
-	): void {
-		const collectionName = call.request.getCollection();
-		const filter = Utility.uint8ArrayToString(call.request.getFilter_asU8());
-
-		const collection = this.myDatabase.collection(collectionName);
-
-		collection
-			.countDocuments(filter)
-			.then((count) => {
-				const response = new CountResponse().setCount(count);
-				callback(null, response);
-			})
-			.catch((error) => {
-				callback(error, null);
-			});
-	}
 }
 
 export default {
