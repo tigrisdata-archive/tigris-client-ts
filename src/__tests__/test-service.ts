@@ -1,6 +1,6 @@
 import { TigrisService } from "../proto/server/v1/api_grpc_pb";
 import * as grpc from "@grpc/grpc-js";
-import { sendUnaryData, ServerUnaryCall, ServerWritableStream } from "@grpc/grpc-js";
+import { sendUnaryData, Server, ServerUnaryCall, ServerWritableStream } from "@grpc/grpc-js";
 import { v4 as uuidv4 } from "uuid";
 import {
 	BeginTransactionRequest,
@@ -11,6 +11,8 @@ import {
 	CollectionMetadata,
 	CommitTransactionRequest,
 	CommitTransactionResponse,
+	CountRequest,
+	CountResponse,
 	CreateBranchRequest,
 	CreateBranchResponse,
 	CreateOrUpdateCollectionRequest,
@@ -62,6 +64,8 @@ import * as google_protobuf_timestamp_pb from "google-protobuf/google/protobuf/t
 import { Utility } from "../utility";
 import { Status } from "@grpc/grpc-js/build/src/constants";
 import assert from "assert";
+import { Tigris } from "../tigris";
+import { Collection } from "../collection";
 
 export class TestTigrisService {
 	public static readonly ExpectedBranch = "unit-tests";
@@ -92,6 +96,8 @@ export class TestTigrisService {
 			"eyJpZCI6NywidGl0bGUiOiJBIFBhc3NhZ2UgdG8gSW5kaWEiLCJhdXRob3IiOiJFLk0uIEZvcnN0ZXIiLCJ0YWdzIjpbIk5vdmVsIiwiSW5kaWEiXSwgInB1cmNoYXNlZE9uIjogIjIwMjMtMDQtMTRUMDk6Mzk6MTkuMjg4WiJ9",
 		],
 	]);
+
+	private myDatabase: any;
 
 	public static readonly ALERTS_B64_BY_ID: ReadonlyMap<number, string> = new Map([
 		// base64 of {"id":1,"text":"test"}
@@ -189,6 +195,10 @@ export class TestTigrisService {
 		explain(
 			call: ServerUnaryCall<ReadRequest, ExplainResponse>,
 			callback: sendUnaryData<ExplainResponse>
+		): void;
+		count(
+			call: ServerUnaryCall<CountRequest, CountResponse>,
+			callback: sendUnaryData<CountResponse>
 		): void;
 	} = {
 		createBranch(
@@ -317,6 +327,7 @@ export class TestTigrisService {
 			);
 			callback(undefined, reply);
 		},
+
 		/* eslint-disable @typescript-eslint/no-empty-function */
 		describeCollection(
 			call: ServerUnaryCall<DescribeCollectionRequest, DescribeCollectionResponse>,
@@ -337,6 +348,7 @@ export class TestTigrisService {
 
 			callback(undefined, reply);
 		},
+
 		describeDatabase(
 			call: ServerUnaryCall<DescribeDatabaseRequest, DescribeDatabaseResponse>,
 			callback: sendUnaryData<DescribeDatabaseResponse>
@@ -716,6 +728,17 @@ export class TestTigrisService {
 			const reply: ExplainResponse = new ExplainResponse();
 			reply.setFilter(JSON.stringify({ author: "Marcel Proust" }));
 			reply.setReadType("secondary index");
+			callback(undefined, reply);
+		},
+
+		count(
+			call: ServerUnaryCall<CountRequest, CountResponse>,
+			callback: sendUnaryData<CountResponse>
+		): void {
+			assert(call.request.getBranch() === TestTigrisService.ExpectedBranch);
+
+			const reply: CountResponse = new CountResponse();
+			reply.setCount(3);
 			callback(undefined, reply);
 		},
 	};

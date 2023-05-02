@@ -154,6 +154,33 @@ describe("filters tests", () => {
 		expect(Utility.filterToString(tigrisFilter)).toBe('{"balance":{"$gte":10}}');
 	});
 
+	it("not Filter", () => {
+		const tigrisFilter: Filter<Student> = {
+			name: {
+				$not: "Jack",
+			},
+		};
+		expect(Utility.filterToString(tigrisFilter)).toBe('{"name":{"$not":"Jack"}}');
+	});
+
+	it("contains Filter(string)", () => {
+		const tigrisFilter: Filter<Student> = {
+			name: {
+				$contains: "Adam",
+			},
+		};
+		expect(Utility.filterToString(tigrisFilter)).toBe('{"name":{"$contains":"Adam"}}');
+	});
+
+	it("regex Filter", () => {
+		const tigrisFilter: Filter<Student> = {
+			name: {
+				$regex: "/andy/i",
+			},
+		};
+		expect(Utility.filterToString(tigrisFilter)).toBe('{"name":{"$regex":"/andy/i"}}');
+	});
+
 	it("logicalFilterTest1", () => {
 		const logicalFilter: Filter<IUser> = {
 			$or: [
