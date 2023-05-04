@@ -12,7 +12,8 @@
 - [Tigris Overview](https://www.tigrisdata.com/docs/concepts/)
 - [Getting Started](https://www.tigrisdata.com/docs/quickstarts/)
 - [Database](https://www.tigrisdata.com/docs/sdkstools/typescript/database/)
-- [Search](https://www.tigrisdata.com/docs/sdkstools/typescript/database/search/)
+- [Database + Search](https://www.tigrisdata.com/docs/sdkstools/typescript/database/search/)
+- [Search Only](https://www.tigrisdata.com/docs/sdkstools/typescript/search/)
 
 # Building
 
