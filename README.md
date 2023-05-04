@@ -10,10 +10,11 @@
 # Documentation
 
 - [Tigris Overview](https://www.tigrisdata.com/docs/concepts/)
-- [Getting Started](https://www.tigrisdata.com/docs/quickstarts/)
+- [Getting Started](https://www.tigrisdata.com/docs/quickstarts/quickstart-typescript/)
 - [Database](https://www.tigrisdata.com/docs/sdkstools/typescript/database/)
 - [Database + Search](https://www.tigrisdata.com/docs/sdkstools/typescript/database/search/)
 - [Search Only](https://www.tigrisdata.com/docs/sdkstools/typescript/search/)
+- [Vector Search](https://www.tigrisdata.com/docs/quickstarts/quickstart-vector-search/)
 
 # Building
 
