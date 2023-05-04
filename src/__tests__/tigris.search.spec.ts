@@ -65,6 +65,24 @@ describe("Search Indexing", () => {
 		});
 	});
 
+	describe("createOrUpdateIndexFromClass", () => {
+		it("creates index from decorated schema model", async () => {
+			const createPromise = tigris.createOrUpdateIndexFromClass(BlogPost);
+			await expect(createPromise).resolves.toBeInstanceOf(SearchIndex);
+		});
+		it("creates index from decorated schema model with name overriden", async () => {
+			const createPromise = tigris.createOrUpdateIndexFromClass(
+				BlogPost,
+				SearchServiceFixtures.CreateIndex.BlogOverride
+			);
+			await expect(createPromise).resolves.toBeInstanceOf(SearchIndex);
+			await expect(createPromise).resolves.toHaveProperty(
+				"name",
+				SearchServiceFixtures.CreateIndex.BlogOverride
+			);
+		});
+	});
+
 	describe("getIndex", () => {
 		it("succeeds if index exists", async () => {
 			const getIndexPromise = tigris.getIndex(SearchServiceFixtures.Success);
