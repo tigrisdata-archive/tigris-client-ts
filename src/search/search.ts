@@ -63,6 +63,18 @@ export class Search {
 		});
 	}
 
+	public createOrUpdateIndexFromClass<T extends TigrisIndexType>(
+		cls: new () => TigrisIndexType,
+		name?: string
+	): Promise<SearchIndex<T>> {
+		const generatedIndex = this.schemaProcessor.processIndex(cls);
+		if (!name) {
+			name = generatedIndex.name;
+		}
+
+		return this.createOrUpdateIndex(name, generatedIndex.schema as TigrisIndexSchema<T>);
+	}
+
 	public listIndexes(): Promise<Array<IndexInfo>> {
 		// TODO: Set filter on request
 		const listIndexRequest = new ProtoListIndexesRequest().setProject(this.projectName);

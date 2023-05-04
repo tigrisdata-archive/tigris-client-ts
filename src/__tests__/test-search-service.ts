@@ -49,6 +49,7 @@ export const SearchServiceFixtures = {
 	]),
 	CreateIndex: {
 		Blog: "blogPosts",
+		BlogOverride: "blogPostsOverride",
 	},
 	SearchDocs: {
 		UpdatedAtSeconds: Math.floor(Date.now() / 1000),
@@ -173,6 +174,16 @@ class TestSearchService {
 						.setStatus("created")
 						.setMessage("index created");
 					callback(undefined, resp);
+					return;
+				case SearchServiceFixtures.CreateIndex.BlogOverride:
+					const schema2 = Buffer.from(call.request.getSchema_asB64(), "base64").toString();
+					expect(schema2).toBe(
+						'{"title":"blogPostsOverride","type":"object","properties":{"text":{"type":"string","searchIndex":true,"facet":true},"comments":{"type":"array","items":{"type":"string"},"searchIndex":true},"author":{"type":"string","searchIndex":true},"createdAt":{"type":"string","format":"date-time","searchIndex":true,"sort":true}}}'
+					);
+					const resp2 = new CreateOrUpdateIndexResponse()
+						.setStatus("created")
+						.setMessage("index created");
+					callback(undefined, resp2);
 					return;
 				case SearchServiceFixtures.AlreadyExists:
 					callback(new Error("already exists"));
