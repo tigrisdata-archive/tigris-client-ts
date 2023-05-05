@@ -28,22 +28,34 @@ export class Search {
 
 	public createOrUpdateIndex<T extends TigrisIndexType>(
 		name: string,
-		schema: TigrisIndexSchema<T>
+		schemaOrClass: TigrisIndexSchema<T> | (new () => TigrisIndexType)
 	): Promise<SearchIndex<T>>;
 
 	public createOrUpdateIndex<T extends TigrisIndexType>(
 		nameOrClass: string | TigrisIndexType,
-		schema?: TigrisIndexSchema<T>
+		schemaOrClass?: TigrisIndexSchema<T> | TigrisIndexType
 	): Promise<SearchIndex<T>> {
 		let indexName: string;
+		let mayBeClass: new () => TigrisIndexType;
+		let schema: TigrisIndexSchema<T>;
+
 		if (typeof nameOrClass === "string") {
 			indexName = nameOrClass as string;
+			if (typeof schemaOrClass === "function") {
+				mayBeClass = schemaOrClass as new () => TigrisIndexType;
+			} else {
+				schema = schemaOrClass as TigrisIndexSchema<T>;
+			}
 		} else {
-			const generatedIndex = this.schemaProcessor.processIndex(
-				nameOrClass as new () => TigrisIndexType
-			);
-			indexName = generatedIndex.name;
+			// only single class argument is passed
+			mayBeClass = nameOrClass as new () => TigrisIndexType;
+		}
+
+		if (mayBeClass && !schema) {
+			const generatedIndex = this.schemaProcessor.processIndex(mayBeClass);
 			schema = generatedIndex.schema as TigrisIndexSchema<T>;
+			// if indexName is not provided, use the one from model class
+			indexName = indexName ?? generatedIndex.name;
 		}
 
 		const rawJSONSchema: string = Utility._indexSchematoJSON(indexName, schema);
@@ -61,18 +73,6 @@ export class Search {
 				resolve(new SearchIndex(this.client, indexName, this.config));
 			});
 		});
-	}
-
-	public createOrUpdateIndexFromClass<T extends TigrisIndexType>(
-		cls: new () => TigrisIndexType,
-		name?: string
-	): Promise<SearchIndex<T>> {
-		const generatedIndex = this.schemaProcessor.processIndex(cls);
-		if (!name) {
-			name = generatedIndex.name;
-		}
-
-		return this.createOrUpdateIndex(name, generatedIndex.schema as TigrisIndexSchema<T>);
 	}
 
 	public listIndexes(): Promise<Array<IndexInfo>> {
