@@ -28,6 +28,7 @@
 		"@typescript-eslint/semi": ["error"],
 		"unused-imports/no-unused-imports": "error",
 		"quotes": "off",
+		"unicorn/expiring-todo-comments": "off",
 		"@typescript-eslint/quotes": ["error"],
 		"tsdoc/syntax": "error"
 	},
