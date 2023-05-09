@@ -40,8 +40,7 @@
 			},
 			{
 				"name": "beta",
-				"prerelease": true,
-				"channel": false
+				"prerelease": true
 			},
 			{
 				"name": "alpha",
