@@ -6,15 +6,14 @@ import {
 	DeleteQueryOptions,
 	Filter,
 	FindQueryOptions,
-	SortOrder,
+	GroupByField,
 	ReadFields,
+	SortOrder,
 	TigrisDataTypes,
 	TigrisSchema,
 	UpdateFields,
 	UpdateQueryOptions,
-	GroupByField,
 } from "./types";
-import * as fs from "node:fs";
 import {
 	Collation as ProtoCollation,
 	DeleteRequestOptions as ProtoDeleteRequestOptions,
@@ -28,9 +27,9 @@ import {
 	FacetQueryOptions,
 	MATCH_ALL_QUERY_STRING,
 	SearchQuery,
+	TigrisIndexSchema,
 	VectorQuery,
 } from "./search";
-import { TigrisIndexSchema } from "./search";
 import { SearchIndexRequest as ProtoSearchIndexRequest } from "./proto/server/v1/search_pb";
 import {
 	DuplicatePrimaryKeyOrderError,
@@ -88,7 +87,7 @@ export const Utility = {
 	_getRandomInt(upperBound: number): number {
 		return Math.floor(Math.random() * upperBound);
 	},
-	readFieldString(readFields: ReadFields): string {
+	readFieldString<T>(readFields: ReadFields<T>): string {
 		const include = readFields.include?.reduce((acc, field) => ({ ...acc, [field]: true }), {});
 		const exclude = readFields.exclude?.reduce((acc, field) => ({ ...acc, [field]: false }), {});
 
@@ -474,14 +473,6 @@ export const Utility = {
 		return undefined;
 	},
 
-	_readTestDataFile(path: string): string {
-		return Utility.objToJsonString(
-			Utility.jsonStringToObj(fs.readFileSync("src/__tests__/data/" + path, "utf8"), {
-				serverUrl: "test",
-			})
-		);
-	},
-
 	_base64Encode(input: string): string {
 		return Buffer.from(input, "utf8").toString("base64");
 	},
@@ -499,8 +490,9 @@ export const Utility = {
 		return { ...defaults, ...options };
 	},
 
-	facetQueryToString(facets: FacetFieldsQuery): string {
-		const optionsMap = {};
+	facetQueryToString<T>(facets: FacetFieldsQuery<T>): string {
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const optionsMap: any = {};
 		if (Array.isArray(facets)) {
 			for (const f of facets) {
 				optionsMap[f] = this.defaultFacetingOptions();
@@ -520,7 +512,7 @@ export const Utility = {
 		return this.objToJsonString(q);
 	},
 
-	_sortOrderingToString(ordering: SortOrder): string {
+	_sortOrderingToString<T>(ordering: SortOrder<T>): string {
 		if (typeof ordering === "undefined") {
 			return "[]";
 		}
@@ -575,7 +567,9 @@ export const Utility = {
 		}
 
 		if (query.sort !== undefined) {
-			searchRequest.setSort(Utility.stringToUint8Array(Utility._sortOrderingToString(query.sort)));
+			searchRequest.setSort(
+				Utility.stringToUint8Array(Utility._sortOrderingToString<T>(query.sort))
+			);
 		}
 
 		if (query.groupBy !== undefined) {
