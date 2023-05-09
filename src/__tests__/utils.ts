@@ -1,5 +1,5 @@
 import { Utility } from "../utility";
-import fs from "node:fs";
+import * as fs from "fs";
 
 export function readJSONFileAsObj(filePath: string): string {
 	return Utility.objToJsonString(
