@@ -61,21 +61,21 @@
 	},
 	"scripts": {
 		"clean": "rm -rf ./src/proto/* && rm -rf dist && rm -rf node_modules",
-		"update_api": "git submodule update --init --recursive && git submodule update --remote --recursive --rebase && git submodule foreach --recursive git reset --hard origin/main",
 		"init_api": "git submodule update --init --recursive",
+		"update_api": "git submodule update --init --recursive && git submodule update --remote --recursive --rebase && git submodule foreach --recursive git reset --hard origin/main",
+		"copy_api": "copyfiles -u 2 \"./src/proto/**/*.{js,ts}\" \"./dist/proto\"",
 		"protoc": "./scripts/protoc.sh",
+		"all": "npm run clean && npm run build && npm run prettier-check && npm run lint && npm run test",
 		"lint": "node ./node_modules/eslint/bin/eslint src/ --ext .ts",
 		"lint-fix": "npx eslint --ext .ts --fix src/",
-		"copy_api": "copyfiles -u 2 \"./src/proto/**/*.{js,ts}\" \"./dist/proto\"",
 		"tsc": "tsc && npm run copy_api",
-		"build": "npm install && npm run prettier-check && npm run protoc && npm run tsc",
+		"build": "npm install && npm run protoc && npm run tsc",
 		"test": "jest --runInBand --coverage --silent --detectOpenHandles",
 		"prettier-check": "npx prettier --check .",
-		"all": "npm run clean && npm run build && npm run prettier-check && npm run lint && npm run test",
-		"prepare": "npm run init_api && npm run protoc && npm run tsc",
-		"prepublishOnly": "npm test && npm run lint",
 		"prettify": "npx prettier --write .",
-		"preversion": "npm run lint"
+		"preversion": "npm run lint && npm run prettier-check",
+		"prepare": "npm run init_api && npm run protoc && npm run tsc",
+		"prepublishOnly": "npm test && npm run lint && npm run prettier-check"
 	},
 	"engines": {
 		"node": ">= 12.0.0"
