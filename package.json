@@ -69,13 +69,13 @@
 		"lint": "node ./node_modules/eslint/bin/eslint src/ --ext .ts",
 		"lint-fix": "npx eslint --ext .ts --fix src/",
 		"tsc": "tsc && npm run copy_api",
-		"build": "npm install && npm run protoc && npm run tsc",
+		"build": "npm install && npm audit signatures && npm run protoc && npm run tsc",
 		"test": "jest --runInBand --coverage --silent --detectOpenHandles",
 		"prettier-check": "npx prettier --check .",
 		"prettify": "npx prettier --write .",
 		"preversion": "npm run lint && npm run prettier-check",
 		"prepare": "npm run init_api && npm run protoc && npm run tsc",
-		"prepublishOnly": "npm test && npm run lint && npm run prettier-check"
+		"prepublishOnly": "npm audit signatures && npm test && npm run lint && npm run prettier-check"
 	},
 	"engines": {
 		"node": ">= 12.0.0"

@@ -20,12 +20,8 @@ jobs:
           node-version: 18
       - name: Install dependencies
         run: npm ci
-      - name: Install semantic-release
-        run: |
-          npm install --no-package-lock --no-save \
-              @semantic-release/commit-analyzer \
-              @semantic-release/release-notes-generator \
-              @semantic-release/github
+      - name: Verify the signatures for installed dependencies
+        run: npm audit signatures
       - name: Release dry run
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
