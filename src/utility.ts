@@ -6,15 +6,14 @@ import {
 	DeleteQueryOptions,
 	Filter,
 	FindQueryOptions,
-	SortOrder,
+	GroupByField,
 	ReadFields,
+	SortOrder,
 	TigrisDataTypes,
 	TigrisSchema,
 	UpdateFields,
 	UpdateQueryOptions,
-	GroupByField,
 } from "./types";
-import * as fs from "node:fs";
 import {
 	Collation as ProtoCollation,
 	DeleteRequestOptions as ProtoDeleteRequestOptions,
@@ -28,9 +27,9 @@ import {
 	FacetQueryOptions,
 	MATCH_ALL_QUERY_STRING,
 	SearchQuery,
+	TigrisIndexSchema,
 	VectorQuery,
 } from "./search";
-import { TigrisIndexSchema } from "./search";
 import { SearchIndexRequest as ProtoSearchIndexRequest } from "./proto/server/v1/search_pb";
 import {
 	DuplicatePrimaryKeyOrderError,
@@ -472,14 +471,6 @@ export const Utility = {
 				return "byte";
 		}
 		return undefined;
-	},
-
-	_readTestDataFile(path: string): string {
-		return Utility.objToJsonString(
-			Utility.jsonStringToObj(fs.readFileSync("src/__tests__/data/" + path, "utf8"), {
-				serverUrl: "test",
-			})
-		);
 	},
 
 	_base64Encode(input: string): string {
