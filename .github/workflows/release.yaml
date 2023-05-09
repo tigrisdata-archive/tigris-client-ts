@@ -19,11 +19,10 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: "npm"
       - run: npm run clean
-      - run: |
-          npm install
-          npx eslint .
-          npm run build
+      - run: npm ci
       - run: npm run lint
+      - run: npm run prettier-check
+      - run: npm run build
       - run: npm run test
 
   release:
@@ -35,17 +34,13 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: 16
+          node-version: 18
       - name: Build package
         run: npm ci
-      - name: Install semantic-release
-        run: |
-          npm install --no-package-lock --no-save \
-              @semantic-release/commit-analyzer \
-              @semantic-release/release-notes-generator \
-              @semantic-release/github
+      - name: Verify the signatures for installed dependencies
+        run: npm audit signatures
       - name: Release
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx semantic-release --debug
+        run: npx semantic-release@18 --debug

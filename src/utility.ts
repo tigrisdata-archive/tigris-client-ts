@@ -3,35 +3,17 @@ import json_bigint from "json-bigint";
 import { Session } from "./session";
 
 import {
-	CollectionType,
-	DeleteRequestOptions,
-	LogicalFilter,
-	LogicalOperator,
+	DeleteQueryOptions,
+	Filter,
+	FindQueryOptions,
+	GroupByField,
 	ReadFields,
-	ReadRequestOptions,
-	Selector,
-	SelectorFilter,
-	SelectorFilterOperator,
-	SimpleUpdateField,
-	TigrisCollectionType,
+	SortOrder,
 	TigrisDataTypes,
 	TigrisSchema,
-	TigrisTopicSchema,
 	UpdateFields,
-	UpdateFieldsOperator,
-	UpdateRequestOptions,
+	UpdateQueryOptions,
 } from "./types";
-import * as fs from "node:fs";
-import {
-	Case,
-	FacetFieldsQuery,
-	FacetQueryFieldType,
-	FacetQueryOptions,
-	MATCH_ALL_QUERY_STRING,
-	Ordering,
-	SearchRequest,
-	SearchRequestOptions,
-} from "./search/types";
 import {
 	Collation as ProtoCollation,
 	DeleteRequestOptions as ProtoDeleteRequestOptions,
@@ -40,6 +22,19 @@ import {
 	UpdateRequestOptions as ProtoUpdateRequestOptions,
 } from "./proto/server/v1/api_pb";
 import { TigrisClientConfig } from "./tigris";
+import {
+	FacetFieldsQuery,
+	FacetQueryOptions,
+	MATCH_ALL_QUERY_STRING,
+	SearchQuery,
+	TigrisIndexSchema,
+	VectorQuery,
+} from "./search";
+import { SearchIndexRequest as ProtoSearchIndexRequest } from "./proto/server/v1/search_pb";
+import {
+	DuplicatePrimaryKeyOrderError,
+	MissingPrimaryKeyOrderInSchemaDefinitionError,
+} from "./error";
 
 export const Utility = {
 	stringToUint8Array(input: string): Uint8Array {
@@ -50,115 +45,79 @@ export const Utility = {
 		return new TextDecoder().decode(input);
 	},
 
-	filterToString<T>(filter: SelectorFilter<T> | LogicalFilter<T> | Selector<T>): string {
-		if (
-			Object.prototype.hasOwnProperty.call(filter, "op") &&
-			(filter["op"] === LogicalOperator.AND || filter["op"] === LogicalOperator.OR)
-		) {
-			// LogicalFilter
-			return Utility._logicalFilterToString(filter as LogicalFilter<T>);
-			// eslint-disable-next-line no-prototype-builtins
-		} else if (filter.hasOwnProperty("op")) {
-			// SelectorFilter
-			return Utility._selectorFilterToString(filter as SelectorFilter<T>);
-		} else {
-			// Selector (default operator $eq)
-			return Utility.objToJsonString(filter);
+	/** @see tests for usage */
+	branchNameFromEnv(given?: string): string | undefined {
+		const maybeBranchName = typeof given !== "undefined" ? given : process.env.TIGRIS_DB_BRANCH;
+		if (typeof maybeBranchName === "undefined") {
+			return undefined;
 		}
+		const isTemplate = Utility.getTemplatedVar(maybeBranchName);
+		if (isTemplate) {
+			return isTemplate.extracted in process.env
+				? maybeBranchName.replace(
+						isTemplate.matched,
+						this.nerfGitBranchName(process.env[isTemplate.extracted])
+				  )
+				: undefined;
+		} else {
+			return this.nerfGitBranchName(maybeBranchName);
+		}
+	},
+
+	/** @see {@link branchNameFromEnv} tests for usage */
+	getTemplatedVar(input: string): { matched: string; extracted: string } {
+		const output = input.match(/\${(.*?)}/);
+		return output ? { matched: output[0], extracted: output[1] } : undefined;
+	},
+
+	/** @see tests for usage */
+	nerfGitBranchName(original: string) {
+		// only replace '/', '#', ' ' to avoid malformed urls
+		return original.replace(/[ #/]/g, "_");
+	},
+
+	filterToString<T>(filter: Filter<T>): string {
+		for (const key of Object.keys(filter)) {
+			if (filter[key].constructor.name === "Date") {
+				filter[key] = (filter[key] as Date).toJSON();
+			}
+		}
+		return Utility.objToJsonString(filter);
 	},
 	_getRandomInt(upperBound: number): number {
 		return Math.floor(Math.random() * upperBound);
 	},
-	_selectorFilterToString<T extends TigrisCollectionType>(filter: SelectorFilter<T>): string {
-		switch (filter.op) {
-			case SelectorFilterOperator.NONE:
-				// filter nothing
-				return "{}";
-			case SelectorFilterOperator.EQ:
-			case SelectorFilterOperator.LT:
-			case SelectorFilterOperator.LTE:
-			case SelectorFilterOperator.GT:
-			case SelectorFilterOperator.GTE:
-				return Utility.objToJsonString(
-					Utility._selectorFilterToFlatJSONObj(filter.op, filter.fields)
-				);
-			default:
-				return "";
-		}
-	},
-
-	_selectorFilterToFlatJSONObj(op: SelectorFilterOperator, fields: object): object {
-		switch (op) {
-			case SelectorFilterOperator.NONE:
-				return {};
-			case SelectorFilterOperator.EQ:
-				return Utility._flattenObj(fields);
-			case SelectorFilterOperator.LT:
-			case SelectorFilterOperator.LTE:
-			case SelectorFilterOperator.GT:
-			case SelectorFilterOperator.GTE: {
-				const flattenedFields = Utility._flattenObj(fields);
-				for (const key in flattenedFields) {
-					flattenedFields[key] = { [op]: flattenedFields[key] };
-				}
-				return flattenedFields;
-			}
-			default:
-				return Utility._flattenObj(fields);
-		}
-	},
-
-	_logicalFilterToString<T>(filter: LogicalFilter<T>): string {
-		return this.objToJsonString(Utility._logicalFilterToJSONObj(filter));
-	},
-
-	_logicalFilterToJSONObj<T>(filter: LogicalFilter<T>): object {
-		const result = {};
-		const innerFilters = [];
-		result[filter.op] = innerFilters;
-		if (filter.selectorFilters) {
-			for (const value of filter.selectorFilters) {
-				// eslint-disable-next-line no-prototype-builtins
-				if (value.hasOwnProperty("op")) {
-					const v = value as SelectorFilter<T>;
-					innerFilters.push(Utility._selectorFilterToFlatJSONObj(v.op, v.fields));
-				} else {
-					const v = value as Selector<T>;
-					innerFilters.push(Utility._selectorFilterToFlatJSONObj(SelectorFilterOperator.EQ, v));
-				}
-			}
-		}
-		if (filter.logicalFilters) {
-			for (const value of filter.logicalFilters)
-				innerFilters.push(Utility._logicalFilterToJSONObj(value));
-		}
-		return result;
-	},
-
-	readFieldString(readFields: ReadFields): string {
+	readFieldString<T>(readFields: ReadFields<T>): string {
 		const include = readFields.include?.reduce((acc, field) => ({ ...acc, [field]: true }), {});
 		const exclude = readFields.exclude?.reduce((acc, field) => ({ ...acc, [field]: false }), {});
 
 		return this.objToJsonString({ ...include, ...exclude });
 	},
 
-	updateFieldsString(updateFields: UpdateFields | SimpleUpdateField) {
+	updateFieldsString<T>(updateFields: UpdateFields<T>) {
 		// UpdateFields
-		// eslint-disable-next-line no-prototype-builtins
-		if (updateFields.hasOwnProperty("op")) {
-			const { op, fields } = updateFields as UpdateFields;
-
-			return this.objToJsonString({
-				[op]: fields,
-			});
-		} else {
-			// SimpleUpdateField
-			return Utility.updateFieldsString({
-				op: UpdateFieldsOperator.SET,
-				fields: updateFields as SimpleUpdateField,
-			});
+		const updateBuilder: object = {};
+		for (const [key, value] of Object.entries(updateFields)) {
+			switch (key) {
+				case "$set":
+				case "$unset":
+				case "$divide":
+				case "$increment":
+				case "$decrement":
+				case "$multiply":
+					updateBuilder[key] = value;
+					break;
+				default:
+					// by default everything else is a "$set" update
+					if (!("$set" in updateBuilder)) {
+						updateBuilder["$set"] = {};
+					}
+					updateBuilder["$set"][key] = value;
+			}
 		}
+		return this.objToJsonString(updateBuilder);
 	},
+
 	// eslint-disable-next-line @typescript-eslint/ban-types
 	objToJsonString(obj: object): string {
 		const JSONbigNative = json_bigint({ useNativeBigInt: true });
@@ -174,8 +133,8 @@ export const Utility = {
 	 * JSON serde mechanism - you might want to continue using it as `string`.
 	 *
 	 *
-	 * @param json string representation of JSON object
-	 * @param config Tigris client config instance
+	 * @param json - string representation of JSON object
+	 * @param config - Tigris client config instance
 	 */
 	jsonStringToObj<T>(json: string, config: TigrisClientConfig): T {
 		const JSONbigNative = json_bigint({ useNativeBigInt: true });
@@ -183,9 +142,17 @@ export const Utility = {
 			// convert bigint to string based on configuration
 			if (typeof v === "bigint" && (config.supportBigInt === undefined || !config.supportBigInt)) {
 				return v.toString();
+			} else if (typeof v === "string" && this._isISODateRegex(v)) {
+				return new Date(v);
 			}
+
 			return v;
 		});
+	},
+	_isISODateRegex(value: string) {
+		const isoDateRegex =
+			/(\d{4}-[01]\d-[0-3]\dT[0-2](?:\d:[0-5]){2}\d\.\d+([+-][0-2]\d:[0-5]\d|Z))|(\d{4}-[01]\d-[0-3]\dT[0-2](?:\d:[0-5]){2}\d([+-][0-2]\d:[0-5]\d|Z))|(\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d([+-][0-2]\d:[0-5]\d|Z))/;
+		return isoDateRegex.test(value);
 	},
 	txToMetadata(tx: Session): Metadata {
 		const metadata = new Metadata();
@@ -225,12 +192,16 @@ export const Utility = {
 			if (!ob.hasOwnProperty(key)) continue;
 
 			if (typeof ob[key] == "object" && ob[key] !== null) {
-				const flatObject = Utility._flattenObj(ob[key]);
-				for (const x in flatObject) {
-					// eslint-disable-next-line no-prototype-builtins
-					if (!flatObject.hasOwnProperty(x)) continue;
-
-					toReturn[key + "." + x] = flatObject[x];
+				const value = ob[key];
+				if (value.constructor.name === "Date") {
+					toReturn[key] = (value as Date).toJSON();
+				} else {
+					const flatObject = Utility._flattenObj(value);
+					for (const x in flatObject) {
+						// eslint-disable-next-line no-prototype-builtins
+						if (!flatObject.hasOwnProperty(x)) continue;
+						toReturn[key + "." + x] = flatObject[x];
+					}
 				}
 			} else {
 				toReturn[key] = ob[key];
@@ -239,11 +210,13 @@ export const Utility = {
 		return toReturn;
 	},
 
-	_toJSONSchema<T>(
-		collectionName: string,
-		collectionType: CollectionType,
-		schema: TigrisSchema<T> | TigrisTopicSchema<T>
-	): string {
+	_indexSchematoJSON<T>(indexName: string, schema: TigrisIndexSchema<T>): string {
+		const root = { title: indexName, type: "object" };
+		root["properties"] = this._getSchemaProperties(schema, {}, {});
+		return Utility.objToJsonString(root);
+	},
+
+	_collectionSchematoJSON<T>(collectionName: string, schema: TigrisSchema<T>): string {
 		const root = {};
 		const pkeyMap = {};
 		const keyMap = {};
@@ -251,12 +224,7 @@ export const Utility = {
 		root["additionalProperties"] = false;
 		root["type"] = "object";
 		root["properties"] = this._getSchemaProperties(schema, pkeyMap, keyMap);
-		root["collection_type"] = collectionType;
-		if (collectionType === "documents") {
-			Utility._postProcessDocumentSchema(root, pkeyMap);
-		} else if (collectionType === "messages") {
-			Utility._postProcessMessageSchema(root, keyMap);
-		}
+		Utility._postProcessDocumentSchema(root, pkeyMap);
 		return Utility.objToJsonString(root);
 	},
 	/*
@@ -267,36 +235,18 @@ export const Utility = {
 	 */
 	_postProcessDocumentSchema(result: object, pkeyMap: object): object {
 		if (Object.keys(pkeyMap).length === 0) {
-			// if no pkeys was used defined. add implicit pkey
-			result["properties"]["id"] = {
-				type: "string",
-				format: "uuid",
-			};
-			result["primary_key"] = ["id"];
-		} else {
-			result["primary_key"] = [];
-			// add primary_key in order
-			for (let i = 1; i <= Object.keys(pkeyMap).length; i++) {
-				result["primary_key"].push(pkeyMap[i.toString()]);
-			}
+			return result;
 		}
-		return result;
-	},
-
-	_postProcessMessageSchema(result: object, keyMap: object): object {
-		const len = Object.keys(keyMap).length;
-		if (len > 0) {
-			result["key"] = [];
-			// add key in order
-			for (let i = 1; i <= len; i++) {
-				result["key"].push(keyMap[i.toString()]);
-			}
+		result["primary_key"] = [];
+		// add primary_key in order
+		for (let i = 1; i <= Object.keys(pkeyMap).length; i++) {
+			result["primary_key"].push(pkeyMap[i.toString()]);
 		}
 		return result;
 	},
 
 	_getSchemaProperties<T>(
-		schema: TigrisSchema<T> | TigrisTopicSchema<T>,
+		schema: TigrisSchema<T> | TigrisIndexSchema<T>,
 		pkeyMap: object,
 		keyMap: object
 	): object {
@@ -315,6 +265,9 @@ export const Utility = {
 					pkeyMap,
 					keyMap
 				);
+			} else if (schema[property].type === TigrisDataTypes.OBJECT) {
+				thisProperty["type"] = "object";
+				thisProperty["properties"] = {};
 			} else if (
 				schema[property].type != TigrisDataTypes.ARRAY.valueOf() &&
 				typeof schema[property].type != "object"
@@ -327,27 +280,93 @@ export const Utility = {
 
 				// flat property could be a primary key
 				if (schema[property].primary_key) {
-					pkeyMap[schema[property].primary_key["order"]] = property;
+					if (!schema[property].primary_key["order"]) {
+						/**
+						 * if the order doesn't exists then default to 1.
+						 * Check if order 1 already exists, if true then throw MissingPrimaryKeyOrderInSchemaDefinitionError
+						 */
+						if (pkeyMap["1"]) {
+							throw new MissingPrimaryKeyOrderInSchemaDefinitionError(property.toString());
+						}
+						pkeyMap["1"] = property;
+					} else {
+						// validate duplicate order for primary key
+						if (pkeyMap[schema[property].primary_key["order"]]) {
+							throw new DuplicatePrimaryKeyOrderError(
+								schema[property].primary_key["order"],
+								pkeyMap[schema[property].primary_key["order"]]
+							);
+						}
+						pkeyMap[schema[property].primary_key["order"]] = property;
+					}
 					//  autogenerate?
 					if (schema[property].primary_key["autoGenerate"]) {
 						thisProperty["autoGenerate"] = true;
 					}
 				}
 
+				// TODO: Add default_sort_by field
+
 				// flat property could be a partition key
 				if (schema[property].key) {
 					keyMap[schema[property].key["order"]] = property;
+				}
+
+				// property is string and has "maxLength" optional attribute
+				if (
+					thisProperty["type"] == TigrisDataTypes.STRING.valueOf() &&
+					thisProperty["format"] === undefined &&
+					schema[property].maxLength
+				) {
+					thisProperty["maxLength"] = schema[property].maxLength as number;
 				}
 
 				// array type?
 			} else if (schema[property].type === TigrisDataTypes.ARRAY.valueOf()) {
 				thisProperty = this._getArrayBlock(schema[property], pkeyMap, keyMap);
 			}
+
 			properties[property] = thisProperty;
+
+			// 'default' values for schema fields, if any
+			if ("default" in schema[property]) {
+				switch (schema[property].default) {
+					case undefined:
+						// eslint-disable-next-line unicorn/no-null
+						thisProperty["default"] = null;
+						break;
+					default:
+						thisProperty["default"] = schema[property].default;
+				}
+			}
+
+			// whether secondary index is enabled for this field
+			if ("index" in schema[property]) {
+				thisProperty["index"] = schema[property]["index"];
+			}
+
+			// indexing optionals
+			if ("searchIndex" in schema[property]) {
+				thisProperty["searchIndex"] = schema[property]["searchIndex"];
+			}
+			if ("sort" in schema[property]) {
+				thisProperty["sort"] = schema[property]["sort"];
+			}
+			if ("facet" in schema[property]) {
+				thisProperty["facet"] = schema[property]["facet"];
+			}
+			if ("id" in schema[property]) {
+				thisProperty["id"] = schema[property]["id"];
+			}
+
+			// 'timestamp' values for schema fields
+			if ("timestamp" in schema[property]) {
+				thisProperty[schema[property].timestamp] = true;
+			}
 		}
 		return properties;
 	},
-	_readRequestOptionsToProtoReadRequestOptions(input: ReadRequestOptions): ProtoReadRequestOptions {
+	_readRequestOptionsToProtoReadRequestOptions(input: FindQueryOptions): ProtoReadRequestOptions {
 		const result: ProtoReadRequestOptions = new ProtoReadRequestOptions();
 		if (input !== undefined) {
 			if (input.skip !== undefined) {
@@ -369,7 +388,7 @@ export const Utility = {
 		return result;
 	},
 	_deleteRequestOptionsToProtoDeleteRequestOptions(
-		input: DeleteRequestOptions
+		input: DeleteQueryOptions
 	): ProtoDeleteRequestOptions {
 		const result: ProtoDeleteRequestOptions = new ProtoDeleteRequestOptions();
 		if (input !== undefined) {
@@ -383,7 +402,7 @@ export const Utility = {
 		return result;
 	},
 	_updateRequestOptionsToProtoUpdateRequestOptions(
-		input: UpdateRequestOptions
+		input: UpdateQueryOptions
 	): ProtoUpdateRequestOptions {
 		const result: ProtoUpdateRequestOptions = new ProtoUpdateRequestOptions();
 		if (input !== undefined) {
@@ -403,25 +422,16 @@ export const Utility = {
 	): object {
 		const arrayBlock = {};
 		arrayBlock["type"] = "array";
-		arrayBlock["items"] = {};
-		// array of array?
-		if (arraySchema["items"]["type"] === TigrisDataTypes.ARRAY.valueOf()) {
-			arrayBlock["items"] = this._getArrayBlock(arraySchema["items"], pkeyMap, keyMap);
-			// array of custom type?
-		} else if (typeof arraySchema["items"]["type"] === "object") {
-			arrayBlock["items"]["type"] = "object";
-			arrayBlock["items"]["properties"] = this._getSchemaProperties(
-				arraySchema["items"]["type"],
+		if (typeof arraySchema === "object" && "dimensions" in arraySchema) {
+			arrayBlock["dimensions"] = arraySchema["dimensions"];
+			arrayBlock["format"] = "vector";
+		} else {
+			arrayBlock["items"] = {};
+			arrayBlock["items"] = this._getSchemaProperties(
+				{ _$arrayItemPlaceholder: arraySchema["items"] },
 				pkeyMap,
 				keyMap
-			);
-			// within array: single flat property?
-		} else {
-			arrayBlock["items"]["type"] = this._getType(arraySchema["items"]["type"] as TigrisDataTypes);
-			const format = this._getFormat(arraySchema["items"]["type"] as TigrisDataTypes);
-			if (format) {
-				arrayBlock["items"]["format"] = format;
-			}
+			)["_$arrayItemPlaceholder"];
 		}
 		return arrayBlock;
 	},
@@ -463,105 +473,127 @@ export const Utility = {
 		return undefined;
 	},
 
-	_readTestDataFile(path: string): string {
-		return Utility.objToJsonString(
-			Utility.jsonStringToObj(fs.readFileSync("src/__tests__/data/" + path, "utf8"), {
-				serverUrl: "test",
-			})
-		);
-	},
-
 	_base64Encode(input: string): string {
-		return Buffer.from(input, "binary").toString("base64");
+		return Buffer.from(input, "utf8").toString("base64");
 	},
 
 	_base64Decode(b64String: string): string {
-		return Buffer.from(b64String, "base64").toString("binary");
+		return Buffer.from(b64String, "base64").toString("utf8");
 	},
 
-	createFacetQueryOptions(options?: Partial<FacetQueryOptions>): FacetQueryOptions {
-		const defaults = { size: 10, type: FacetQueryFieldType.VALUE };
+	_base64DecodeToObject(b64String: string, config: TigrisClientConfig): object {
+		return this.jsonStringToObj(Buffer.from(b64String, "base64").toString("utf8"), config);
+	},
+
+	defaultFacetingOptions(options?: Partial<FacetQueryOptions>): FacetQueryOptions {
+		const defaults: FacetQueryOptions = { size: 10, type: "value" };
 		return { ...defaults, ...options };
 	},
 
-	createSearchRequestOptions(options?: Partial<SearchRequestOptions>): SearchRequestOptions {
-		const defaults = { page: 1, perPage: 20, collation: { case: Case.CaseInsensitive } };
-		return { ...defaults, ...options };
-	},
-
-	facetQueryToString(facets: FacetFieldsQuery): string {
+	facetQueryToString<T>(facets: FacetFieldsQuery<T>): string {
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const optionsMap: any = {};
 		if (Array.isArray(facets)) {
-			const optionsMap = {};
 			for (const f of facets) {
-				optionsMap[f] = this.createFacetQueryOptions();
+				optionsMap[f] = this.defaultFacetingOptions();
 			}
-			return this.objToJsonString(optionsMap);
-		} else {
-			return this.objToJsonString(facets);
+		} else if (typeof facets === "object") {
+			for (const f in facets) {
+				optionsMap[f] = this.defaultFacetingOptions(facets[f]);
+			}
 		}
+		return this.objToJsonString(optionsMap);
 	},
 
-	sortOrderingToString(ordering: Ordering): string {
-		if (ordering === undefined || ordering.length === 0) {
+	_vectorQueryToString(q: VectorQuery): string {
+		if (typeof q === "undefined") {
+			return "";
+		}
+		return this.objToJsonString(q);
+	},
+
+	_sortOrderingToString<T>(ordering: SortOrder<T>): string {
+		if (typeof ordering === "undefined") {
 			return "[]";
 		}
 
 		const sortOrders = [];
+		if (!Array.isArray(ordering)) {
+			ordering = [ordering];
+		}
 		for (const o of ordering) {
 			sortOrders.push({ [o.field]: o.order });
 		}
 		return this.objToJsonString(sortOrders);
 	},
 
-	createProtoSearchRequest<T>(
-		dbName: string,
-		collectionName: string,
-		request: SearchRequest<T>,
-		options?: SearchRequestOptions
-	): ProtoSearchRequest {
-		const searchRequest = new ProtoSearchRequest()
-			.setDb(dbName)
-			.setCollection(collectionName)
-			.setQ(request.q ?? MATCH_ALL_QUERY_STRING);
+	_groupByToString(fields: string[]): string {
+		const groupBy: GroupByField = {
+			fields: [],
+		};
 
-		if (request.searchFields !== undefined) {
-			searchRequest.setSearchFieldsList(request.searchFields);
+		if (typeof fields === "undefined") {
+			return this.objToJsonString(groupBy);
 		}
 
-		if (request.filter !== undefined) {
-			searchRequest.setFilter(Utility.stringToUint8Array(Utility.filterToString(request.filter)));
+		groupBy.fields = [...fields];
+
+		return this.objToJsonString(groupBy);
+	},
+
+	protoSearchRequestFromQuery<T>(
+		query: SearchQuery<T>,
+		searchRequest: ProtoSearchRequest | ProtoSearchIndexRequest,
+		page?: number
+	) {
+		searchRequest.setQ(query.q ?? MATCH_ALL_QUERY_STRING);
+
+		if (query.searchFields !== undefined) {
+			searchRequest.setSearchFieldsList(query.searchFields);
 		}
 
-		if (request.facets !== undefined) {
-			searchRequest.setFacet(
-				Utility.stringToUint8Array(Utility.facetQueryToString(request.facets))
+		if (query.filter !== undefined) {
+			searchRequest.setFilter(Utility.stringToUint8Array(Utility.filterToString(query.filter)));
+		}
+
+		if (query.facets !== undefined) {
+			searchRequest.setFacet(Utility.stringToUint8Array(Utility.facetQueryToString(query.facets)));
+		}
+
+		if (query.vectorQuery !== undefined) {
+			searchRequest.setVector(
+				Utility.stringToUint8Array(Utility._vectorQueryToString(query.vectorQuery))
 			);
 		}
 
-		if (request.sort !== undefined) {
-			searchRequest.setSort(Utility.stringToUint8Array(Utility.sortOrderingToString(request.sort)));
+		if (query.sort !== undefined) {
+			searchRequest.setSort(
+				Utility.stringToUint8Array(Utility._sortOrderingToString<T>(query.sort))
+			);
 		}
 
-		if (request.includeFields !== undefined) {
-			searchRequest.setIncludeFieldsList(request.includeFields);
+		if (query.groupBy !== undefined) {
+			searchRequest.setGroupBy(Utility.stringToUint8Array(Utility._groupByToString(query.groupBy)));
 		}
 
-		if (request.excludeFields !== undefined) {
-			searchRequest.setExcludeFieldsList(request.excludeFields);
+		if (query.includeFields !== undefined) {
+			searchRequest.setIncludeFieldsList(query.includeFields);
 		}
 
-		if (options !== undefined) {
-			if (options.page !== undefined) {
-				searchRequest.setPage(options.page);
-			}
-			if (options.perPage !== undefined) {
-				searchRequest.setPageSize(options.perPage);
-			}
-			if (options.collation !== undefined) {
-				searchRequest.setCollation(new ProtoCollation().setCase(options.collation.case));
-			}
+		if (query.excludeFields !== undefined) {
+			searchRequest.setExcludeFieldsList(query.excludeFields);
 		}
 
-		return searchRequest;
+		if (query.hitsPerPage !== undefined) {
+			searchRequest.setPageSize(query.hitsPerPage);
+		}
+
+		if (query.options?.collation !== undefined) {
+			searchRequest.setCollation(new ProtoCollation().setCase(query.options.collation.case));
+		}
+
+		if (page !== undefined) {
+			searchRequest.setPage(page);
+		}
 	},
 };

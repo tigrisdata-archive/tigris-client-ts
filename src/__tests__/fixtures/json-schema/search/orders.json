@@ -1,0 +1,65 @@
+{
+	"title": "orders",
+	"type": "object",
+	"properties": {
+		"orderId": {
+			"type": "string",
+			"format": "uuid",
+			"searchIndex": true,
+			"sort": true
+		},
+		"customerId": {
+			"type": "string",
+			"searchIndex": true,
+			"facet": false,
+			"id": true
+		},
+		"products": {
+			"type": "array",
+			"items": {
+				"type": "object",
+				"properties": {
+					"name": {
+						"type": "string"
+					},
+					"brand": {
+						"type": "object",
+						"properties": {
+							"name": {
+								"type": "string"
+							},
+							"tags": {
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							}
+						}
+					},
+					"upc": {
+						"type": "integer"
+					},
+					"price": {
+						"type": "number"
+					}
+				}
+			},
+			"searchIndex": true
+		},
+		"status": {
+			"type": "object",
+			"properties": {
+				"statusType": {
+					"type": "string",
+					"searchIndex": true,
+					"facet": true
+				},
+				"createdAt": {
+					"type": "string",
+					"format": "date-time",
+					"searchIndex": true
+				}
+			}
+		}
+	}
+}

@@ -61,20 +61,21 @@
 	},
 	"scripts": {
 		"clean": "rm -rf ./src/proto/* && rm -rf dist && rm -rf node_modules",
+		"init_api": "git submodule update --init --recursive",
 		"update_api": "git submodule update --init --recursive && git submodule update --remote --recursive --rebase && git submodule foreach --recursive git reset --hard origin/main",
+		"copy_api": "copyfiles -u 2 \"./src/proto/**/*.{js,ts}\" \"./dist/proto\"",
 		"protoc": "./scripts/protoc.sh",
+		"all": "npm run clean && npm run build && npm run prettier-check && npm run lint && npm run test",
 		"lint": "node ./node_modules/eslint/bin/eslint src/ --ext .ts",
 		"lint-fix": "npx eslint --ext .ts --fix src/",
-		"copy_api": "copyfiles -u 2 \"./src/proto/**/*.{js,ts}\" \"./dist/proto\"",
 		"tsc": "tsc && npm run copy_api",
-		"build": "npm install && npm run prettier-check && npm run protoc && npm run tsc",
+		"build": "npm install && npm audit signatures && npm run protoc && npm run tsc",
 		"test": "jest --runInBand --coverage --silent --detectOpenHandles",
 		"prettier-check": "npx prettier --check .",
-		"all": "npm run clean && npm run build && npm run prettier-check && npm run lint && npm run test",
-		"prepare": "npm run update_api && npm run protoc && npm run tsc",
-		"prepublishOnly": "npm test && npm run lint",
 		"prettify": "npx prettier --write .",
-		"preversion": "npm run lint"
+		"preversion": "npm run lint && npm run prettier-check",
+		"prepare": "npm run init_api && npm run protoc && npm run tsc",
+		"prepublishOnly": "npm audit signatures && npm test && npm run lint && npm run prettier-check"
 	},
 	"engines": {
 		"node": ">= 12.0.0"
@@ -86,8 +87,10 @@
 	"devDependencies": {
 		"@semantic-release/npm": "^9.0.1",
 		"@types/jest": "^28.1.8",
+		"@types/json-bigint": "^1.0.1",
 		"@typescript-eslint/eslint-plugin": "^5.35.1",
 		"@typescript-eslint/parser": "^5.35.1",
+		"eslint-plugin-tsdoc": "0.2.17",
 		"copyfiles": "^2.4.1",
 		"eslint": "^8.22.0",
 		"eslint-config-prettier": "^8.5.0",
@@ -101,15 +104,16 @@
 		"ts-jest": "^28.0.8",
 		"ts-mockito": "^2.6.1",
 		"tsutils": "^3.21.0",
+		"typescript": "^4.7.2",
 		"uuid": "^8.3.2"
 	},
 	"dependencies": {
 		"@grpc/grpc-js": "^1.6.10",
-		"app-root-path": "^3.1.0",
 		"chalk": "4.1.2",
 		"dotenv": "^16.0.3",
 		"google-protobuf": "^3.21.0",
-		"json-bigint": "^1.0.0",
-		"typescript": "^4.7.2"
+		"json-bigint": "github:sidorares/json-bigint",
+		"reflect-metadata": "^0.1.13",
+		"app-root-path": "^3.1.0"
 	}
 }

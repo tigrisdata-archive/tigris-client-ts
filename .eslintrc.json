@@ -14,21 +14,24 @@
 		"ecmaVersion": "latest",
 		"sourceType": "module"
 	},
-	"plugins": ["@typescript-eslint", "functional", "unused-imports"],
+	"plugins": ["@typescript-eslint", "functional", "unused-imports", "eslint-plugin-tsdoc"],
 	"rules": {
 		"unicorn/prevent-abbreviations": "off",
 		"@typescript-eslint/no-empty-interface": "warn",
 		"@typescript-eslint/ban-types": [
 			"error",
 			{
-				"types": { "BigInt": false },
+				"types": { "BigInt": false, "Function": false, "Object": false },
 				"extendDefaults": true
 			}
 		],
 		"@typescript-eslint/semi": ["error"],
 		"unused-imports/no-unused-imports": "error",
 		"quotes": "off",
-		"@typescript-eslint/quotes": ["error"]
+		"unicorn/expiring-todo-comments": "off",
+		"unicorn/prefer-node-protocol": "off",
+		"@typescript-eslint/quotes": ["error"],
+		"tsdoc/syntax": "error"
 	},
 	"ignorePatterns": ["src/__tests__/*", "dist/*"]
 }

@@ -1,0 +1,54 @@
+{
+	"title": "movies",
+	"additionalProperties": false,
+	"type": "object",
+	"properties": {
+		"movieId": {
+			"type": "string"
+		},
+		"title": {
+			"type": "string",
+			"searchIndex": true
+		},
+		"year": {
+			"type": "integer",
+			"format": "int32"
+		},
+		"actors": {
+			"type": "array",
+			"items": {
+				"type": "object",
+				"properties": {
+					"firstName": {
+						"type": "string",
+						"maxLength": 64
+					},
+					"lastName": {
+						"type": "string",
+						"maxLength": 64
+					}
+				}
+			}
+		},
+		"genres": {
+			"type": "array",
+			"items": {
+				"type": "string"
+			},
+			"searchIndex": true,
+			"facet": true
+		},
+		"productionHouse": {
+			"type": "object",
+			"properties": {
+				"name": {
+					"type": "string"
+				},
+				"city": {
+					"type": "string"
+				}
+			}
+		}
+	},
+	"primary_key": ["movieId"]
+}

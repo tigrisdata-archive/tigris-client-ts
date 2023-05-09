@@ -1,0 +1,132 @@
+{
+	"title": "vacation_rentals",
+	"additionalProperties": false,
+	"type": "object",
+	"properties": {
+		"id": {
+			"type": "string",
+			"format": "uuid",
+			"autoGenerate": true
+		},
+		"name": {
+			"type": "string",
+			"maxLength": 64
+		},
+		"description": {
+			"type": "string",
+			"maxLength": 256,
+			"default": ""
+		},
+		"propertyType": {
+			"type": "string",
+			"default": "Home"
+		},
+		"bedrooms": {
+			"type": "number",
+			"default": 0
+		},
+		"bathrooms": {
+			"type": "number",
+			"default": 0
+		},
+		"minimumNights": {
+			"type": "integer",
+			"format": "int32",
+			"default": 1
+		},
+		"isOwnerOccupied": {
+			"type": "boolean",
+			"default": false
+		},
+		"hasWiFi": {
+			"type": "boolean",
+			"default": true
+		},
+		"address": {
+			"type": "object",
+			"properties": {
+				"city": {
+					"type": "string"
+				},
+				"countryCode": {
+					"type": "string",
+					"maxLength": 2,
+					"default": "US"
+				}
+			}
+		},
+		"verifications": {
+			"type": "object",
+			"properties": {},
+			"default": {
+				"stateId": true
+			}
+		},
+		"amenities": {
+			"type": "array",
+			"items": {
+				"type": "string"
+			},
+			"default": ["Beds"]
+		},
+		"attractions": {
+			"type": "array",
+			"items": {
+				"type": "string"
+			},
+			"default": []
+		},
+		"host": {
+			"type": "object",
+			"properties": {},
+			"default": null
+		},
+		"reviews": {
+			"type": "array",
+			"items": {
+				"type": "object",
+				"properties": {}
+			},
+			"default": null
+		},
+		"availableSince": {
+			"type": "string",
+			"format": "date-time",
+			"default": "now()"
+		},
+		"lastSeen": {
+			"type": "string",
+			"format": "date-time",
+			"default": "now()",
+			"updatedAt": true
+		},
+		"createdAt": {
+			"type": "string",
+			"format": "date-time",
+			"createdAt": true
+		},
+		"lastModified": {
+			"type": "string",
+			"format": "date-time",
+			"updatedAt": true
+		},
+		"partnerId": {
+			"type": "string",
+			"default": "cuid()",
+			"index": true
+		},
+		"referralId": {
+			"type": "string",
+			"format": "uuid",
+			"default": "uuid()",
+			"index": true
+		},
+		"relevance": {
+			"type": "array",
+			"dimensions": 3,
+			"format": "vector",
+			"default": [1.0, 1.0, 1.0]
+		}
+	},
+	"primary_key": ["id"]
+}

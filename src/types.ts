@@ -1,4 +1,11 @@
-import { Collation } from "./search/types";
+/* eslint-disable @typescript-eslint/no-empty-interface */
+import {
+	CreateBranchResponse as ProtoCreateBranchResponse,
+	DeleteBranchResponse as ProtoDeleteBranchResponse,
+} from "./proto/server/v1/api_pb";
+import { Status } from "./constants";
+import { Collation } from "./search/query";
+import { SearchFieldOptions } from "./search";
 
 export class DatabaseInfo {
 	private readonly _name: string;
@@ -44,35 +51,50 @@ export class DatabaseOptions {}
 
 export class CollectionOptions {}
 
-export class DropDatabaseResponse {
-	private readonly _status: string;
+export interface TigrisResponse {
+	status: Status;
+	message?: string;
+}
+
+export class CreateBranchResponse implements TigrisResponse {
+	status: Status = Status.Created;
 	private readonly _message: string;
 
-	constructor(status: string, message: string) {
-		this._status = status;
+	constructor(message: string) {
 		this._message = message;
-	}
-
-	get status(): string {
-		return this._status;
 	}
 
 	get message(): string {
 		return this._message;
 	}
+
+	static from(response: ProtoCreateBranchResponse): CreateBranchResponse {
+		return new this(response.getMessage());
+	}
 }
 
-export class DropCollectionResponse {
-	private readonly _status: string;
+export class DeleteBranchResponse implements TigrisResponse {
+	status: Status = Status.Deleted;
 	private readonly _message: string;
-
-	constructor(status: string, message: string) {
-		this._status = status;
+	constructor(message: string) {
 		this._message = message;
 	}
 
-	get status(): string {
-		return this._status;
+	get message(): string {
+		return this._message;
+	}
+
+	static from(response: ProtoDeleteBranchResponse): DeleteBranchResponse {
+		return new this(response.getMessage());
+	}
+}
+
+export class DropCollectionResponse implements TigrisResponse {
+	status: Status = Status.Dropped;
+	private readonly _message: string;
+
+	constructor(message: string) {
+		this._message = message;
 	}
 
 	get message(): string {
@@ -81,42 +103,61 @@ export class DropCollectionResponse {
 }
 
 export class DatabaseDescription {
-	private readonly _db: string;
 	private readonly _metadata: DatabaseMetadata;
-	private readonly _collectionsDescription: Array<CollectionDescription>;
+	private readonly _collectionsDescription: ReadonlyArray<CollectionDescription>;
+	private readonly _branches: ReadonlyArray<string>;
 
 	constructor(
-		db: string,
 		metadata: DatabaseMetadata,
-		collectionsDescription: Array<CollectionDescription>
+		collectionsDescription: Array<CollectionDescription>,
+		branches: Array<string>
 	) {
-		this._db = db;
 		this._metadata = metadata;
 		this._collectionsDescription = collectionsDescription;
-	}
-
-	get db(): string {
-		return this._db;
+		this._branches = branches;
 	}
 
 	get metadata(): DatabaseMetadata {
 		return this._metadata;
 	}
 
-	get collectionsDescription(): Array<CollectionDescription> {
+	get collectionsDescription(): ReadonlyArray<CollectionDescription> {
 		return this._collectionsDescription;
 	}
+
+	get branches(): ReadonlyArray<string> {
+		return this._branches;
+	}
 }
+
+type IndexState = "INDEX WRITE MODE" | "INDEX ACTIVE";
+
+export type IndexField = {
+	name: string;
+};
+
+export type IndexDescription = {
+	name: string;
+	state: IndexState;
+	fields?: IndexField[];
+};
 
 export class CollectionDescription {
 	private readonly _collection: string;
 	private readonly _metadata: CollectionMetadata;
 	private readonly _schema: string;
+	private readonly _indexDescriptions?: IndexDescription[];
 
-	constructor(collection: string, metadata: CollectionMetadata, schema: string) {
+	constructor(
+		collection: string,
+		metadata: CollectionMetadata,
+		schema: string,
+		indexDescriptions?: IndexDescription[]
+	) {
 		this._collection = collection;
 		this._metadata = metadata;
 		this._schema = schema;
+		this._indexDescriptions = indexDescriptions;
 	}
 
 	get collection(): string {
@@ -130,17 +171,13 @@ export class CollectionDescription {
 	get schema(): string {
 		return this._schema;
 	}
-}
 
-export class TigrisResponse {
-	private readonly _status: string;
+	get indexDescriptions(): IndexDescription[] {
+		if (!this._indexDescriptions) {
+			return [];
+		}
 
-	constructor(status: string) {
-		this._status = status;
-	}
-
-	get status(): string {
-		return this._status;
+		return this._indexDescriptions;
 	}
 }
 
@@ -162,11 +199,15 @@ export class DMLMetadata {
 	}
 }
 
-export class DMLResponse extends TigrisResponse {
+export interface DMLResponse {
+	metadata: DMLMetadata;
+}
+
+export class DeleteResponse implements TigrisResponse, DMLResponse {
+	status: Status = Status.Deleted;
 	private readonly _metadata: DMLMetadata;
 
-	constructor(status: string, metadata: DMLMetadata) {
-		super(status);
+	constructor(metadata: DMLMetadata) {
 		this._metadata = metadata;
 	}
 
@@ -175,27 +216,28 @@ export class DMLResponse extends TigrisResponse {
 	}
 }
 
-export class DeleteResponse extends DMLResponse {
-	constructor(status: string, metadata: DMLMetadata) {
-		super(status, metadata);
-	}
-}
-
-export class UpdateResponse extends DMLResponse {
+export class UpdateResponse implements TigrisResponse, DMLResponse {
+	status: Status = Status.Updated;
+	private readonly _metadata: DMLMetadata;
 	private readonly _modifiedCount: number;
-	constructor(status: string, modifiedCount: number, metadata: DMLMetadata) {
-		super(status, metadata);
+
+	constructor(modifiedCount: number, metadata: DMLMetadata) {
 		this._modifiedCount = modifiedCount;
+		this._metadata = metadata;
 	}
 
 	get modifiedCount(): number {
 		return this._modifiedCount;
 	}
+
+	get metadata(): DMLMetadata {
+		return this._metadata;
+	}
 }
 
 export class WriteOptions {}
 
-export class DeleteRequestOptions {
+export class DeleteQueryOptions {
 	private _collation: Collation;
 	private _limit: number;
 
@@ -221,7 +263,7 @@ export class DeleteRequestOptions {
 	}
 }
 
-export class UpdateRequestOptions {
+export class UpdateQueryOptions {
 	private _collation: Collation;
 	private _limit: number;
 
@@ -247,7 +289,7 @@ export class UpdateRequestOptions {
 	}
 }
 
-export class ReadRequestOptions {
+export class FindQueryOptions {
 	static DEFAULT_LIMIT = 100;
 	static DEFAULT_SKIP = 0;
 
@@ -260,8 +302,8 @@ export class ReadRequestOptions {
 	constructor(limit: number, skip: number);
 	constructor(limit?: number, skip?: number, offset?: string);
 	constructor(limit?: number, skip?: number, offset?: string, collation?: Collation) {
-		this._limit = limit ?? ReadRequestOptions.DEFAULT_LIMIT;
-		this._skip = skip ?? ReadRequestOptions.DEFAULT_SKIP;
+		this._limit = limit ?? FindQueryOptions.DEFAULT_LIMIT;
+		this._skip = skip ?? FindQueryOptions.DEFAULT_SKIP;
 		this._offset = offset;
 		this._collation = collation;
 	}
@@ -301,89 +343,134 @@ export class ReadRequestOptions {
 
 export class TransactionOptions {}
 
-export class StreamEvent<T> {
-	private readonly _txId: string;
-	private readonly _collection: string;
-	private readonly _op: string;
-	private readonly _data: T;
-	private readonly _last: boolean;
+export class CommitTransactionResponse implements TigrisResponse {
+	status: Status = Status.Ok;
+	private readonly _message: string;
 
-	constructor(txId: string, collection: string, op: string, data: T, last: boolean) {
-		this._txId = txId;
-		this._collection = collection;
-		this._op = op;
-		this._data = data;
-		this._last = last;
+	constructor(message: string) {
+		this._message = message;
 	}
 
-	get txId(): string {
-		return this._txId;
-	}
-
-	get collection(): string {
-		return this._collection;
-	}
-
-	get op(): string {
-		return this._op;
-	}
-
-	get data(): T {
-		return this._data;
-	}
-
-	get last(): boolean {
-		return this._last;
+	get message(): string {
+		return this._message;
 	}
 }
 
-export class CommitTransactionResponse extends TigrisResponse {
-	constructor(status: string) {
-		super(status);
+export class RollbackTransactionResponse implements TigrisResponse {
+	status: Status = Status.Ok;
+	private readonly _message: string;
+
+	constructor(message: string) {
+		this._message = message;
+	}
+
+	get message(): string {
+		return this._message;
 	}
 }
 
-export class RollbackTransactionResponse extends TigrisResponse {
-	public constructor(status: string) {
-		super(status);
+export class TransactionResponse implements TigrisResponse {
+	status: Status = Status.Ok;
+}
+
+export class CacheMetadata {
+	private readonly _name: string;
+
+	constructor(name: string) {
+		this._name = name;
+	}
+
+	get name(): string {
+		return this._name;
 	}
 }
 
-export class TransactionResponse extends TigrisResponse {
-	constructor(status: string) {
-		super(status);
+export class ListCachesResponse {
+	private readonly _caches: CacheMetadata[];
+
+	constructor(caches: CacheMetadata[]) {
+		this._caches = caches;
+	}
+
+	get caches(): CacheMetadata[] {
+		return this._caches;
 	}
 }
 
-export class PublishOptions {
-	private _partition: number;
+export class DeleteCacheResponse implements TigrisResponse {
+	status: Status = Status.Deleted;
+	private readonly _message: string;
 
-	constructor(partition: number) {
-		this._partition = partition;
+	constructor(message: string) {
+		this._message = message;
 	}
 
-	get partition(): number {
-		return this._partition;
-	}
-
-	set partition(value: number) {
-		this._partition = value;
+	get message(): string {
+		return this._message;
 	}
 }
 
-export class SubscribeOptions {
-	private _partitions: Array<number>;
+export class CacheSetResponse implements TigrisResponse {
+	status: Status = Status.Set;
+	private readonly _message: string;
 
-	constructor(partitions: Array<number>) {
-		this._partitions = partitions;
+	constructor(message: string) {
+		this._message = message;
 	}
 
-	get partitions(): Array<number> {
-		return this._partitions;
+	get message(): string {
+		return this._message;
+	}
+}
+
+export class CacheGetSetResponse extends CacheSetResponse {
+	private readonly _old_value: object;
+
+	constructor(message: string, old_value?: object) {
+		super(message);
+		if (old_value !== undefined) {
+			this._old_value = old_value;
+		}
 	}
 
-	set partitions(value: Array<number>) {
-		this._partitions = value;
+	get old_value(): object {
+		return this._old_value;
+	}
+}
+
+export class CacheDelResponse implements TigrisResponse {
+	status: Status = Status.Deleted;
+	private readonly _message: string;
+
+	constructor(status: string, message: string) {
+		this._message = message;
+	}
+
+	get message(): string {
+		return this._message;
+	}
+}
+
+export interface CacheSetOptions {
+	// optional ttl in seconds
+	ex?: number;
+	// optional ttl in ms
+	px?: number;
+	// only set if key doesn't exist
+	nx?: boolean;
+	// only set if key exists
+	xx?: boolean;
+}
+
+export class CacheGetResponse {
+	private readonly _value: object;
+
+	constructor(value: object) {
+		this._value = value;
+	}
+
+	get value(): object {
+		return this._value;
 	}
 }
 
@@ -399,57 +486,146 @@ export class ServerMetadata {
 	}
 }
 
-// Marker interface
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface TigrisCollectionType {}
-
-// Marker interface
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface TigrisTopicType extends TigrisCollectionType {}
-
-export enum CollectionType {
-	DOCUMENTS = "documents",
-	MESSAGES = "messages",
+// Marker interfaces
+export interface TigrisCollectionType {
+	// TODO: add a discriminator here
 }
 
-export enum LogicalOperator {
-	AND = "$and",
-	OR = "$or",
+export type NumericType = number | bigint;
+export type FieldTypes = string | boolean | NumericType | BigInteger | Date | object;
+
+export type ReadFields<T> = {
+	include?: Array<DocumentPaths<T>>;
+	exclude?: Array<DocumentPaths<T>>;
+};
+
+type DocumentFields<T, V> = Partial<{
+	[K in Paths<T>]: V;
+}>;
+
+export type UpdateFields<T> =
+	| {
+			$set?: DocumentFields<T, FieldTypes | undefined>;
+			$unset?: Partial<Paths<T>>[];
+			$increment?: DocumentFields<T, NumericType>;
+			$decrement?: DocumentFields<T, NumericType>;
+			$multiply?: DocumentFields<T, NumericType>;
+			$divide?: DocumentFields<T, NumericType>;
+	  }
+	| DocumentFields<T, FieldTypes | undefined>;
+
+/**
+ * List of fields and their corresponding sort order to order the search results.
+ */
+export type SortOrder<T> = SortField<T> | Array<SortField<T>>;
+
+/**
+ * Collection field name and sort order
+ */
+export type SortField<T> = {
+	field: DocumentPaths<T>;
+	order: "$asc" | "$desc";
+};
+
+/**
+ * Group by fields
+ */
+export type GroupByField = {
+	fields: Array<string>;
+};
+
+/**
+ * Query builder for reading documents from a collection
+ * @public
+ */
+export interface FindQuery<T> {
+	/**
+	 * Filter to match the documents. Query will match all documents without a filter.
+	 */
+	filter?: Filter<T>;
+
+	/**
+	 * Field projection to allow returning only specific document fields. By default
+	 * all document fields are returned.
+	 */
+	readFields?: ReadFields<T>;
+
+	/**
+	 * Sort the query results as per indicated order
+	 */
+	sort?: SortOrder<T>;
+
+	/**
+	 * Optional params
+	 */
+	options?: FindQueryOptions;
 }
 
-export enum SelectorFilterOperator {
-	EQ = "$eq",
-	LT = "$lt",
-	LTE = "$lte",
-	GT = "$gt",
-	GTE = "$gte",
-	NONE = "$none",
+/**
+ * Query builder for deleting documents from a collection
+ * @public
+ */
+export interface DeleteQuery<T> {
+	/**
+	 * Filter to match the documents
+	 */
+	filter: Filter<T>;
+
+	/**
+	 * Optional params
+	 */
+	options?: DeleteQueryOptions;
 }
 
-export enum UpdateFieldsOperator {
-	SET = "$set",
+/**
+ * Query builder for updating documents in a collection
+ * @public
+ */
+export interface UpdateQuery<T> {
+	/**
+	 * Filter to match the documents
+	 */
+	filter: Filter<T>;
+
+	/**
+	 * Document fields to update and the update operation
+	 */
+	fields: UpdateFields<T>;
+
+	/**
+	 * Optional params
+	 */
+	options?: UpdateQueryOptions;
 }
 
-export type FieldTypes = string | number | boolean | bigint | BigInteger;
+export type ReadType = "primary index" | "secondary index";
+/**
+ * Explain Response
+ *  @public
+ */
+export interface ExplainResponse {
+	/**
+	 * Filter used to match the documents
+	 */
+	filter: string;
+	/**
+	 * Sets whether the query read from the primary index or a secondary index
+	 */
+	readType: ReadType;
+	/**
+	 * The field used to read from the secondary index
+	 */
+	field?: string;
+	/**
+	 * The key range used to query the secondary index
+	 */
+	keyRange?: string[];
 
-export type LogicalFilter<T> = {
-	op: LogicalOperator;
-	selectorFilters?: Array<SelectorFilter<T> | Selector<T>>;
-	logicalFilters?: Array<LogicalFilter<T>>;
-};
-
-export type ReadFields = {
-	include?: Array<string>;
-	exclude?: Array<string>;
-};
-
-export type UpdateFields = {
-	op: UpdateFieldsOperator;
-	fields: SimpleUpdateField;
-};
-export type SimpleUpdateField = {
-	[key: string]: FieldTypes | undefined;
-};
+	/**
+	 * Sort field
+	 */
+	sort?: string;
+}
 
 export enum TigrisDataTypes {
 	STRING = "string",
@@ -474,20 +650,48 @@ export enum TigrisDataTypes {
 	OBJECT = "object",
 }
 
+/**
+ * DB generated values for the schema fields
+ */
+export enum GeneratedField {
+	NOW = "now()",
+	CUID = "cuid()",
+	UUID = "uuid()",
+}
+
+export type AutoTimestamp = "createdAt" | "updatedAt";
+
+export type CollectionFieldOptions = {
+	/**
+	 * Max length for "string" type of fields
+	 */
+	maxLength?: number;
+	/**
+	 * Default value for the schema field
+	 */
+	default?: GeneratedField | FieldTypes | Array<unknown> | Record<string, unknown>;
+
+	/**
+	 * Let DB generate values for `Date` type of fields
+	 */
+	timestamp?: AutoTimestamp;
+	/**
+	 * Dimensions for a vector field
+	 */
+	dimensions?: number;
+	/**
+	 * Create a secondary index on the field
+	 */
+	index?: boolean;
+};
+
 export type TigrisSchema<T extends TigrisCollectionType> = {
 	[K in keyof T]: {
 		type: TigrisDataTypes | TigrisSchema<unknown>;
-		primary_key?: TigrisPrimaryKey;
+		primary_key?: PrimaryKeyOptions;
 		items?: TigrisArrayItem;
-	};
-};
-
-export type TigrisTopicSchema<T extends TigrisTopicType> = {
-	[K in keyof T]: {
-		type: TigrisDataTypes | TigrisTopicSchema<unknown>;
-		key?: TigrisPartitionKey;
-		items?: TigrisArrayItem;
-	};
+	} & CollectionFieldOptions &
+		SearchFieldOptions;
 };
 
 export type TigrisArrayItem = {
@@ -495,35 +699,29 @@ export type TigrisArrayItem = {
 	items?: TigrisArrayItem | TigrisDataTypes;
 };
 
-export type TigrisPrimaryKey = {
-	order: number;
+export type PrimaryKeyOptions = {
+	order?: number;
 	autoGenerate?: boolean;
 };
 
-export type TigrisPartitionKey = {
-	order: number;
-};
-
 /**
-Generates all possible paths for type parameter T. By recursively iterating over its keys. While
- iterating the keys it makes the keys available in string form and in non string form both. For
- example
-
- interface IUser {
-  name: string;
-  id: number
-  address: Address;
- }
-
- interface Address {
-  city: string
-  state: string
- }
-
- and Paths<IUser> will make these keys available
- name, id, address (object type) and also in the string form
- "name", "id", "address.city", "address.state"
-
+ * Generates all possible paths for type parameter T. By recursively iterating over its keys. While
+ * iterating the keys it makes the keys available in string form and in non string form both. For
+ * @example
+ * ```
+ * interface IUser {
+ * 		name: string;
+ * 		id: number;
+ * 		address: Address;
+ * }
+ *
+ * interface Address {
+ * 		city: string
+ *		state: string
+ * }
+ * ```
+ * and Paths<IUser> will make these keys available name, id, address (object type) and also in the
+ * string form "name", "id", "address.city", "address.state"
  */
 type Paths<T, P extends string = ""> = {
 	[K in keyof T]: T[K] extends object
@@ -538,6 +736,7 @@ type Paths<T, P extends string = ""> = {
 /**
  * This type helps to infer the type of the path that Paths (above) has generated.
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 type PathType<T, P extends string> = P extends keyof T
 	? T[P]
 	: P extends `${infer L}.${infer R}`
@@ -546,13 +745,43 @@ type PathType<T, P extends string> = P extends keyof T
 		: never
 	: never;
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export type Selector<T> = Partial<{
-	[K in Paths<T>]: Partial<PathType<T, K & string>>;
+	[K in string]: unknown;
 }>;
 
-export type SelectorFilter<T> = Partial<{
-	op?: SelectorFilterOperator;
-	fields: Selector<T>;
-}>;
+/**
+ * Compute all possible property combinations
+ */
+type normalTypes = PropertyKey | BigInt | Date | boolean | Array<unknown>;
+export type DocumentPaths<T, Cache extends string = ""> = T extends normalTypes
+	? Cache
+	: {
+			[P in keyof T]: P extends string
+				? Cache extends ""
+					? DocumentPaths<T[P], `${P}`>
+					: Cache | DocumentPaths<T[P], `${Cache}.${P}`>
+				: `${Cache}${P & string}`;
+	  }[keyof T];
 
-export type Filter<T> = SelectorFilter<T> | LogicalFilter<T> | Selector<T>;
+export type SelectorOperator =
+	| "$eq"
+	| "$gt"
+	| "$gte"
+	| "$lt"
+	| "$lte"
+	| "$not"
+	| "$regex"
+	| "$contains"
+	| "$none";
+export type LogicalOperator = "$or" | "$and";
+
+export type SelectorFilter<T> = {
+	[K in DocumentPaths<T>]?: PathType<T, K> | { [P in SelectorOperator]?: PathType<T, K> };
+};
+
+export type LogicalFilter<T> = {
+	[P in LogicalOperator]?: Array<Filter<T>>;
+};
+
+export type Filter<T> = SelectorFilter<T> | LogicalFilter<T>;

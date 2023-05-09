@@ -1,37 +1,47 @@
-import {Server, ServerCredentials} from "@grpc/grpc-js";
-import {TigrisService} from "../proto/server/v1/api_grpc_pb";
-import TestService, {TestTigrisService} from "./test-service";
+import { Server, ServerCredentials, ServiceError } from "@grpc/grpc-js";
+import { TigrisService } from "../proto/server/v1/api_grpc_pb";
+import TestService, { Branch, TestTigrisService } from "./test-service";
+import TestServiceCache, { TestCacheService } from "./test-cache-service";
+
 import {
-	DatabaseOptions,
-	DeleteRequestOptions,
-	LogicalOperator,
-	SelectorFilterOperator,
+	DeleteQueryOptions,
 	TigrisCollectionType,
 	TigrisDataTypes,
-	TigrisSchema, TigrisTopicSchema,
-	TigrisTopicType,
-	UpdateFieldsOperator,
-	UpdateRequestOptions
+	TigrisSchema,
+	UpdateQueryOptions,
 } from "../types";
-import {Tigris} from "../tigris";
-import {Case, Collation, SearchRequest, SearchRequestOptions} from "../search/types";
-import {Utility} from "../utility";
-import {ObservabilityService} from "../proto/server/v1/observability_grpc_pb";
+import { Tigris, TigrisClientConfig } from "../tigris";
+import { Utility } from "../utility";
+import { ObservabilityService } from "../proto/server/v1/observability_grpc_pb";
 import TestObservabilityService from "./test-observability-service";
-import {Readable} from "node:stream";
-import {capture, spy } from "ts-mockito";
+import { anything, capture, reset, spy, when } from "ts-mockito";
+import { TigrisCollection } from "../decorators/tigris-collection";
+import { PrimaryKey } from "../decorators/tigris-primary-key";
+import { Field } from "../decorators/tigris-field";
+import { SearchIterator } from "../consumables/search-iterator";
+import { CacheService } from "../proto/server/v1/cache_grpc_pb";
+import {
+	BranchNameRequiredError,
+	DuplicatePrimaryKeyOrderError,
+	MissingPrimaryKeyOrderInSchemaDefinitionError,
+} from "../error";
+import { Status } from "@grpc/grpc-js/build/src/constants";
+import { Status as TigrisStatus } from "../constants";
+import { Case, Collation, SearchQuery } from "../search";
+import { SearchResult } from "../search";
 
 describe("rpc tests", () => {
 	let server: Server;
-	const SERVER_PORT = 5002;
+	const testConfig = { serverUrl: "localhost:" + 5002, projectName: "db1", branch: "unit-tests" };
 
 	beforeAll((done) => {
 		server = new Server();
 		TestTigrisService.reset();
 		server.addService(TigrisService, TestService.handler.impl);
-		server.addService(ObservabilityService, TestObservabilityService.handler.impl)
+		server.addService(CacheService, TestServiceCache.handler.impl);
+		server.addService(ObservabilityService, TestObservabilityService.handler.impl);
 		server.bindAsync(
-			"localhost:" + SERVER_PORT,
+			testConfig.serverUrl,
 			// test purpose only
 			ServerCredentials.createInsecure(),
 			(err: Error | null) => {
@@ -43,11 +53,11 @@ describe("rpc tests", () => {
 			}
 		);
 		done();
-
 	});
 
 	beforeEach(() => {
 		TestTigrisService.reset();
+		TestCacheService.reset();
 	});
 
 	afterAll((done) => {
@@ -55,59 +65,18 @@ describe("rpc tests", () => {
 		done();
 	});
 
-	it("listDatabase", () => {
-		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT});
-		const listDbsPromise = tigris.listDatabases();
-		listDbsPromise
-			.then((value) => {
-					expect(value.length).toBe(5);
-					expect(value[0].name).toBe("db1");
-					expect(value[1].name).toBe("db2");
-					expect(value[2].name).toBe("db3");
-					expect(value[3].name).toBe("db4");
-					expect(value[4].name).toBe("db5");
-				},
-			);
-
-		return listDbsPromise;
-	});
-
-	it("createDatabaseIfNotExists", () => {
-		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT});
-		const dbCreationPromise = tigris.createDatabaseIfNotExists("db6", new DatabaseOptions());
-		dbCreationPromise
-			.then((value) => {
-					expect(value.db).toBe("db6");
-				},
-			);
-
-		return dbCreationPromise;
-	});
-
-	it("dropDatabase", () => {
-		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT});
-		const dbDropPromise = tigris.dropDatabase("db6", new DatabaseOptions());
-		dbDropPromise
-			.then((value) => {
-					expect(value.status).toBe("dropped");
-					expect(value.message).toBe("db6 dropped successfully");
-				},
-			);
-		return dbDropPromise;
-	});
-
 	it("getDatabase", () => {
-		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT});
-		const db1 = tigris.getDatabase("db1");
-		expect(db1.db).toBe("db1");
+		const tigris = new Tigris(testConfig);
+		const db1 = tigris.getDatabase();
+		expect(db1.name).toBe("db1");
 	});
 
-	it("listCollections1", () => {
-		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT});
-		const db1 = tigris.getDatabase("db1");
+	it("listCollections1", async () => {
+		const tigris = new Tigris(testConfig);
+		const db1 = tigris.getDatabase();
 
 		const listCollectionPromise = db1.listCollections();
-		listCollectionPromise.then(value => {
+		listCollectionPromise.then((value) => {
 			expect(value.length).toBe(5);
 			expect(value[0].name).toBe("db1_coll_1");
 			expect(value[1].name).toBe("db1_coll_2");
@@ -118,12 +87,12 @@ describe("rpc tests", () => {
 		return listCollectionPromise;
 	});
 
-	it("listCollections2", () => {
-		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT});
-		const db1 = tigris.getDatabase("db3");
+	it("listCollections2", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+		const db1 = tigris.getDatabase();
 
 		const listCollectionPromise = db1.listCollections();
-		listCollectionPromise.then(value => {
+		listCollectionPromise.then((value) => {
 			expect(value.length).toBe(5);
 			expect(value[0].name).toBe("db3_coll_1");
 			expect(value[1].name).toBe("db3_coll_2");
@@ -134,13 +103,12 @@ describe("rpc tests", () => {
 		return listCollectionPromise;
 	});
 
-	it("describeDatabase", () => {
-		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT});
-		const db1 = tigris.getDatabase("db3");
+	it("describeDatabase", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+		const db1 = tigris.getDatabase();
 
 		const databaseDescriptionPromise = db1.describe();
-		databaseDescriptionPromise.then(value => {
-			expect(value.db).toBe("db3");
+		databaseDescriptionPromise.then((value) => {
 			expect(value.collectionsDescription.length).toBe(5);
 			expect(value.collectionsDescription[0].collection).toBe("db3_coll_1");
 			expect(value.collectionsDescription[1].collection).toBe("db3_coll_2");
@@ -151,205 +119,275 @@ describe("rpc tests", () => {
 		return databaseDescriptionPromise;
 	});
 
-	it("dropCollection", () => {
-		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT});
-		const db1 = tigris.getDatabase("db3");
+	it("dropCollection", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+		const db1 = tigris.getDatabase();
 
 		const dropCollectionPromise = db1.dropCollection("db3_coll_2");
-		dropCollectionPromise.then(value => {
+		dropCollectionPromise.then((value) => {
 			expect(value.status).toBe("dropped");
 			expect(value.message).toBe("db3_coll_2 dropped successfully");
 		});
 		return dropCollectionPromise;
 	});
 
-	it("getCollection", () => {
-		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT});
-		const db1 = tigris.getDatabase("db3");
+	it("getCollection", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+		const db1 = tigris.getDatabase();
 		const books = db1.getCollection<IBook>("books");
 		expect(books.collectionName).toBe("books");
 	});
 
-	it("insert", () => {
-		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT});
-		const db1 = tigris.getDatabase("db3");
+	it("insert", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+		const db1 = tigris.getDatabase();
 		const insertionPromise = db1.getCollection<IBook>("books").insertOne({
 			author: "author name",
 			id: 0,
 			tags: ["science"],
-			title: "science book"
+			title: "science book",
 		});
-		insertionPromise.then(insertedBook => {
+		insertionPromise.then((insertedBook) => {
 			expect(insertedBook.id).toBe(1);
+			expect(insertedBook.createdAt).toBeDefined();
 		});
 		return insertionPromise;
 	});
 
-	it("insert2", () => {
-		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT});
-		const db1 = tigris.getDatabase("db3");
+	it("insert_with_createdAt_value", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+		const db1 = tigris.getDatabase();
+		const book: IBook = {
+			author: "author name",
+			id: 0,
+			tags: ["science"],
+			title: "science book",
+			createdAt: new Date(),
+		};
+		const insertionPromise = db1.getCollection<IBook>("books").insertOne(book);
+		insertionPromise.then((insertedBook) => {
+			expect(insertedBook.id).toBe(1);
+			expect(insertedBook.createdAt).toEqual(book.createdAt);
+		});
+		return insertionPromise;
+	});
+
+	it("insert2", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+		const db1 = tigris.getDatabase();
 		const insertionPromise = db1.getCollection<IBook2>("books").insertOne({
 			id: 0,
 			title: "science book",
 			metadata: {
 				publish_date: new Date(),
 				num_pages: 100,
-			}
+			},
 		});
-		insertionPromise.then(insertedBook => {
+		insertionPromise.then((insertedBook) => {
 			expect(insertedBook.id).toBe(1);
 		});
 		return insertionPromise;
 	});
 
-	it("insertWithOptionalField", () => {
-		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT});
-		const db1 = tigris.getDatabase("db3");
+	it("insert_multi_pk", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+		const db1 = tigris.getDatabase();
+		const insertionPromise = db1.getCollection<IBookMPK>("books-multi-pk").insertOne({
+			id: 0,
+			id2: 0,
+			title: "science book",
+			metadata: {
+				publish_date: new Date(),
+				num_pages: 100,
+			},
+		});
+		insertionPromise.then((insertedBook) => {
+			expect(insertedBook.id).toBe(1);
+			expect(insertedBook.id2).toBe(11);
+		});
+		return insertionPromise;
+	});
+
+	it("insert_multi_pk_many", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+		const db1 = tigris.getDatabase();
+		const insertionPromise = db1.getCollection<IBookMPK>("books-multi-pk").insertMany([
+			{
+				id: 0,
+				id2: 0,
+				title: "science book",
+				metadata: {
+					publish_date: new Date(),
+					num_pages: 100,
+				},
+			},
+			{
+				id: 0,
+				id2: 0,
+				title: "science book",
+				metadata: {
+					publish_date: new Date(),
+					num_pages: 100,
+				},
+			},
+		]);
+		insertionPromise.then((insertedBook) => {
+			expect(insertedBook.length).toBe(2);
+			expect(insertedBook[0].id).toBe(1);
+			expect(insertedBook[0].id2).toBe(11);
+			expect(insertedBook[1].id).toBe(2);
+			expect(insertedBook[1].id2).toBe(21);
+		});
+		return insertionPromise;
+	});
+
+	it("insertWithOptionalField", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+		const db1 = tigris.getDatabase();
 		const randomNumber: number = Math.floor(Math.random() * 100);
 		// pass the random number in author field. mock server reads author and sets as the
 		// primaryKey field.
 		const insertionPromise = db1.getCollection<IBook1>("books-with-optional-field").insertOne({
 			author: "" + randomNumber,
 			tags: ["science"],
-			title: "science book"
+			title: "science book",
 		});
-		insertionPromise.then(insertedBook => {
+		insertionPromise.then((insertedBook) => {
 			expect(insertedBook.id).toBe(randomNumber);
 		});
 		return insertionPromise;
 	});
 
-	it("insertOrReplace", () => {
-		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT});
-		const db1 = tigris.getDatabase("db3");
+	it("insertOrReplace", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+		const db1 = tigris.getDatabase();
 		const insertOrReplacePromise = db1.getCollection<IBook>("books").insertOrReplaceOne({
 			author: "author name",
 			id: 0,
 			tags: ["science"],
-			title: "science book"
+			title: "science book",
 		});
-		insertOrReplacePromise.then(insertedOrReplacedBook => {
+		insertOrReplacePromise.then((insertedOrReplacedBook) => {
 			expect(insertedOrReplacedBook.id).toBe(1);
 		});
 		return insertOrReplacePromise;
 	});
 
-	it("insertOrReplaceWithOptionalField", () => {
-		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT});
-		const db1 = tigris.getDatabase("db3");
+	it("insertOrReplaceWithOptionalField", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+		const db1 = tigris.getDatabase();
 		const randomNumber: number = Math.floor(Math.random() * 100);
 		// pass the random number in author field. mock server reads author and sets as the
 		// primaryKey field.
-		const insertOrReplacePromise = db1.getCollection<IBook1>("books-with-optional-field").insertOrReplaceOne({
-			author: "" + randomNumber,
-			tags: ["science"],
-			title: "science book"
-		});
-		insertOrReplacePromise.then(insertedOrReplacedBook => {
+		const insertOrReplacePromise = db1
+			.getCollection<IBook1>("books-with-optional-field")
+			.insertOrReplaceOne({
+				author: "" + randomNumber,
+				tags: ["science"],
+				title: "science book",
+			});
+		insertOrReplacePromise.then((insertedOrReplacedBook) => {
 			expect(insertedOrReplacedBook.id).toBe(randomNumber);
 		});
 		return insertOrReplacePromise;
 	});
 
-	it("delete", () => {
-		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT});
-		const db1 = tigris.getDatabase("db3");
-		const deletionPromise = db1.getCollection<IBook>("books").deleteMany({
-			op: SelectorFilterOperator.EQ,
-			fields: {
-				id: 1
-			}
+	it("delete", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+		const db1 = tigris.getDatabase();
+		const deletionPromise = db1.getCollection<IBook>(IBook).deleteMany({
+			filter: { id: 1 },
 		});
-		deletionPromise.then(value => {
-			expect(value.status).toBe("deleted: {\"id\":1}");
-		});
+		deletionPromise
+			.then((value) => {
+				expect(value.status).toBe('deleted: {"id":1}');
+			})
+			.catch((r) => console.log(r));
 		return deletionPromise;
 	});
 
-	it("deleteOne", () => {
-		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT});
-		const collection = tigris.getDatabase("db3").getCollection<IBook>("books");
+	it("deleteOne", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+		const collection = tigris.getDatabase().getCollection<IBook>("books");
 		const spyCollection = spy(collection);
 
-		const expectedFilter = {id: 1};
-		const expectedCollation: Collation = {case: Case.CaseInsensitive};
-		const options = new DeleteRequestOptions(5, expectedCollation);
+		const expectedFilter = { id: 1 };
+		const expectedCollation: Collation = { case: Case.CaseInsensitive };
+		const options = new DeleteQueryOptions(5, expectedCollation);
 
-		const deletePromise = collection.deleteOne(expectedFilter, undefined, options);
-		const [capturedFilter, capturedTx, capturedOptions] = capture(spyCollection.deleteMany).last();
+		const deletePromise = collection.deleteOne({ filter: expectedFilter, options: options });
+		const [capturedQuery, capturedTx] = capture(spyCollection.deleteMany).last();
 
 		// filter passed as it is
-		expect(capturedFilter).toBe(expectedFilter);
+		expect(capturedQuery.filter).toBe(expectedFilter);
 		// tx passed as it is
 		expect(capturedTx).toBe(undefined);
 		// options.collation passed as it is
-		expect(capturedOptions.collation).toBe(expectedCollation);
+		expect(capturedQuery.options.collation).toBe(expectedCollation);
 		// options.limit === 1 while original was 5
-		expect(capturedOptions.limit).toBe(1);
+		expect(capturedQuery.options.limit).toBe(1);
 
 		return deletePromise;
 	});
 
-	it("update", () => {
-		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT});
-		const db1 = tigris.getDatabase("db3");
-		const updatePromise = db1.getCollection<IBook>("books").updateMany(
-			{
-				op: SelectorFilterOperator.EQ,
-				fields: {
-					id: 1
-				}
+	it("update", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+		const db1 = tigris.getDatabase();
+		const updatePromise = db1.getCollection<IBook>("books").updateMany({
+			filter: {
+				id: 1,
 			},
-			{
-				op: UpdateFieldsOperator.SET,
-				fields: {
-					title: "New Title"
-				}
-			});
-		updatePromise.then(value => {
-			expect(value.status).toBe("updated: {\"id\":1}, {\"$set\":{\"title\":\"New Title\"}}");
+			fields: {
+				title: "New Title",
+			},
+		});
+		updatePromise.then((value) => {
+			expect(value.status).toBe(TigrisStatus.Updated);
 			expect(value.modifiedCount).toBe(1);
 		});
 		return updatePromise;
 	});
 
-	it("updateOne", () => {
-		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT});
-		const collection = tigris.getDatabase("db3").getCollection<IBook>("books");
+	it("updateOne", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+		const collection = tigris.getDatabase().getCollection<IBook>("books");
 		const spyCollection = spy(collection);
 
-		const expectedFilter = {id: 1};
-		const expectedCollation: Collation = {case: Case.CaseInsensitive};
-		const expectedUpdateFields = {title: "one"};
-		const options = new UpdateRequestOptions(5, expectedCollation);
+		const expectedFilter = { id: 1 };
+		const expectedCollation: Collation = { case: Case.CaseInsensitive };
+		const expectedUpdateFields = { title: "one" };
+		const options = new UpdateQueryOptions(5, expectedCollation);
 
-		const updatePromise = collection.updateOne(expectedFilter, expectedUpdateFields, undefined, options);
-		const [capturedFilter, capturedFields, capturedTx, capturedOptions] = capture(spyCollection.updateMany).last();
+		const updatePromise = collection.updateOne({
+			filter: expectedFilter,
+			fields: expectedUpdateFields,
+			options: options,
+		});
+		const [capturedQuery, capturedTx] = capture(spyCollection.updateMany).last();
 
 		// filter passed as it is
-		expect(capturedFilter).toBe(expectedFilter);
+		expect(capturedQuery.filter).toBe(expectedFilter);
 		// updateFields passed as it is
-		expect(capturedFields).toBe(expectedUpdateFields);
+		expect(capturedQuery.fields).toBe(expectedUpdateFields);
 		// tx passed as it is
 		expect(capturedTx).toBe(undefined);
 		// options.collation passed as it is
-		expect(capturedOptions.collation).toBe(expectedCollation);
+		expect(capturedQuery.options.collation).toBe(expectedCollation);
 		// options.limit === 1 while original was 5
-		expect(capturedOptions.limit).toBe(1);
+		expect(capturedQuery.options.limit).toBe(1);
 
 		return updatePromise;
 	});
 
-	it("readOne", () => {
-		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT});
-		const db1 = tigris.getDatabase("db3");
-		const readOnePromise = db1.getCollection<IBook>("books").findOne( {
-			op: SelectorFilterOperator.EQ,
-			fields: {
-				id: 1
-			}
+	it("readOne", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+		const db1 = tigris.getDatabase();
+		const readOnePromise = db1.getCollection<IBook>("books").findOne({
+			filter: {
+				id: 1,
+			},
 		});
-		readOnePromise.then(value => {
+		readOnePromise.then((value) => {
 			const book: IBook = <IBook>value;
 			expect(book.id).toBe(1);
 			expect(book.title).toBe("A Passage to India");
@@ -359,14 +397,33 @@ describe("rpc tests", () => {
 		return readOnePromise;
 	});
 
-	it("readOneRecordNotFound", () => {
-		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT});
-		const db1 = tigris.getDatabase("db3");
+	it("readOne_with_date_field", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+		const db1 = tigris.getDatabase();
 		const readOnePromise = db1.getCollection<IBook>("books").findOne({
-			op: SelectorFilterOperator.EQ,
-			fields: {
-				id: 2
-			}
+			filter: {
+				id: 7,
+			},
+		});
+		readOnePromise.then((value) => {
+			const book: IBook = <IBook>value;
+			console.log("BOOK ::", value);
+			expect(book.id).toBe(7);
+			expect(book.title).toBe("A Passage to India");
+			expect(book.author).toBe("E.M. Forster");
+			expect(book.tags).toStrictEqual(["Novel", "India"]);
+			expect(book.purchasedOn).toBeInstanceOf(Date);
+		});
+		return readOnePromise;
+	});
+
+	it("readOneRecordNotFound", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+		const db1 = tigris.getDatabase();
+		const readOnePromise = db1.getCollection<IBook>("books").findOne({
+			filter: {
+				id: 2,
+			},
 		});
 		readOnePromise.then((value) => {
 			expect(value).toBe(undefined);
@@ -374,27 +431,22 @@ describe("rpc tests", () => {
 		return readOnePromise;
 	});
 
-	it("readOneWithLogicalFilter", () => {
-		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT});
-		const db1 = tigris.getDatabase("db3");
+	it("readOneWithLogicalFilter", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+		const db1 = tigris.getDatabase();
 		const readOnePromise: Promise<IBook | void> = db1.getCollection<IBook>("books").findOne({
-			op: LogicalOperator.AND,
-			selectorFilters: [
-				{
-					op: SelectorFilterOperator.EQ,
-					fields: {
-						id: 3
-					}
-				},
-				{
-					op: SelectorFilterOperator.EQ,
-					fields: {
-						title: "In Search of Lost Time"
-					}
-				}
-			]
+			filter: {
+				$and: [
+					{
+						id: 3,
+					},
+					{
+						title: "In Search of Lost Time",
+					},
+				],
+			},
 		});
-		readOnePromise.then(value => {
+		readOnePromise.then((value) => {
 			const book: IBook = <IBook>value;
 			expect(book.id).toBe(3);
 			expect(book.title).toBe("In Search of Lost Time");
@@ -404,16 +456,50 @@ describe("rpc tests", () => {
 		return readOnePromise;
 	});
 
+	it("explain", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+
+		const db = tigris.getDatabase();
+		const explainResp = await db.getCollection<IBook>("books").explain({
+			filter: {
+				author: "Marcel Proust",
+			},
+		});
+		expect(explainResp.readType).toEqual("secondary index");
+		expect(explainResp.filter).toEqual(JSON.stringify({ author: "Marcel Proust" }));
+	});
+
+	it("count", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+		const db = tigris.getDatabase();
+		const countResponse = await db.getCollection<IBook>("books").count({
+			author: "Marcel Proust",
+		});
+		expect(countResponse).toEqual(3);
+	});
+
+	it("describe collection", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+
+		const db = tigris.getDatabase();
+		const describe = await db.getCollection<IBook>("books").describe();
+		expect(describe.collection).toEqual("books");
+		expect(describe.indexDescriptions).toHaveLength(2);
+		expect(describe.indexDescriptions[0].name).toEqual("title");
+		expect(describe.indexDescriptions[0].state).toEqual("INDEX ACTIVE");
+		expect(describe.indexDescriptions[1].name).toEqual("author");
+		expect(describe.indexDescriptions[1].state).toEqual("INDEX WRITE MODE");
+	});
+
 	describe("findMany", () => {
-		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT});
-		const db = tigris.getDatabase("db3");
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
 
 		it("with filter using for await on cursor", async () => {
+			const db = tigris.getDatabase();
 			const cursor = db.getCollection<IBook>("books").findMany({
-				op: SelectorFilterOperator.EQ,
-				fields: {
-					author: "Marcel Proust"
-				}
+				filter: {
+					author: "Marcel Proust",
+				},
 			});
 
 			let bookCounter = 0;
@@ -424,15 +510,17 @@ describe("rpc tests", () => {
 			expect(bookCounter).toBe(4);
 		});
 
-		it("finds all and retrieves results as array", () => {
+		it("finds all and retrieves results as array", async () => {
+			const db = tigris.getDatabase();
 			const cursor = db.getCollection<IBook>("books").findMany();
 			const booksPromise = cursor.toArray();
 
-			booksPromise.then(books => expect(books.length).toBe(4));
+			booksPromise.then((books) => expect(books.length).toBe(4));
 			return booksPromise;
 		});
 
 		it("finds all and streams through results", async () => {
+			const db = tigris.getDatabase();
 			const cursor = db.getCollection<IBook>("books").findMany();
 			const booksIterator = cursor.stream();
 
@@ -445,11 +533,11 @@ describe("rpc tests", () => {
 		});
 
 		it("throws an error", async () => {
+			const db = tigris.getDatabase();
 			const cursor = db.getCollection<IBook>("books").findMany({
-				op: SelectorFilterOperator.EQ,
-				fields: {
-					id: -1
-				}
+				filter: {
+					id: -1,
+				},
 			});
 
 			try {
@@ -463,362 +551,549 @@ describe("rpc tests", () => {
 		});
 	});
 
-	it("search", () => {
-		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT});
-		const db3 = tigris.getDatabase("db3");
-		const options: SearchRequestOptions = {
-			page: 2,
-			perPage: 12
-		}
-		const request: SearchRequest<IBook> = {
-			q: "philosophy",
-			facets: {
-				tags: Utility.createFacetQueryOptions()
-			}
-		};
+	describe("search", () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
 
-		const searchPromise = db3.getCollection<IBook>("books").search(request, options);
+		describe("with page number", () => {
+			const pageNumber = 2;
 
-		searchPromise.then(res => {
-			expect(res.meta.found).toBe(5);
-			expect(res.meta.totalPages).toBe(5);
-			expect(res.meta.page.current).toBe(options.page);
-			expect(res.meta.page.size).toBe(options.perPage);
+			it("returns a promise", async () => {
+				const db = tigris.getDatabase();
+				const query: SearchQuery<IBook> = {
+					q: "philosophy",
+					facets: {
+						tags: Utility.defaultFacetingOptions(),
+					},
+				};
+
+				const maybePromise = db.getCollection<IBook>("books").search(query, pageNumber);
+				expect(maybePromise).toBeInstanceOf(Promise);
+
+				maybePromise.then((res: SearchResult<IBook>) => {
+					expect(res.meta.found).toBe(5);
+					expect(res.meta.totalPages).toBe(5);
+					expect(res.meta.page.current).toBe(pageNumber);
+				});
+				return maybePromise;
+			});
 		});
 
-		return searchPromise;
+		describe("without explicit page number", () => {
+			it("returns an iterator", async () => {
+				const db = tigris.getDatabase();
+				const query: SearchQuery<IBook> = {
+					q: "philosophy",
+					facets: {
+						tags: Utility.defaultFacetingOptions(),
+					},
+				};
+				let bookCounter = 0;
+
+				const maybeIterator = db.getCollection<IBook>("books").search(query);
+				expect(maybeIterator).toBeInstanceOf(SearchIterator);
+
+				// for await loop the iterator
+				for await (const searchResult of maybeIterator) {
+					expect(searchResult.hits).toBeDefined();
+					expect(searchResult.facets).toBeDefined();
+					bookCounter += searchResult.hits.length;
+				}
+				expect(bookCounter).toBe(TestTigrisService.BOOKS_B64_BY_ID.size);
+			});
+		});
+
+		describe("with group by", () => {
+			it("returns promise", async () => {
+				const pageNumber = 1;
+				const db = tigris.getDatabase();
+				const query: SearchQuery<IBook> = {
+					groupBy: ["author"],
+				};
+
+				const maybePromise = db.getCollection<IBook>("books").search(query, pageNumber);
+				expect(maybePromise).toBeInstanceOf(Promise);
+
+				maybePromise.then((res: SearchResult<IBook>) => {
+					expect(res.groupedHits?.length).toEqual(2);
+					expect(res.groupedHits?.[0]?.hits?.length).toEqual(2);
+					expect(res.groupedHits?.[1]?.hits?.length).toEqual(4);
+					expect(res.groupedHits?.[0]?.groupKeys).toEqual(["E.M. Forster"]);
+					expect(res.groupedHits?.[1]?.groupKeys).toEqual(["Marcel Proust"]);
+				});
+				return maybePromise;
+			});
+		});
 	});
 
-	it("searchStream using iteration", async () => {
-		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT});
-		const db3 = tigris.getDatabase("db3");
-		const request: SearchRequest<IBook> = {
-			q: "philosophy",
-			facets: {
-				tags: Utility.createFacetQueryOptions()
-			}
-		};
-		let bookCounter = 0;
-
-		const searchIterator = db3.getCollection<IBook>("books").searchStream(request);
-		// for await loop the iterator
-		for await (const searchResult of searchIterator) {
-			expect(searchResult.hits).toBeDefined();
-			expect(searchResult.facets).toBeDefined();
-			bookCounter += searchResult.hits.length;
-		}
-		expect(bookCounter).toBe(TestTigrisService.BOOKS_B64_BY_ID.size);
-	});
-
-	it("searchStream using next", async () => {
-		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT});
-		const db3 = tigris.getDatabase("db3");
-		const request: SearchRequest<IBook> = {
-			q: "philosophy",
-			facets: {
-				tags: Utility.createFacetQueryOptions()
-			}
-		};
-		let bookCounter = 0;
-
-		const searchIterator = db3.getCollection<IBook>("books").searchStream(request);
-		let iterableResult = await searchIterator.next();
-		while (!iterableResult.done) {
-			const searchResult = await iterableResult.value;
-			expect(searchResult.hits).toBeDefined();
-			expect(searchResult.facets).toBeDefined();
-			bookCounter += searchResult.hits.length;
-			iterableResult = await searchIterator.next();
-		}
-		expect(bookCounter).toBe(TestTigrisService.BOOKS_B64_BY_ID.size);
-	});
-
-	it("beginTx", () => {
-		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT});
-		const db3 = tigris.getDatabase("db3");
+	it("beginTx", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+		const db3 = tigris.getDatabase();
 		const beginTxPromise = db3.beginTransaction();
-		beginTxPromise.then(value => {
+		beginTxPromise.then((value) => {
 			expect(value.id).toBe("id-test");
 			expect(value.origin).toBe("origin-test");
 		});
 		return beginTxPromise;
 	});
 
-	it("commitTx", (done) => {
-		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT});
-		const db3 = tigris.getDatabase("db3");
+	it("commitTx", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+		const db3 = tigris.getDatabase();
 		const beginTxPromise = db3.beginTransaction();
-		beginTxPromise.then(session => {
+		beginTxPromise.then((session) => {
 			const commitTxResponse = session.commit();
-			commitTxResponse.then(value => {
-				expect(value.status).toBe("committed-test");
-				done();
+			commitTxResponse.then((value) => {
+				expect(value.status).toBe(TigrisStatus.Ok);
 			});
+			return beginTxPromise;
 		});
 	});
 
-	it("rollbackTx", (done) => {
-		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT});
-		const db3 = tigris.getDatabase("db3");
+	it("rollbackTx", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+		const db3 = tigris.getDatabase();
 		const beginTxPromise = db3.beginTransaction();
-		beginTxPromise.then(session => {
+		beginTxPromise.then((session) => {
 			const rollbackTransactionResponsePromise = session.rollback();
-			rollbackTransactionResponsePromise.then(value => {
-				expect(value.status).toBe("rollback-test");
-				done();
+			rollbackTransactionResponsePromise.then((value) => {
+				expect(value.status).toBe(TigrisStatus.Ok);
 			});
 		});
+		return beginTxPromise;
 	});
 
-	it("transact", (done) => {
-		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT});
-		const txDB = tigris.getDatabase("test-tx");
+	it("transact", async () => {
+		const tigris = new Tigris({ projectName: "test-tx", ...testConfig });
+		const txDB = tigris.getDatabase();
 		const books = txDB.getCollection<IBook>("books");
-		txDB.transact(tx => {
-			books.insertOne(
-				{
-					id: 1,
-					author: "Alice",
-					title: "Some book title"
-				},
-				tx
-				// eslint-disable-next-line @typescript-eslint/no-unused-vars
-			).then(_value => {
-				books.findOne({
-					op: SelectorFilterOperator.EQ,
-					fields: {
-						id: 1
-					}
-				}, undefined, tx).then(() => {
-					books.updateMany({
-							op: SelectorFilterOperator.EQ,
-							fields: {
-								id: 1
-							}
-						},
-						{
-							op: UpdateFieldsOperator.SET,
-							fields: {
-								"author":
-									"Dr. Author"
-							}
-							// eslint-disable-next-line @typescript-eslint/no-unused-vars
-						}, tx).then(() => {
-						books.deleteMany({
-							op: SelectorFilterOperator.EQ,
-							fields: {
-								id: 1
-							}
-						}, tx).then(() => done());
-					});
+		return txDB.transact((tx) => {
+			books
+				.insertOne(
+					{
+						id: 1,
+						author: "Alice",
+						title: "Some book title",
+					},
+					tx
+					// eslint-disable-next-line @typescript-eslint/no-unused-vars
+				)
+				.then((_value) => {
+					books
+						.findOne(
+							{
+								filter: {
+									id: 1,
+								},
+							},
+							tx
+						)
+						.then(() => {
+							books
+								.updateMany(
+									{
+										filter: {
+											id: 1,
+										},
+										fields: {
+											author: "Dr. Author",
+										},
+									},
+									tx
+								)
+								.then(() => {
+									books
+										.deleteMany(
+											{
+												filter: {
+													id: 1,
+												},
+											},
+											tx
+										)
+										.then();
+								});
+						});
 				});
-			});
 		});
 	});
 
-	it("createOrUpdateCollections", () => {
-		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT});
-		const db3 = tigris.getDatabase("db3");
+	it("createOrUpdateCollections", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+		const db3 = tigris.getDatabase();
 		const bookSchema: TigrisSchema<IBook> = {
 			id: {
 				type: TigrisDataTypes.INT64,
 				primary_key: {
 					order: 1,
-					autoGenerate: true
-				}
+					autoGenerate: true,
+				},
 			},
 			author: {
-				type: TigrisDataTypes.STRING
+				type: TigrisDataTypes.STRING,
 			},
 			title: {
-				type: TigrisDataTypes.STRING
+				type: TigrisDataTypes.STRING,
 			},
 			tags: {
 				type: TigrisDataTypes.ARRAY,
 				items: {
-					type: TigrisDataTypes.STRING
-				}
-			}
+					type: TigrisDataTypes.STRING,
+				},
+			},
 		};
-		return db3.createOrUpdateCollection("books", bookSchema).then(value => {
+		return db3.createOrUpdateCollection("books", bookSchema).then((value) => {
 			expect(value).toBeDefined();
 		});
 	});
 
-	it("createOrUpdateTopic", () => {
-		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT});
-		const db = tigris.getDatabase("test_db");
-		const alertSchema: TigrisTopicSchema<Alert> = {
+	it("createOrUpdateCollections with no order specified for primary key", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+		const db3 = tigris.getDatabase();
+		const bookSchema: TigrisSchema<IBook> = {
 			id: {
 				type: TigrisDataTypes.INT64,
-				key: {
-					order: 1
-				}
+				primary_key: {
+					autoGenerate: true,
+				},
 			},
-			name: {
+			author: {
 				type: TigrisDataTypes.STRING,
-				key: {
-					order: 2
-				}
 			},
-			text: {
-				type: TigrisDataTypes.STRING
-			}
+			title: {
+				type: TigrisDataTypes.STRING,
+			},
+			tags: {
+				type: TigrisDataTypes.ARRAY,
+				items: {
+					type: TigrisDataTypes.STRING,
+				},
+			},
 		};
-		return db.createOrUpdateTopic("alerts", alertSchema).then(value => {
+		return db3.createOrUpdateCollection("books", bookSchema).then((value) => {
 			expect(value).toBeDefined();
 		});
 	});
 
-	it("serverMetadata", () => {
-		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT});
+	it("createOrUpdateCollections should throw IncompletePrimaryKeyOrderError", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+		const db3 = tigris.getDatabase();
+		const bookSchema: TigrisSchema<IBookMPK> = {
+			id: {
+				type: TigrisDataTypes.INT64,
+				primary_key: {
+					autoGenerate: true,
+				},
+			},
+			id2: {
+				type: TigrisDataTypes.INT64,
+				primary_key: {
+					autoGenerate: true,
+				},
+			},
+			title: {
+				type: TigrisDataTypes.STRING,
+			},
+			metadata: {
+				type: {
+					publishedDate: {
+						type: TigrisDataTypes.DATE_TIME,
+					},
+					authorName: {
+						type: TigrisDataTypes.STRING,
+					},
+				},
+			},
+		};
+		let caught;
+		try {
+			await db3.createOrUpdateCollection("books", bookSchema);
+		} catch (e) {
+			caught = e;
+		}
+		expect(caught).toBeInstanceOf(MissingPrimaryKeyOrderInSchemaDefinitionError);
+	});
+
+	it("createOrUpdateCollections should throw DuplicatePrimaryKeyOrderError", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+		const db3 = tigris.getDatabase();
+		const bookSchema: TigrisSchema<IBookMPK> = {
+			id: {
+				type: TigrisDataTypes.INT64,
+				primary_key: {
+					order: 1,
+					autoGenerate: true,
+				},
+			},
+			id2: {
+				type: TigrisDataTypes.INT64,
+				primary_key: {
+					order: 1,
+					autoGenerate: true,
+				},
+			},
+			title: {
+				type: TigrisDataTypes.STRING,
+			},
+			metadata: {
+				type: {
+					publishedDate: {
+						type: TigrisDataTypes.DATE_TIME,
+					},
+					authorName: {
+						type: TigrisDataTypes.STRING,
+					},
+				},
+			},
+		};
+		let caught;
+		try {
+			await db3.createOrUpdateCollection("books", bookSchema);
+		} catch (e) {
+			caught = e;
+		}
+		expect(caught).toBeInstanceOf(DuplicatePrimaryKeyOrderError);
+	});
+
+	it("serverMetadata", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
 		const serverMetadataPromise = tigris.getServerMetadata();
-		serverMetadataPromise.then(value => {
+		serverMetadataPromise.then((value) => {
 			expect(value.serverVersion).toBe("1.0.0-test-service");
 		});
 		return serverMetadataPromise;
 	});
 
-	it("publish", () => {
-		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT});
-		const db = tigris.getDatabase("test_db");
-		const topic = db.getTopic<Alert>("test_topic");
-		expect(topic.topicName).toBe("test_topic");
-
-		const promise = topic.publish({
-			id: 34,
-			text: "test"
+	it("createCache", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+		const cacheC1Promise = tigris.createCacheIfNotExists("c1");
+		cacheC1Promise.then((value) => {
+			expect(value.getCacheName()).toBe("c1");
 		});
-
-		promise.then(alert => {
-			expect(alert.id).toBe(34);
-			expect(alert.text).toBe("test");
-		});
-
-		return promise;
+		return cacheC1Promise;
 	});
 
-	it("subscribe using callback", (done) => {
-		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT});
-		const db = tigris.getDatabase("test_db");
-		const topic = db.getTopic<Alert>("test_topic");
-		let success = true;
-		const expectedIds = new Set<number>(TestTigrisService.ALERTS_B64_BY_ID.keys());
-
-		topic.subscribe({
-			onNext(alert: Alert) {
-				expect(expectedIds).toContain(alert.id);
-				expectedIds.delete(alert.id);
-			},
-			onEnd() {
-				expect(success).toBe(true);
-				done();
-			},
-			// eslint-disable-next-line @typescript-eslint/no-unused-vars
-			onError(error: Error) {
-				success = false;
-			}
-		});
-	});
-
-	it("subscribe using stream", (done) => {
-		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT});
-		const db = tigris.getDatabase("test_db");
-		const topic = db.getTopic<Alert>("test_topic");
-		const subscription: Readable = topic.subscribe() as Readable;
-		const expectedIds = new Set<number>(TestTigrisService.ALERTS_B64_BY_ID.keys());
-		let success = true;
-
-		subscription.on("data", (alert) =>{
-			expect(expectedIds).toContain(alert.id);
-			expectedIds.delete(alert.id);
-		});
-		subscription.on("error", () => {
-			success = false;
-		});
-		subscription.on("end", () => {
-			expect(success).toBe(true);
-			done();
-		});
-	});
-
-	it("subscribeWithFilter", (done) => {
-		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT});
-		const db = tigris.getDatabase("test_db");
-		const topic = db.getTopic<Alert>("test_topic");
-		let success = true;
-		const expectedIds = new Set<number>(TestTigrisService.ALERTS_B64_BY_ID.keys());
-
-		topic.subscribeWithFilter({
-				op: SelectorFilterOperator.EQ,
-				fields: {
-					text: "test"
-				}
-			},
-			{
-				onNext(alert: Alert) {
-					expect(expectedIds).toContain(alert.id);
-					expectedIds.delete(alert.id);
-				},
-				onEnd() {
-					expect(success).toBe(true);
-					done();
-				},
-				// eslint-disable-next-line @typescript-eslint/no-unused-vars
-				onError(error: Error) {
-					success = false;
-				}
-			});
-	});
-
-	it("subscribeToPartitions", (done) => {
-		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT});
-		const db = tigris.getDatabase("test_db");
-		const topic = db.getTopic<Alert>("test_topic");
-		let success = true;
-		const expectedIds = new Set<number>(TestTigrisService.ALERTS_B64_BY_ID.keys());
-
-		const partitions = new Array<number>();
-		partitions.push(55);
-
-		topic.subscribeToPartitions(partitions,{
-			onNext(alert: Alert) {
-				expect(expectedIds).toContain(alert.id);
-				expectedIds.delete(alert.id);
-			},
-			onEnd() {
-				expect(success).toBe(true);
-				done();
-			},
-			// eslint-disable-next-line @typescript-eslint/no-unused-vars
-			onError(error: Error) {
-				success = false;
-			}
-		});
-	});
-
-	it("findMany in topic", async () => {
-		const tigris = new Tigris({serverUrl: "localhost:" + SERVER_PORT});
-		const db = tigris.getDatabase("test_db");
-		const topic = db.getTopic<Alert>("test_topic");
-		const expectedIds = new Set<number>(TestTigrisService.ALERTS_B64_BY_ID.keys());
-		let seenAlerts = 0;
-
-		for await (const alert of topic.findMany()) {
-			expect(expectedIds).toContain(alert.id);
-			expectedIds.delete(alert.id);
-			seenAlerts++;
+	it("listCaches", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+		for (let i = 0; i < 5; i++) {
+			await tigris.createCacheIfNotExists("c" + i);
 		}
+		const listCachesResponse = await tigris.listCaches();
+		for (let i = 0; i < 5; i++) {
+			let found = false;
+			for (let cache of listCachesResponse.caches) {
+				if (cache.name === "c" + i) {
+					if (found) {
+						throw new Error("already found " + cache.name);
+					}
+					found = true;
+					break;
+				}
+			}
+			expect(found).toBe(true);
+		}
+	});
 
-		expect(seenAlerts).toBe(2);
+	it("deleteCache", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+		for (let i = 0; i < 5; i++) {
+			await tigris.createCacheIfNotExists("c" + i);
+		}
+		let listCachesResponse = await tigris.listCaches();
+		expect(listCachesResponse.caches.length).toBe(5);
+
+		const deleteResponse = await tigris.deleteCache("c3");
+		expect(deleteResponse.status).toBe("deleted");
+
+		listCachesResponse = await tigris.listCaches();
+		expect(listCachesResponse.caches.length).toBe(4);
+
+		await tigris.deleteCache("c2");
+		listCachesResponse = await tigris.listCaches();
+		expect(listCachesResponse.caches.length).toBe(3);
+
+		// deleting non-existing cache
+		let errored = false;
+		try {
+			await tigris.deleteCache("c3");
+		} catch (error) {
+			errored = true;
+		}
+		expect(errored).toBe(true);
+
+		listCachesResponse = await tigris.listCaches();
+		expect(listCachesResponse.caches.length).toBe(3);
+	});
+
+	it.skip("cacheCrud", async () => {
+		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
+		const c1 = await tigris.createCacheIfNotExists("c1");
+
+		await c1.set("k1", "val1");
+		expect((await c1.get("k1")).value).toBe("val1");
+
+		await c1.set("k1", "val1-new");
+		expect((await c1.get("k1")).value).toBe("val1-new");
+
+		await c1.set("k2", 123);
+		expect((await c1.get("k2")).value).toBe(123);
+
+		await c1.set("k3", true);
+		expect((await c1.get("k3")).value).toBe(true);
+
+		await c1.set("k4", { a: "b", n: 12 });
+		expect((await c1.get("k4")).value).toEqual({ a: "b", n: 12 });
+
+		const keysArrays = await c1.keys().toArray();
+		const keys: Array<string> = new Array<string>();
+		keysArrays.forEach((keysArray) => keysArray.forEach((key) => keys.push(key)));
+
+		expect(keys).toHaveLength(4);
+		expect(keys).toContain("k1");
+		expect(keys).toContain("k2");
+		expect(keys).toContain("k3");
+		expect(keys).toContain("k4");
+
+		await c1.del("k1");
+		let errored = false;
+
+		try {
+			await c1.get("k1");
+		} catch (error) {
+			errored = true;
+		}
+		expect(errored).toBe(true);
+
+		// k1 is deleted
+		const keysNewArray = await c1.keys().toArray();
+		const keysNew: Array<string> = new Array<string>();
+		keysNewArray.forEach((keysArray) => keysArray.forEach((key) => keysNew.push(key)));
+		expect(keysNew).toHaveLength(3);
+		expect(keysNew).toContain("k2");
+		expect(keysNew).toContain("k3");
+		expect(keysNew).toContain("k4");
+
+		// getset
+		let getSetResp = await c1.getSet("k2", 123_456);
+		expect(getSetResp.old_value).toBe(123);
+
+		getSetResp = await c1.getSet("k2", 123_457);
+		expect(getSetResp.old_value).toBe(123_456);
+
+		// getset for new key
+		try {
+			getSetResp = await c1.getSet("k6", "val6");
+			expect(getSetResp.old_value).toBeUndefined();
+		} catch (error) {
+			console.log(error);
+		}
+	});
+
+	describe("DB branching", () => {
+		const tigris = new Tigris(testConfig);
+
+		it("creates a new branch", async () => {
+			expect.hasAssertions();
+			const db = tigris.getDatabase();
+			const createResp = db.createBranch("staging");
+
+			return createResp.then((r) => expect(r.status).toBe("created"));
+		});
+
+		it("fails to create existing branch", async () => {
+			expect.assertions(2);
+			const db = tigris.getDatabase();
+			const createResp = db.createBranch(Branch.Existing);
+			createResp.catch((r) => {
+				expect((r as ServiceError).code).toEqual(Status.ALREADY_EXISTS);
+			});
+
+			return expect(createResp).rejects.toBeDefined();
+		});
+
+		it("deletes a branch successfully", async () => {
+			expect.hasAssertions();
+			const db = tigris.getDatabase();
+			const deleteResp = db.deleteBranch("staging");
+
+			return deleteResp.then((r) => expect(r.status).toBe("deleted"));
+		});
+
+		it("fails to delete a branch if not existing already", async () => {
+			expect.assertions(2);
+			const db = tigris.getDatabase();
+			const deleteResp = db.deleteBranch(Branch.NotFound);
+			deleteResp.catch((r) => {
+				expect((r as ServiceError).code).toEqual(Status.NOT_FOUND);
+			});
+
+			return expect(deleteResp).rejects.toBeDefined();
+		});
+	});
+
+	describe("initializeBranch()", () => {
+		let mockedUtil;
+		let config: TigrisClientConfig = {
+			serverUrl: testConfig.serverUrl,
+			projectName: testConfig.projectName,
+		};
+		beforeEach(() => {
+			mockedUtil = spy(Utility);
+		});
+
+		afterEach(() => {
+			reset(mockedUtil);
+		});
+
+		it("throws error no branch name given", () => {
+			expect(config["branch"]).toBeUndefined();
+			when(mockedUtil.branchNameFromEnv(anything())).thenReturn(undefined);
+			const tigris = new Tigris(config);
+			expect(() => tigris.getDatabase()).toThrow(BranchNameRequiredError);
+		});
+
+		it("creating branch for existing succeeds", async () => {
+			when(mockedUtil.branchNameFromEnv(anything())).thenReturn(Branch.Existing);
+			const tigris = new Tigris(config);
+			const db = tigris.getDatabase();
+
+			expect(db.branch).toBe(Branch.Existing);
+
+			return db.initializeBranch();
+		});
+
+		it("create a branch if not exist", async () => {
+			when(mockedUtil.branchNameFromEnv(anything())).thenReturn("fork_feature_1");
+			const tigris = new Tigris(config);
+			const db = tigris.getDatabase();
+
+			expect(db.branch).toBe("fork_feature_1");
+			return db.initializeBranch();
+		});
+
+		it("fails to create branch if project does not exist", async () => {
+			when(mockedUtil.branchNameFromEnv(anything())).thenReturn(Branch.NotFound);
+			const tigris = new Tigris(config);
+			const db = tigris.getDatabase();
+
+			return expect(db.initializeBranch()).rejects.toThrow(Error);
+		});
 	});
 });
 
-export interface IBook extends TigrisCollectionType {
+@TigrisCollection("books")
+export class IBook implements TigrisCollectionType {
+	@PrimaryKey({ order: 1 })
 	id: number;
+	@Field()
 	title: string;
+	@Field()
 	author: string;
+	@Field({ elements: TigrisDataTypes.STRING })
 	tags?: string[];
+	@Field(TigrisDataTypes.DATE_TIME, { timestamp: "createdAt" })
+	createdAt?: Date;
+	@Field()
+	purchasedOn?: Date;
 }
 
 export interface IBook1 extends TigrisCollectionType {
@@ -834,8 +1109,9 @@ export interface IBook2 extends TigrisCollectionType {
 	metadata: object;
 }
 
-export interface Alert extends TigrisTopicType {
-	id: number;
-	name?: number;
-	text: string;
+export interface IBookMPK extends TigrisCollectionType {
+	id?: number;
+	id2?: number;
+	title: string;
+	metadata: object;
 }

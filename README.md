@@ -1,18 +1,20 @@
 # Tigris TypeScript Client Library
 
-[![npm](https://img.shields.io/npm/v/@tigrisdata/core)](https://www.npmjs.com/package/@tigrisdata/core)
-[![ts-ci](https://github.com/tigrisdata/tigris-client-ts/actions/workflows/ts-ci.yml/badge.svg?branch=main)](https://github.com/tigrisdata/tigris-client-ts/actions/workflows/ts-ci.yml)
+[![npm](https://img.shields.io/npm/v/@tigrisdata/core?logo=npm&logoColor=white)](https://www.npmjs.com/package/@tigrisdata/core)
+[![build](https://github.com/tigrisdata/tigris-client-ts/actions/workflows/ts-ci.yml/badge.svg?branch=main)](https://github.com/tigrisdata/tigris-client-ts/actions/workflows/ts-ci.yml)
 [![codecov](https://codecov.io/gh/tigrisdata/tigris-client-ts/branch/main/graph/badge.svg)](https://codecov.io/gh/tigrisdata/tigris-client-ts)
-![LGTM Grade](https://img.shields.io/lgtm/grade/javascript/github/tigrisdata/tigris-client-ts)
-[![slack](https://img.shields.io/badge/slack-tigrisdata-34D058.svg?logo=slack)](https://tigrisdata.slack.com)
 [![GitHub](https://img.shields.io/github/license/tigrisdata/tigris-client-ts)](https://github.com/tigrisdata/tigris-client-ts/blob/main/LICENSE)
+[![Discord](https://img.shields.io/discord/1033842669983633488?color=%23596fff&label=Discord&logo=discord&logoColor=%23ffffff)](https://tigris.dev/discord)
+[![Twitter Follow](https://img.shields.io/twitter/follow/tigrisdata?style=social)](https://twitter.com/tigrisdata)
 
 # Documentation
 
-- [Tigris Overview](https://docs.tigrisdata.com/overview/)
-- [Getting Started](https://docs.tigrisdata.com/typescript/getting-started)
-- [CRUD operations API](https://docs.tigrisdata.com/typescript/documents)
-- [Event Streaming API](https://docs.tigrisdata.com/typescript/event_streaming)
+- [Tigris Overview](https://www.tigrisdata.com/docs/concepts/)
+- [Getting Started](https://www.tigrisdata.com/docs/quickstarts/quickstart-typescript/)
+- [Database](https://www.tigrisdata.com/docs/sdkstools/typescript/database/)
+- [Database + Search](https://www.tigrisdata.com/docs/sdkstools/typescript/database/search/)
+- [Search Only](https://www.tigrisdata.com/docs/sdkstools/typescript/search/)
+- [Vector Search](https://www.tigrisdata.com/docs/quickstarts/quickstart-vector-search/)
 
 # Building
 
@@ -32,8 +34,8 @@ npm run lint
 
 # Installation note for Apple M1
 
-Since ARM binaries are not provided for `grpc-tools` package by the grpc team. Hence, the x86_64
-version of `grpc-tools` must be installed.
+Since ARM binaries are not provided for `grpc-tools` package by the grpc
+team. Hence, the x86_64 version of `grpc-tools` must be installed.
 
 ```shell
 npm_config_target_arch=x64 npm i grpc-tools
@@ -63,3 +65,11 @@ On every `git commit` we check the code quality using prettier and eslint.
 # License
 
 This software is licensed under the [Apache 2.0](LICENSE).
+
+# Contributors
+
+Thanks to all the people who contributed!
+
+<a href="https://github.com/tigrisdata/tigris-client-ts/graphs/contributors">
+	<img src="https://contrib.rocks/image?repo=tigrisdata/tigris-client-ts" />
+</a>

@@ -12,6 +12,7 @@ export class Session {
 	private readonly _origin: string;
 	private readonly grpcClient: TigrisClient;
 	private readonly db: string;
+	private readonly branch: string;
 	private readonly _additionalMetadata: Metadata;
 
 	constructor(
@@ -19,12 +20,14 @@ export class Session {
 		origin: string,
 		grpcClient: TigrisClient,
 		db: string,
+		branch: string,
 		additionalMetadata: Metadata
 	) {
 		this._id = id;
 		this._origin = origin;
 		this.grpcClient = grpcClient;
 		this.db = db;
+		this.branch = branch;
 		this._additionalMetadata = additionalMetadata;
 	}
 
@@ -42,7 +45,9 @@ export class Session {
 
 	public commit(): Promise<CommitTransactionResponse> {
 		return new Promise<CommitTransactionResponse>((resolve, reject) => {
-			const request = new ProtoCommitTransactionRequest().setDb(this.db);
+			const request = new ProtoCommitTransactionRequest()
+				.setProject(this.db)
+				.setBranch(this.branch);
 			this.grpcClient.commitTransaction(request, Utility.txToMetadata(this), (error, response) => {
 				if (error) {
 					reject(error);
@@ -55,7 +60,9 @@ export class Session {
 
 	public rollback(): Promise<RollbackTransactionResponse> {
 		return new Promise<RollbackTransactionResponse>((resolve, reject) => {
-			const request = new ProtoRollbackTransactionRequest().setDb(this.db);
+			const request = new ProtoRollbackTransactionRequest()
+				.setProject(this.db)
+				.setBranch(this.branch);
 			this.grpcClient.rollbackTransaction(
 				request,
 				Utility.txToMetadata(this),

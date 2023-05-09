@@ -2,25 +2,16 @@ import { TigrisClient } from "./proto/server/v1/api_grpc_pb";
 import { ObservabilityClient } from "./proto/server/v1/observability_grpc_pb";
 import { HealthAPIClient } from "./proto/server/v1/health_grpc_pb";
 import * as grpc from "@grpc/grpc-js";
-import { ChannelCredentials, Metadata, status } from "@grpc/grpc-js";
-import {
-	CreateDatabaseRequest as ProtoCreateDatabaseRequest,
-	DatabaseOptions as ProtoDatabaseOptions,
-	DropDatabaseRequest as ProtoDropDatabaseRequest,
-	ListDatabasesRequest as ProtoListDatabasesRequest,
-} from "./proto/server/v1/api_pb";
+import { ChannelCredentials, Metadata } from "@grpc/grpc-js";
 import { GetInfoRequest as ProtoGetInfoRequest } from "./proto/server/v1/observability_pb";
 import { HealthCheckInput as ProtoHealthCheckInput } from "./proto/server/v1/health_pb";
 
-import path from "node:path";
-import appRootPath from "app-root-path";
-import * as dotenv from "dotenv";
 import {
-	DatabaseInfo,
-	DatabaseMetadata,
-	DatabaseOptions,
-	DropDatabaseResponse,
+	CacheMetadata,
+	DeleteCacheResponse,
+	ListCachesResponse,
 	ServerMetadata,
+	TigrisCollectionType,
 } from "./types";
 
 import {
@@ -31,14 +22,29 @@ import {
 import { DB } from "./db";
 import { AuthClient } from "./proto/server/v1/auth_grpc_pb";
 import { Utility } from "./utility";
-import { loadTigrisManifest, TigrisManifest } from "./utils/manifest-loader";
 import { Log } from "./utils/logger";
+import { DecoratorMetaStorage } from "./decorators/metadata/decorator-meta-storage";
+import { getDecoratorMetaStorage } from "./globals";
+import { Cache } from "./cache";
+import { CacheClient } from "./proto/server/v1/cache_grpc_pb";
+import {
+	CreateCacheRequest as ProtoCreateCacheRequest,
+	DeleteCacheRequest as ProtoDeleteCacheRequest,
+	ListCachesRequest as ProtoListCachesRequest,
+} from "./proto/server/v1/cache_pb";
+
+import { Status } from "@grpc/grpc-js/build/src/constants";
+import { initializeEnvironment } from "./utils/env-loader";
+
+import { SearchClient } from "./proto/server/v1/search_grpc_pb";
+import { Search } from "./search/search";
 
 const AuthorizationHeaderName = "authorization";
 const AuthorizationBearer = "Bearer ";
 
 export interface TigrisClientConfig {
 	serverUrl?: string;
+	projectName?: string;
 	/**
 	 * Use clientId/clientSecret to authenticate production services.
 	 * Obtains at console.preview.tigrisdata.cloud in `Applications Keys` section
@@ -63,6 +69,11 @@ export interface TigrisClientConfig {
 	 * Controls the ping interval, if not specified defaults to 300_000ms (i.e. 5 min)
 	 */
 	pingIntervalMs?: number;
+
+	/**
+	 * Database branch name
+	 */
+	branch?: string;
 }
 
 class TokenSupplier {
@@ -136,29 +147,40 @@ const DEST_NAME_KEY = "destination-name";
 export class Tigris {
 	private readonly grpcClient: TigrisClient;
 	private readonly observabilityClient: ObservabilityClient;
+	private readonly cacheClient: CacheClient;
+	private readonly searchClient: SearchClient;
 	private readonly healthAPIClient: HealthAPIClient;
 	private readonly _config: TigrisClientConfig;
+	private readonly _metadataStorage: DecoratorMetaStorage;
 	private readonly _ping: () => void;
 	private readonly pingId: NodeJS.Timeout | number | string | undefined;
 
 	/**
+	 * Create Tigris client
 	 *
-	 * @param  {TigrisClientConfig} config configuration
+	 * @param  config - {@link TigrisClientConfig} configuration
 	 */
 	constructor(config?: TigrisClientConfig) {
-		dotenv.config();
+		initializeEnvironment();
 		if (typeof config === "undefined") {
 			config = {};
 		}
 		if (config.serverUrl === undefined) {
 			config.serverUrl = DEFAULT_URL;
-
-			if ("TIGRIS_URI" in process.env) {
+			if (process.env.TIGRIS_URI?.trim().length > 0) {
 				config.serverUrl = process.env.TIGRIS_URI;
 			}
-			if ("TIGRIS_URL" in process.env) {
+			if (process.env.TIGRIS_URL?.trim().length > 0) {
 				config.serverUrl = process.env.TIGRIS_URL;
 			}
+		}
+
+		if (config.projectName === undefined) {
+			if (!("TIGRIS_PROJECT" in process.env)) {
+				throw new Error("Unable to resolve TIGRIS_PROJECT environment variable");
+			}
+
+			config.projectName = process.env.TIGRIS_PROJECT;
 		}
 
 		if (config.serverUrl.startsWith("https://")) {
@@ -196,6 +218,8 @@ export class Tigris {
 			const insecureCreds: ChannelCredentials = grpc.credentials.createInsecure();
 			this.grpcClient = new TigrisClient(config.serverUrl, insecureCreds);
 			this.observabilityClient = new ObservabilityClient(config.serverUrl, insecureCreds);
+			this.cacheClient = new CacheClient(config.serverUrl, insecureCreds);
+			this.searchClient = new SearchClient(config.serverUrl, insecureCreds);
 			this.healthAPIClient = new HealthAPIClient(config.serverUrl, insecureCreds);
 		} else if (config.clientId === undefined || config.clientSecret === undefined) {
 			throw new Error("Both `clientId` and `clientSecret` are required");
@@ -220,6 +244,8 @@ export class Tigris {
 			);
 			this.grpcClient = new TigrisClient(config.serverUrl, channelCreds);
 			this.observabilityClient = new ObservabilityClient(config.serverUrl, channelCreds);
+			this.cacheClient = new CacheClient(config.serverUrl, channelCreds);
+			this.searchClient = new SearchClient(config.serverUrl, channelCreds);
 			this.healthAPIClient = new HealthAPIClient(config.serverUrl, channelCreds);
 			this._ping = () => {
 				this.healthAPIClient.health(new ProtoHealthCheckInput(), (error, response) => {
@@ -242,67 +268,80 @@ export class Tigris {
 				});
 			}
 		}
+		this._metadataStorage = getDecoratorMetaStorage();
 		Log.info(`Using Tigris at: ${config.serverUrl}`);
 	}
 
-	/**
-	 * Lists the databases
-	 * @return {Promise<Array<DatabaseInfo>>} a promise of an array of
-	 * DatabaseInfo
-	 */
-	public listDatabases(): Promise<Array<DatabaseInfo>> {
-		return new Promise<Array<DatabaseInfo>>((resolve, reject) => {
-			this.grpcClient.listDatabases(new ProtoListDatabasesRequest(), (error, response) => {
-				if (error) {
-					reject(error);
-				} else {
-					const result = response
-						.getDatabasesList()
-						.map(
-							(protoDatabaseInfo) =>
-								new DatabaseInfo(protoDatabaseInfo.getDb(), new DatabaseMetadata())
-						);
-					resolve(result);
-				}
-			});
-		});
+	public getDatabase(): DB {
+		return new DB(this._config.projectName, this.grpcClient, this._config);
 	}
 
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	public createDatabaseIfNotExists(db: string, _options?: DatabaseOptions): Promise<DB> {
-		return new Promise<DB>((resolve, reject) => {
-			this.grpcClient.createDatabase(
-				new ProtoCreateDatabaseRequest().setDb(db).setOptions(new ProtoDatabaseOptions()),
+	/**
+	 * Creates the cache for this project, if the cache doesn't already exist
+	 * @param name - cache identifier
+	 */
+	public createCacheIfNotExists(name: string): Promise<Cache> {
+		return new Promise<Cache>((resolve, reject) => {
+			this.cacheClient.createCache(
+				new ProtoCreateCacheRequest().setProject(this._config.projectName).setName(name),
 				// eslint-disable-next-line @typescript-eslint/no-unused-vars
-				(error, _response) => {
-					if (error && error.code != status.ALREADY_EXISTS) {
+				(error, response) => {
+					if (error && error.code != Status.ALREADY_EXISTS) {
 						reject(error);
 					} else {
-						resolve(new DB(db, this.grpcClient, this._config));
+						resolve(new Cache(this._config.projectName, name, this.cacheClient, this._config));
 					}
 				}
 			);
 		});
 	}
 
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	public dropDatabase(db: string, _options?: DatabaseOptions): Promise<DropDatabaseResponse> {
-		return new Promise<DropDatabaseResponse>((resolve, reject) => {
-			this.grpcClient.dropDatabase(
-				new ProtoDropDatabaseRequest().setDb(db).setOptions(new ProtoDatabaseOptions()),
+	/**
+	 * Deletes the entire cache from this project.
+	 * @param name - cache identifier
+	 */
+	public deleteCache(name: string): Promise<DeleteCacheResponse> {
+		return new Promise<DeleteCacheResponse>((resolve, reject) => {
+			this.cacheClient.deleteCache(
+				new ProtoDeleteCacheRequest().setProject(this._config.projectName).setName(name),
 				(error, response) => {
 					if (error) {
 						reject(error);
 					} else {
-						resolve(new DropDatabaseResponse(response.getStatus(), response.getMessage()));
+						resolve(new DeleteCacheResponse(response.getMessage()));
 					}
 				}
 			);
 		});
 	}
 
-	public getDatabase(db: string): DB {
-		return new DB(db, this.grpcClient, this._config);
+	/**
+	 * Lists all the caches for this project
+	 */
+	public listCaches(): Promise<ListCachesResponse> {
+		return new Promise<ListCachesResponse>((resolve, reject) => {
+			this.cacheClient.listCaches(
+				new ProtoListCachesRequest().setProject(this._config.projectName),
+				(error, response) => {
+					if (error) {
+						reject(error);
+					} else {
+						const cachesMetadata: CacheMetadata[] = new Array<CacheMetadata>();
+						for (const value of response.getCachesList())
+							cachesMetadata.push(new CacheMetadata(value.getName()));
+						resolve(new ListCachesResponse(cachesMetadata));
+					}
+				}
+			);
+		});
+	}
+
+	public getCache(cacheName: string): Cache {
+		return new Cache(this._config.projectName, cacheName, this.cacheClient, this._config);
+	}
+
+	public getSearch(): Search {
+		return new Search(this.searchClient, this._config);
 	}
 
 	public getServerMetadata(): Promise<ServerMetadata> {
@@ -318,33 +357,36 @@ export class Tigris {
 	}
 
 	/**
-	 * Automatically provision Databases and Collections based on the directories
-	 * and {@link TigrisSchema} definitions in file system
+	 * Automatically create Project and create or update Collections.
+	 * Collection classes decorated with {@link TigrisCollection} decorator will be
+	 * created if not already existing. If Collection already exists, schema changes
+	 * will be applied, if any.
 	 *
-	 * @param schemaPath - Directory location in file system. Recommended to
-	 * provide an absolute path, else loader will try to access application's root
-	 * path which may not be accurate.
+	 * @param collections - Array of Collection classes
+	 *
+	 * @example
+	 * ```
+	 * @TigrisCollection("todoItems")
+	 * class TodoItem {
+	 *   @PrimaryKey(TigrisDataTypes.INT32, { order: 1 })
+	 *   id: number;
+	 *
+	 *   @Field()
+	 *   text: string;
+	 * }
+	 *
+	 * await db.registerSchemas([TodoItem]);
+	 * ```
 	 */
-	public async registerSchemas(schemaPath: string) {
-		if (!path.isAbsolute(schemaPath)) {
-			schemaPath = path.join(appRootPath.toString(), schemaPath);
-		}
-		const manifest: TigrisManifest = loadTigrisManifest(schemaPath);
+	public async registerSchemas(collections: Array<TigrisCollectionType>) {
+		const tigrisDb = this.getDatabase();
 
-		for (const dbManifest of manifest) {
-			// create DB
-			const tigrisDb = await this.createDatabaseIfNotExists(dbManifest.dbName);
-			Log.event(`Created database: ${dbManifest.dbName}`);
-
-			for (const coll of dbManifest.collections) {
-				// Create a collection
-				const collection = await tigrisDb.createOrUpdateCollection(
-					coll.collectionName,
-					coll.schema
-				);
-				Log.event(
-					`Created collection: ${collection.collectionName} from schema: ${coll.schemaName} in db: ${dbManifest.dbName}`
-				);
+		for (const coll of collections) {
+			const found = this._metadataStorage.getCollectionByTarget(coll as Function);
+			if (!found) {
+				Log.error(`No such collection defined: '${coll.toString()}'`);
+			} else {
+				await tigrisDb.createOrUpdateCollection(found.target.prototype.constructor);
 			}
 		}
 	}

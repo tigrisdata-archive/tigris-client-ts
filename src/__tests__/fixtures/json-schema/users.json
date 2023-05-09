@@ -1,0 +1,43 @@
+{
+	"title": "users",
+	"additionalProperties": false,
+	"type": "object",
+	"properties": {
+		"id": {
+			"type": "number"
+		},
+		"created": {
+			"type": "string",
+			"format": "date-time",
+			"index": true
+		},
+		"identities": {
+			"type": "array",
+			"items": {
+				"type": "object",
+				"properties": {
+					"connection": {
+						"type": "string",
+						"maxLength": 128
+					},
+					"isSocial": {
+						"type": "boolean"
+					},
+					"provider": {
+						"type": "array",
+						"items": {
+							"type": "number"
+						}
+					},
+					"linkedAccounts": {
+						"type": "number"
+					}
+				}
+			}
+		},
+		"name": {
+			"type": "string"
+		}
+	},
+	"primary_key": ["id"]
+}
