@@ -1,7 +1,7 @@
 import * as proto from "google-protobuf";
 import { ClientReadableStream } from "@grpc/grpc-js";
 import { CursorInUseError } from "../error";
-import { Readable } from "node:stream";
+import { Readable } from "stream";
 
 /** @internal */
 export interface Initializer<TResp extends proto.Message> {

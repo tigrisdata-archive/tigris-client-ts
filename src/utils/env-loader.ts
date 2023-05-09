@@ -1,7 +1,7 @@
 import appRootPath from "app-root-path";
 import * as dotenv from "dotenv";
-import path from "node:path";
-import fs from "node:fs";
+import path from "path";
+import * as fs from "fs";
 import { Log } from "./logger";
 
 /**
