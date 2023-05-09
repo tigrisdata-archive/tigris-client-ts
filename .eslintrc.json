@@ -29,6 +29,7 @@
 		"unused-imports/no-unused-imports": "error",
 		"quotes": "off",
 		"unicorn/expiring-todo-comments": "off",
+		"unicorn/prefer-node-protocol": "off",
 		"@typescript-eslint/quotes": ["error"],
 		"tsdoc/syntax": "error"
 	},
