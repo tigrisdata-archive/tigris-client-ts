@@ -1,50 +1,46 @@
 name: release
 on:
-  push:
-    branches:
-      - "alpha"
-      - "beta"
-      - "release"
+    push:
+        branches:
+            - "alpha"
+            - "beta"
+            - "release"
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node: [12, 14, 16, 17, 18]
-    steps:
-      - uses: actions/checkout@v3
-      - name: Setup NodeJS
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: "npm"
-      - run: npm run clean
-      - run: npm ci
-      - run: npm run lint
-      - run: npm run prettier-check
-      - run: npm run build
-      - run: npm run test
+    test:
+        runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                node: [ 12, 14, 16, 17, 18 ]
+        steps:
+            -   uses: actions/checkout@v3
+            -   name: Setup NodeJS
+                uses: actions/setup-node@v3
+                with:
+                    node-version: ${{ matrix.node-version }}
+                    cache: "npm"
+            -   run: npm run clean
+            -   run: npm ci
+            -   run: npm run lint
+            -   run: npm run prettier-check
+            -   run: npm run build
+            -   run: npm run test
 
-  release:
-    runs-on: ubuntu-latest
-    needs: [test]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 18
-      - name: Build package
-        run: npm ci
-      - name: Install semantic-release
-        run: |
-          npm install --no-package-lock --no-save \
-              @semantic-release/commit-analyzer \
-              @semantic-release/release-notes-generator \
-              @semantic-release/github
-      - name: Release
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx semantic-release@18 --debug
+    release:
+        runs-on: ubuntu-latest
+        needs: [ test ]
+        steps:
+            -   name: Checkout
+                uses: actions/checkout@v3
+            -   name: Setup Node.js
+                uses: actions/setup-node@v3
+                with:
+                    node-version: 18
+            -   name: Build package
+                run: npm ci
+            -   name: Verify the signatures for installed dependencies
+                run: npm audit signatures
+            -   name: Release
+                env:
+                    NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+                    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                run: npx semantic-release@18 --debug
