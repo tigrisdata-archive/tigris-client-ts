@@ -1,29 +1,29 @@
 name: release-test
 on:
-    pull_request:
-        types:
-            - "opened"
-            - "reopened"
-        branches:
-            - "alpha"
-            - "beta"
-            - "release"
+  pull_request:
+    types:
+      - "opened"
+      - "reopened"
+    branches:
+      - "alpha"
+      - "beta"
+      - "release"
 jobs:
-    release-dry-run:
-        runs-on: ubuntu-latest
-        steps:
-            -   name: Checkout
-                uses: actions/checkout@v3
-            -   name: Setup Node.js
-                uses: actions/setup-node@v3
-                with:
-                    node-version: 18
-            -   name: Install dependencies
-                run: npm ci
-            -   name: Verify the signatures for installed dependencies
-                run: npm audit signatures
-            -   name: Release dry run
-                env:
-                    NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-                    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-                run: npx semantic-release@18 --debug --dryRun
+  release-dry-run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - name: Install dependencies
+        run: npm ci
+      - name: Verify the signatures for installed dependencies
+        run: npm audit signatures
+      - name: Release dry run
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx semantic-release@18 --debug --dryRun
