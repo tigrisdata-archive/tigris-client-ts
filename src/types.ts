@@ -511,6 +511,7 @@ export type UpdateFields<T> =
 			$decrement?: DocumentFields<T, NumericType>;
 			$multiply?: DocumentFields<T, NumericType>;
 			$divide?: DocumentFields<T, NumericType>;
+			$push?: DocumentFields<T, FieldTypes | undefined>;
 	  }
 	| DocumentFields<T, FieldTypes | undefined>;
 

@@ -63,12 +63,41 @@ describe("updateFields tests", () => {
 			},
 			expected: '{"$set":{"categories":["tales","stories"]}}',
 		},
+		{
+			name: "push an element to an array",
+			input: {
+				$push: {
+					categories: "fiction",
+				},
+			},
+			expected: '{"$push":{"categories":"fiction"}}',
+		},
+		{
+			name: "push an object element to an array",
+			input: {
+				$push: {
+					authors: {
+						firstName: "James",
+						lastName: "Bond",
+					},
+				},
+			},
+			expected: '{"$push":{"authors":{"firstName":"James","lastName":"Bond"}}}',
+		},
 	];
 
 	it.each(testCases)("Serializing '$name' to string", (fixture) => {
 		expect(Utility.updateFieldsString(fixture.input)).toBe(fixture.expected);
 	});
 });
+
+class Author {
+	@Field()
+	firstName: string;
+
+	@Field()
+	lastName: string;
+}
 
 class Publisher {
 	@Field()
@@ -103,4 +132,7 @@ class Books {
 
 	@Field()
 	publisher: Publisher;
+
+	@Field(TigrisDataTypes.ARRAY, { elements: TigrisDataTypes.OBJECT })
+	authors: Author[];
 }

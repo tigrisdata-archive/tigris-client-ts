@@ -105,6 +105,7 @@ export const Utility = {
 				case "$increment":
 				case "$decrement":
 				case "$multiply":
+				case "$push":
 					updateBuilder[key] = value;
 					break;
 				default:
