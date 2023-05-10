@@ -1,6 +1,7 @@
 # Tigris TypeScript Client Library
 
 [![npm](https://img.shields.io/npm/v/@tigrisdata/core?logo=npm&logoColor=white)](https://www.npmjs.com/package/@tigrisdata/core)
+[![npm@beta](https://img.shields.io/npm/v/@tigrisdata/core/beta.svg?logo=npm&logoColor=white)](https://www.npmjs.com/package/@tigrisdata/core)
 [![build](https://github.com/tigrisdata/tigris-client-ts/actions/workflows/ts-ci.yml/badge.svg?branch=main)](https://github.com/tigrisdata/tigris-client-ts/actions/workflows/ts-ci.yml)
 [![codecov](https://codecov.io/gh/tigrisdata/tigris-client-ts/branch/main/graph/badge.svg)](https://codecov.io/gh/tigrisdata/tigris-client-ts)
 [![GitHub](https://img.shields.io/github/license/tigrisdata/tigris-client-ts)](https://github.com/tigrisdata/tigris-client-ts/blob/main/LICENSE)
