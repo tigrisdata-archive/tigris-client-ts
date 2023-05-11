@@ -53,6 +53,16 @@ export class Search {
 
 		if (mayBeClass && !schema) {
 			const generatedIndex = this.schemaProcessor.processIndex(mayBeClass);
+			if (!generatedIndex) {
+				return new Promise<SearchIndex<T>>((resolve, reject) => {
+					reject(
+						new Error(
+							`An attempt was made to retrieve an index with the name ${indexName} but there is no index defined with that name.` +
+								+"Please make sure an index has been defined using the 'TigrisSearchIndex' decorator."
+						)
+					);
+				});
+			}
 			schema = generatedIndex.schema as TigrisIndexSchema<T>;
 			// if indexName is not provided, use the one from model class
 			indexName = indexName ?? generatedIndex.name;
