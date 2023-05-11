@@ -13,7 +13,7 @@ labels:
 
 rules:
   - name: is-release-branch
-    spec: $base() == "beta"
+    spec: $base() == "beta" || $base() == "alpha" || $base() == "release"
   - name: is-main-branch
     spec: $base() == "main"
 

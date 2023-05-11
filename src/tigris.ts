@@ -391,7 +391,10 @@ export class Tigris {
 		}
 	}
 
-	private close(): void {
+	/**
+	 * Shutdown, if ping is being used in order to keep connection alive.
+	 */
+	public close(): void {
 		if (this.pingId !== undefined) {
 			clearInterval(this.pingId);
 		}
