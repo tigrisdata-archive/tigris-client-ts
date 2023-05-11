@@ -63,6 +63,12 @@ describe("Search Indexing", () => {
 			const createPromise = tigris.createOrUpdateIndex("any other index", bookSchema);
 			await expect(createPromise).rejects.toThrow("Server error");
 		});
+		it("fails for not adding the TigrisSearchIndex decorator", async () => {
+			const createPromise = tigris.createOrUpdateIndex(BlogPostWithoutDecorator);
+			await expect(createPromise).rejects.toThrow(
+				"An attempt was made to retrieve an index with the name"
+			);
+		});
 	});
 
 	describe("getIndex", () => {
@@ -212,6 +218,20 @@ const bookSchema: TigrisIndexSchema<Book> = {
 
 @TigrisSearchIndex(SearchServiceFixtures.CreateIndex.Blog)
 class BlogPost {
+	@SearchField({ facet: true })
+	text: string;
+
+	@SearchField({ elements: TigrisDataTypes.STRING })
+	comments: Array<string>;
+
+	@SearchField()
+	author: string;
+
+	@SearchField({ sort: true })
+	createdAt: Date;
+}
+
+class BlogPostWithoutDecorator {
 	@SearchField({ facet: true })
 	text: string;
 

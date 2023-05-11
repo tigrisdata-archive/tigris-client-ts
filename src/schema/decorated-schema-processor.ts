@@ -40,6 +40,9 @@ export class DecoratedSchemaProcessor {
 
 	processIndex(cls: new () => TigrisIndexType): IndexSchema<typeof cls> {
 		const index = this.storage.getIndexByTarget(cls);
+		if (!index) {
+			return;
+		}
 		const schema = this.buildTigrisSchema(index.target, false);
 		return {
 			name: index.indexName,
