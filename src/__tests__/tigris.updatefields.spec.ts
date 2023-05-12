@@ -133,6 +133,6 @@ class Books {
 	@Field()
 	publisher: Publisher;
 
-	@Field(TigrisDataTypes.ARRAY, { elements: TigrisDataTypes.OBJECT })
+	@Field(TigrisDataTypes.ARRAY, { elements: Author })
 	authors: Author[];
 }
