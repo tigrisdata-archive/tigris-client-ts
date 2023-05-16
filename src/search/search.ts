@@ -6,7 +6,6 @@ import { Utility } from "../utility";
 import {
 	CreateOrUpdateIndexRequest as ProtoCreateIndexRequest,
 	DeleteIndexRequest as ProtoDeleteIndexRequest,
-	GetIndexRequest as ProtoGetIndexRequest,
 	ListIndexesRequest as ProtoListIndexesRequest,
 } from "../proto/server/v1/search_pb";
 import { DecoratedSchemaProcessor } from "../schema/decorated-schema-processor";
@@ -99,19 +98,9 @@ export class Search {
 		});
 	}
 
+	// TODO: this doesn't have to be promise but would be a breaking change for existing users
 	public getIndex<T extends TigrisIndexType>(name: string): Promise<SearchIndex<T>> {
-		const getIndexRequest = new ProtoGetIndexRequest().setProject(this.projectName).setName(name);
-		return new Promise<SearchIndex<T>>((resolve, reject) => {
-			this.client.getIndex(getIndexRequest, (error, response) => {
-				if (error) {
-					reject(error);
-					return;
-				}
-				if (response.hasIndex()) {
-					resolve(new SearchIndex(this.client, name, this.config));
-				}
-			});
-		});
+		return Promise.resolve(new SearchIndex(this.client, name, this.config));
 	}
 
 	public deleteIndex(name: string): Promise<DeleteIndexResponse> {
