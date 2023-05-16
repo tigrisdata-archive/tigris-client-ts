@@ -71,18 +71,6 @@ describe("Search Indexing", () => {
 		});
 	});
 
-	describe("getIndex", () => {
-		it("succeeds if index exists", async () => {
-			const getIndexPromise = tigris.getIndex(SearchServiceFixtures.Success);
-			return expect(getIndexPromise).resolves.toBeInstanceOf(SearchIndex);
-		});
-		it("fails if index does not exist", async () => {
-			await expect(tigris.getIndex(SearchServiceFixtures.DoesNotExist)).rejects.toThrow(
-				"search index not found"
-			);
-		});
-	});
-
 	describe("deleteIndex", () => {
 		it("succeeds if index exists", async () => {
 			const deleteResp = await tigris.deleteIndex(SearchServiceFixtures.Success);

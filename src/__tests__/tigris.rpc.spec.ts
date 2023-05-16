@@ -8,6 +8,7 @@ import {
 	TigrisCollectionType,
 	TigrisDataTypes,
 	TigrisSchema,
+	UpdateFields,
 	UpdateQueryOptions,
 } from "../types";
 import { Tigris, TigrisClientConfig } from "../tigris";
@@ -355,7 +356,7 @@ describe("rpc tests", () => {
 
 		const expectedFilter = { id: 1 };
 		const expectedCollation: Collation = { case: Case.CaseInsensitive };
-		const expectedUpdateFields = { title: "one" };
+		const expectedUpdateFields: UpdateFields<IBook> = { title: "one", $push: { tags: "fiction" } };
 		const options = new UpdateQueryOptions(5, expectedCollation);
 
 		const updatePromise = collection.updateOne({
