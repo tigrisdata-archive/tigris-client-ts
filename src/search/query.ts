@@ -1,4 +1,4 @@
-import { Filter, SortOrder, TigrisCollectionType } from "../types";
+import { DocumentPaths, Filter, SortOrder, TigrisCollectionType } from "../types";
 import { TigrisIndexType } from "./types";
 
 export const MATCH_ALL_QUERY_STRING = "";
@@ -14,7 +14,7 @@ export interface SearchQuery<T extends TigrisCollectionType | TigrisIndexType> {
 	/**
 	 * Fields to project search query on
 	 */
-	searchFields?: Array<string>;
+	searchFields?: Array<DocumentPaths<T>>;
 	/**
 	 * Filter to further refine the search results
 	 */
@@ -22,7 +22,7 @@ export interface SearchQuery<T extends TigrisCollectionType | TigrisIndexType> {
 	/**
 	 * Facet fields to categorically arrange indexed terms
 	 */
-	facets?: FacetFieldsQuery;
+	facets?: FacetFieldsQuery<T>;
 	/**
 	 * Perform a nearest neighbor search to find closest documents
 	 */
@@ -30,7 +30,7 @@ export interface SearchQuery<T extends TigrisCollectionType | TigrisIndexType> {
 	/**
 	 * Sort the search results in indicated order
 	 */
-	sort?: SortOrder;
+	sort?: SortOrder<T>;
 	/**
 	 * Group by single or multiple fields in the index
 	 */
@@ -38,11 +38,11 @@ export interface SearchQuery<T extends TigrisCollectionType | TigrisIndexType> {
 	/**
 	 * Document fields to include when returning search results
 	 */
-	includeFields?: Array<string>;
+	includeFields?: Array<DocumentPaths<T>>;
 	/**
 	 * Document fields to exclude when returning search results
 	 */
-	excludeFields?: Array<string>;
+	excludeFields?: Array<DocumentPaths<T>>;
 	/**
 	 * Maximum number of search hits (matched documents) to fetch per page
 	 */
@@ -63,19 +63,19 @@ export interface SearchQueryOptions {
 	collation?: Collation;
 }
 
-export type FacetFieldsQuery = FacetFieldOptions | FacetFields;
+export type FacetFieldsQuery<T> = FacetFieldOptions<T> | FacetFields<T>;
 
 /**
  * Map of collection field names and faceting options to include facet results in search response
  */
-export type FacetFieldOptions = {
-	[key: string]: FacetQueryOptions;
+export type FacetFieldOptions<T> = {
+	[K in DocumentPaths<T>]?: FacetQueryOptions;
 };
 
 /**
  * Array of field names to include facet results for in search response
  */
-export type FacetFields = Array<string>;
+export type FacetFields<T> = Array<DocumentPaths<T>>;
 
 /**
  * Information to build facets in search results
