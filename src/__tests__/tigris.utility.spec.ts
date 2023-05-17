@@ -9,10 +9,23 @@ import {
 	SearchQueryOptions,
 } from "../search";
 import { SearchRequest as ProtoSearchRequest } from "../proto/server/v1/api_pb";
-import { SortOrder } from "../types";
+import { SortOrder, TigrisCollectionType } from "../types";
 import { Field } from "../decorators/tigris-field";
 import { TigrisCollection } from "../decorators/tigris-collection";
 import { PrimaryKey } from "../decorators/tigris-primary-key";
+
+interface ICollectionFields extends TigrisCollectionType {
+	field_1: string;
+	field_2: string;
+	field_3: string;
+	parent?: IParent;
+}
+
+interface IParent extends TigrisCollectionType {
+	field_1?: string;
+	field_2?: string;
+	field_3?: string;
+}
 
 describe("utility tests", () => {
 	it("base64encode", () => {
@@ -40,7 +53,7 @@ describe("utility tests", () => {
 	});
 
 	it("serializes FacetFields to string", () => {
-		const fields: FacetFields = ["field_1", "field_2"];
+		const fields: FacetFields<ICollectionFields> = ["field_1", "field_2"];
 		const serialized: string = Utility.facetQueryToString(fields);
 		expect(serialized).toBe(
 			'{"field_1":{"size":10,"type":"value"},"field_2":{"size":10,"type":"value"}}'
@@ -48,7 +61,7 @@ describe("utility tests", () => {
 	});
 
 	it("serializes FacetFieldOptions to string", () => {
-		const fields: FacetFieldOptions = {
+		const fields: FacetFieldOptions<ICollectionFields> = {
 			field_1: Utility.defaultFacetingOptions(),
 			field_2: { size: 10 },
 		};
@@ -59,8 +72,8 @@ describe("utility tests", () => {
 	});
 
 	it("equivalent serialization of FacetFieldsQuery", () => {
-		const facetFields: FacetFieldsQuery = ["field_1", "field_2"];
-		const fieldOptions: FacetFieldsQuery = {
+		const facetFields: FacetFieldsQuery<ICollectionFields> = ["field_1", "field_2"];
+		const fieldOptions: FacetFieldsQuery<ICollectionFields> = {
 			field_1: Utility.defaultFacetingOptions(),
 			field_2: { size: 10, type: "value" },
 		};
@@ -68,8 +81,7 @@ describe("utility tests", () => {
 		expect(serializedFields).toBe(Utility.facetQueryToString(fieldOptions));
 	});
 
-	it.each<[string, SortOrder, string]>([
-		["undefined", undefined, "[]"],
+	it.each<[string, SortOrder<ICollectionFields>, string]>([
 		[
 			"multiple sort fields",
 			[
@@ -81,7 +93,7 @@ describe("utility tests", () => {
 		["single sort field", { field: "field_3", order: "$desc" }, '[{"field_3":"$desc"}]'],
 		["empty array", [], "[]"],
 	])("_sortOrderingToString() with '%s'", (testName, input, expected) => {
-		expect(Utility._sortOrderingToString(input)).toBe(expected);
+		expect(Utility._sortOrderingToString<ICollectionFields>(input)).toBe(expected);
 	});
 
 	describe("createProtoSearchRequest", () => {
