@@ -87,7 +87,7 @@ export const Utility = {
 	_getRandomInt(upperBound: number): number {
 		return Math.floor(Math.random() * upperBound);
 	},
-	readFieldString<T>(readFields: ReadFields<T>): string {
+	readFieldString(readFields: ReadFields): string {
 		const include = readFields.include?.reduce((acc, field) => ({ ...acc, [field]: true }), {});
 		const exclude = readFields.exclude?.reduce((acc, field) => ({ ...acc, [field]: false }), {});
 
@@ -491,9 +491,8 @@ export const Utility = {
 		return { ...defaults, ...options };
 	},
 
-	facetQueryToString<T>(facets: FacetFieldsQuery<T>): string {
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const optionsMap: any = {};
+	facetQueryToString(facets: FacetFieldsQuery): string {
+		const optionsMap = {};
 		if (Array.isArray(facets)) {
 			for (const f of facets) {
 				optionsMap[f] = this.defaultFacetingOptions();
@@ -513,7 +512,7 @@ export const Utility = {
 		return this.objToJsonString(q);
 	},
 
-	_sortOrderingToString<T>(ordering: SortOrder<T>): string {
+	_sortOrderingToString(ordering: SortOrder): string {
 		if (typeof ordering === "undefined") {
 			return "[]";
 		}
@@ -568,9 +567,7 @@ export const Utility = {
 		}
 
 		if (query.sort !== undefined) {
-			searchRequest.setSort(
-				Utility.stringToUint8Array(Utility._sortOrderingToString<T>(query.sort))
-			);
+			searchRequest.setSort(Utility.stringToUint8Array(Utility._sortOrderingToString(query.sort)));
 		}
 
 		if (query.groupBy !== undefined) {

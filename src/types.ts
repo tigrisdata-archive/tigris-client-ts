@@ -494,9 +494,9 @@ export interface TigrisCollectionType {
 export type NumericType = number | bigint;
 export type FieldTypes = string | boolean | NumericType | BigInteger | Date | object;
 
-export type ReadFields<T> = {
-	include?: Array<DocumentPaths<T>>;
-	exclude?: Array<DocumentPaths<T>>;
+export type ReadFields = {
+	include?: Array<string>;
+	exclude?: Array<string>;
 };
 
 type DocumentFields<T, V> = Partial<{
@@ -518,13 +518,13 @@ export type UpdateFields<T> =
 /**
  * List of fields and their corresponding sort order to order the search results.
  */
-export type SortOrder<T> = SortField<T> | Array<SortField<T>>;
+export type SortOrder = SortField | Array<SortField>;
 
 /**
  * Collection field name and sort order
  */
-export type SortField<T> = {
-	field: DocumentPaths<T>;
+export type SortField = {
+	field: string;
 	order: "$asc" | "$desc";
 };
 
@@ -549,12 +549,12 @@ export interface FindQuery<T> {
 	 * Field projection to allow returning only specific document fields. By default
 	 * all document fields are returned.
 	 */
-	readFields?: ReadFields<T>;
+	readFields?: ReadFields;
 
 	/**
 	 * Sort the query results as per indicated order
 	 */
-	sort?: SortOrder<T>;
+	sort?: SortOrder;
 
 	/**
 	 * Optional params
@@ -751,19 +751,17 @@ export type Selector<T> = Partial<{
 	[K in string]: unknown;
 }>;
 
-/**
- * Compute all possible property combinations
- */
-type normalTypes = PropertyKey | BigInt | Date | boolean | Array<unknown>;
-export type DocumentPaths<T, Cache extends string = ""> = T extends normalTypes
-	? Cache
-	: {
-			[P in keyof T]: P extends string
-				? Cache extends ""
-					? DocumentPaths<T[P], `${P}`>
-					: Cache | DocumentPaths<T[P], `${Cache}.${P}`>
-				: `${Cache}${P & string}`;
-	  }[keyof T];
+type PathsForFilter<T, P extends string = ""> = {
+	[K in keyof T]: T[K] extends object
+		? T[K] extends unknown[]
+			? `${P}${K & string}`
+			: Paths<T[K], `${P}${K & string}.`> extends infer O
+			? T[K] extends Date | BigInt
+				? `${O & string}` | `${P}${K & string}`
+				: `${O & string}`
+			: never
+		: `${P}${K & string}`;
+}[keyof T];
 
 export type SelectorOperator =
 	| "$eq"
@@ -778,7 +776,7 @@ export type SelectorOperator =
 export type LogicalOperator = "$or" | "$and";
 
 export type SelectorFilter<T> = {
-	[K in DocumentPaths<T>]?: PathType<T, K> | { [P in SelectorOperator]?: PathType<T, K> };
+	[K in PathsForFilter<T>]?: PathType<T, K> | { [P in SelectorOperator]?: PathType<T, K> };
 };
 
 export type LogicalFilter<T> = {

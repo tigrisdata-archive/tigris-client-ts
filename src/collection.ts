@@ -569,13 +569,11 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 			.setFilter(Utility.stringToUint8Array(Utility.filterToString(query.filter)));
 
 		if (query.readFields) {
-			readRequest.setFields(
-				Utility.stringToUint8Array(Utility.readFieldString<T>(query.readFields))
-			);
+			readRequest.setFields(Utility.stringToUint8Array(Utility.readFieldString(query.readFields)));
 		}
 
 		if (query.sort) {
-			readRequest.setSort(Utility.stringToUint8Array(Utility._sortOrderingToString<T>(query.sort)));
+			readRequest.setSort(Utility.stringToUint8Array(Utility._sortOrderingToString(query.sort)));
 		}
 
 		if (query.options) {
