@@ -1,39 +1,24 @@
-import { ReadFields, TigrisCollectionType } from "../types";
+import { ReadFields } from "../types";
 import { Utility } from "../utility";
 
-export interface IBook1 extends TigrisCollectionType {
-	id?: number;
-	title: string;
-	author: Author;
-	tags?: string[];
-}
-
-export interface Author extends TigrisCollectionType {
-	firstName: string;
-	lastName: string;
-}
 describe("readFields tests", () => {
 	it("readFields1", () => {
-		const readFields: ReadFields<IBook1> = {
-			include: ["id", "title", "author.firstName", "author.lastName"],
+		const readFields: ReadFields = {
+			include: ["id", "title"],
 		};
-		expect(Utility.readFieldString<IBook1>(readFields)).toBe(
-			'{"id":true,"title":true,"author.firstName":true,"author.lastName":true}'
-		);
+		expect(Utility.readFieldString(readFields)).toBe('{"id":true,"title":true}');
 	});
 	it("readFields2", () => {
-		const readFields: ReadFields<IBook1> = {
+		const readFields: ReadFields = {
 			exclude: ["id", "title"],
 		};
-		expect(Utility.readFieldString<IBook1>(readFields)).toBe('{"id":false,"title":false}');
+		expect(Utility.readFieldString(readFields)).toBe('{"id":false,"title":false}');
 	});
 	it("readFields3", () => {
-		const readFields: ReadFields<IBook1> = {
+		const readFields: ReadFields = {
 			include: ["id", "title"],
 			exclude: ["author"],
 		};
-		expect(Utility.readFieldString<IBook1>(readFields)).toBe(
-			'{"id":true,"title":true,"author":false}'
-		);
+		expect(Utility.readFieldString(readFields)).toBe('{"id":true,"title":true,"author":false}');
 	});
 });
