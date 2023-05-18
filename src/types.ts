@@ -778,7 +778,11 @@ export type SelectorOperator =
 export type LogicalOperator = "$or" | "$and";
 
 export type SelectorFilter<T> = {
-	[K in DocumentPaths<T>]?: PathType<T, K> | { [P in SelectorOperator]?: PathType<T, K> };
+	[K in DocumentPaths<T>]?:
+		| PathType<T, K>
+		| { [P in SelectorOperator]?: PathType<T, K> }
+		| FieldTypes
+		| { [P in SelectorOperator]?: FieldTypes };
 };
 
 export type LogicalFilter<T> = {
