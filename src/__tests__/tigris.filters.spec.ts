@@ -46,6 +46,40 @@ describe("filters tests", () => {
 		);
 	});
 
+	it("filter with an array value on array field", () => {
+		const arrayFilter: Filter<IUser1> = {
+			tags: ["tag1"],
+		};
+		expect(Utility.filterToString(arrayFilter)).toBe('{"tags":["tag1"]}');
+	});
+
+	it("filter with a string value on array field", () => {
+		const arrayFilter: Filter<IUser1> = {
+			tags: "tag1",
+		};
+		expect(Utility.filterToString(arrayFilter)).toBe('{"tags":"tag1"}');
+	});
+
+	it("filter with an array value on array of objects", () => {
+		const arrayFilter: Filter<IUser1> = {
+			address: [
+				{
+					city: "city1",
+				},
+			],
+		};
+		expect(Utility.filterToString(arrayFilter)).toBe('{"address":[{"city":"city1"}]}');
+	});
+
+	it("filter with an object value on array of objects", () => {
+		const arrayFilter: Filter<IUser1> = {
+			address: {
+				city: "city1",
+			},
+		};
+		expect(Utility.filterToString(arrayFilter)).toBe('{"address":{"city":"city1"}}');
+	});
+
 	it("simplerSelectorWithinLogicalFilterTest", () => {
 		const filter1: Filter<IUser> = {
 			$and: [
@@ -285,6 +319,14 @@ export interface IUser extends TigrisCollectionType {
 	balance: number;
 }
 
+export class UserAddress {
+	street: string;
+	unit: string;
+	city: string;
+	state: string;
+	zipcode: number;
+}
+
 @TigrisCollection("user1")
 export class IUser1 {
 	@PrimaryKey({ order: 1 })
@@ -299,6 +341,10 @@ export class IUser1 {
 	createdAt: string;
 	@Field()
 	updatedAt: Date;
+	@Field({ elements: TigrisDataTypes.STRING })
+	tags: string[];
+	@Field({ elements: UserAddress })
+	address: UserAddress[];
 }
 
 export interface IUser2 extends TigrisCollectionType {
