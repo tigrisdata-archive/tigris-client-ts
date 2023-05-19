@@ -10,10 +10,11 @@ import {
 	Match as ProtoMatch,
 	MatchField as ProtoMatchField,
 } from "../../proto/server/v1/api_pb";
-import { TestTigrisService } from "../test-service";
-import { IBook } from "../tigris.rpc.spec";
+import { TestTigrisService } from "../../__tests__/test-service";
+import { IBook } from "../../__tests__/tigris.rpc.spec";
 import * as google_protobuf_timestamp_pb from "google-protobuf/google/protobuf/timestamp_pb";
-import { TextMatchInfo, SearchResult, DocMeta, SearchMeta } from "../../search";
+import { TextMatchInfo, SearchResult, DocMeta } from "../../search";
+import { toDocMeta, toSearchMeta, toSearchResult, toTextMatchInfo } from "../grpc/search";
 
 describe("SearchResponse parsing", () => {
 	it("generates search hits appropriately", () => {
@@ -31,7 +32,7 @@ describe("SearchResponse parsing", () => {
 		);
 		const input: ProtoSearchResponse = new ProtoSearchResponse();
 		input.setHitsList(expectedHits);
-		const parsed: SearchResult<IBook> = SearchResult.from(input, {
+		const parsed: SearchResult<IBook> = toSearchResult(input, {
 			serverUrl: "test",
 		});
 
@@ -54,7 +55,7 @@ describe("SearchResponse parsing", () => {
 			new ProtoFacetCount().setCount(2).setValue("Marcel Proust"),
 		]);
 		input.getFacetsMap().set("author", searchFacet);
-		const parsed: SearchResult<unknown> = SearchResult.from(input, { serverUrl: "test" });
+		const parsed: SearchResult<unknown> = toSearchResult(input, { serverUrl: "test" });
 
 		expect(Object.keys(parsed.facets).length).toBe(1);
 		expect(parsed.facets["author"]).toBeDefined();
@@ -71,7 +72,7 @@ describe("SearchResponse parsing", () => {
 		const input: ProtoSearchResponse = new ProtoSearchResponse();
 		const searchFacet = new ProtoSearchFacet().setStats(new ProtoFacetStats().setAvg(4.5));
 		input.getFacetsMap().set("author", searchFacet);
-		const parsed: SearchResult<unknown> = SearchResult.from(input, { serverUrl: "test" });
+		const parsed: SearchResult<unknown> = toSearchResult(input, { serverUrl: "test" });
 
 		const facetDistribution = parsed.facets["author"];
 		expect(facetDistribution.stats).toBeDefined();
@@ -84,7 +85,7 @@ describe("SearchResponse parsing", () => {
 
 	it("generates empty result with empty response", () => {
 		const input: ProtoSearchResponse = new ProtoSearchResponse();
-		const parsed: SearchResult<unknown> = SearchResult.from(input, { serverUrl: "test" });
+		const parsed: SearchResult<unknown> = toSearchResult(input, { serverUrl: "test" });
 
 		expect(parsed).toBeDefined();
 		expect(parsed.hits).toBeDefined();
@@ -103,7 +104,7 @@ describe("SearchResponse parsing", () => {
 		const input: ProtoSearchResponse = new ProtoSearchResponse();
 		const page: ProtoPage = new ProtoPage().setSize(3).setCurrent(2);
 		input.setMeta(new ProtoSearchMetadata().setPage(page).setTotalPages(100));
-		const parsed: SearchResult<unknown> = SearchResult.from(input, { serverUrl: "test" });
+		const parsed: SearchResult<unknown> = toSearchResult(input, { serverUrl: "test" });
 
 		expect(parsed.meta.page.size).toBe(3);
 		expect(parsed.meta.page.current).toBe(2);
@@ -113,7 +114,7 @@ describe("SearchResponse parsing", () => {
 	describe("SearchMeta", () => {
 		it("generates default SearchMeta with empty input", () => {
 			const input: ProtoSearchMetadata = new ProtoSearchMetadata();
-			const parsed = SearchMeta.from(input);
+			const parsed = toSearchMeta(input);
 			expect(parsed.totalPages).toBe(0);
 			expect(parsed.found).toBe(0);
 			expect(parsed.page).toBeUndefined();
@@ -122,7 +123,7 @@ describe("SearchResponse parsing", () => {
 
 		it("generates no page values with empty page", () => {
 			const input = new ProtoSearchMetadata().setFound(5);
-			const parsed = SearchMeta.from(input);
+			const parsed = toSearchMeta(input);
 
 			expect(parsed.found).toBe(5);
 			expect(parsed.totalPages).toBe(0);
@@ -136,7 +137,7 @@ describe("SearchResponse parsing", () => {
 				.setPage(page)
 				.setTotalPages(100)
 				.setMatchedFieldsList(["empId", "name"]);
-			const parsed = SearchMeta.from(input);
+			const parsed = toSearchMeta(input);
 
 			expect(parsed.page.size).toBe(3);
 			expect(parsed.page.current).toBe(2);
@@ -148,7 +149,7 @@ describe("SearchResponse parsing", () => {
 	describe("DocMeta", () => {
 		it("generates DocMeta with empty", () => {
 			const input: ProtoSearchHitMeta = new ProtoSearchHitMeta();
-			const parsed: DocMeta = DocMeta.from(input);
+			const parsed: DocMeta = toDocMeta(input);
 			expect(parsed.createdAt).toBeUndefined();
 			expect(parsed.updatedAt).toBeUndefined();
 			expect(parsed.textMatch).toBeUndefined();
@@ -160,7 +161,7 @@ describe("SearchResponse parsing", () => {
 				new google_protobuf_timestamp_pb.Timestamp().setSeconds(expectedTimeInSeconds)
 			);
 			input.setMatch(new ProtoMatch());
-			const parsed: DocMeta = DocMeta.from(input);
+			const parsed: DocMeta = toDocMeta(input);
 			expect(parsed.updatedAt).toBeUndefined();
 			expect(parsed.createdAt).toStrictEqual(new Date(expectedTimeInSeconds * 1000));
 			expect(parsed.textMatch).toBeDefined();
@@ -170,7 +171,7 @@ describe("SearchResponse parsing", () => {
 	describe("TextMatchInfo", () => {
 		it("generates match field with empty inputs", () => {
 			const input: ProtoMatch = new ProtoMatch();
-			const parsed: TextMatchInfo = TextMatchInfo.from(input);
+			const parsed: TextMatchInfo = toTextMatchInfo(input);
 			expect(parsed.fields).toStrictEqual([]);
 			expect(parsed.score).toBe("");
 			expect(parsed.vectorDistance).toBeUndefined();
@@ -182,7 +183,7 @@ describe("SearchResponse parsing", () => {
 			input.addFields(new ProtoMatchField().setName("user"));
 			input.setVectorDistance(0.24);
 
-			const parsed: TextMatchInfo = TextMatchInfo.from(input);
+			const parsed: TextMatchInfo = toTextMatchInfo(input);
 			expect(parsed.fields).toEqual(expect.arrayContaining(["person", "user"]));
 			expect(parsed.score).toBe("456");
 			expect(parsed.vectorDistance).toBe(0.24);

@@ -1,13 +1,13 @@
-import { TigrisClient } from "./proto/server/v1/api_grpc_pb";
+import { TigrisClient } from "../../proto/server/v1/api_grpc_pb";
 import {
 	CommitTransactionRequest as ProtoCommitTransactionRequest,
 	RollbackTransactionRequest as ProtoRollbackTransactionRequest,
-} from "./proto/server/v1/api_pb";
-import { CommitTransactionResponse, RollbackTransactionResponse } from "./types";
-import { Utility } from "./utility";
+} from "../../proto/server/v1/api_pb";
+import { CommitTransactionResponse, RollbackTransactionResponse, Session } from "../../types";
+import { Utility } from "../../utility";
 import { Metadata } from "@grpc/grpc-js";
 
-export class Session {
+export class GrpcSession implements Session {
 	private readonly _id: string;
 	private readonly _origin: string;
 	private readonly grpcClient: TigrisClient;

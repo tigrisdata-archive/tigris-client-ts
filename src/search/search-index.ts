@@ -1,53 +1,26 @@
 import { DocStatus, TigrisIndexType } from "./types";
-import { SearchClient } from "../proto/server/v1/search_grpc_pb";
 import { TigrisClientConfig } from "../tigris";
-import {
-	CreateDocumentRequest as ProtoCreateDocumentRequest,
-	CreateOrReplaceDocumentRequest as ProtoReplaceRequest,
-	DeleteByQueryRequest as ProtoDeleteByQueryRequest,
-	DeleteDocumentRequest as ProtoDeleteDocumentRequest,
-	GetDocumentRequest as ProtoGetDocumentRequest,
-	SearchIndexRequest as ProtoSearchIndexRequest,
-	SearchIndexResponse as ProtoSearchIndexResponse,
-	UpdateDocumentRequest as ProtoUpdateDocumentRequest,
-} from "../proto/server/v1/search_pb";
 import { Utility } from "../utility";
 import { Filter } from "../types";
-import { SearchIndexIteratorInitializer, SearchIterator } from "../consumables/search-iterator";
-import * as grpc from "@grpc/grpc-js";
 
 import { SearchQuery } from "./query";
-import { IndexedDoc, SearchResult } from "./result";
+import { IndexedDoc, SearchCursor, SearchResult } from "./result";
+import { SearchDriver } from "../driver/driver";
 
 export class SearchIndex<T extends TigrisIndexType> {
-	private readonly grpcClient: SearchClient;
 	private readonly name: string;
 	private readonly config: TigrisClientConfig;
+	private readonly driver: SearchDriver;
 
-	constructor(client, name, config) {
-		this.grpcClient = client;
+	constructor(driver, name, config) {
+		this.driver = driver;
 		this.name = name;
 		this.config = config;
 	}
 
-	createMany(docs: Array<T>): Promise<Array<DocStatus>> {
-		return new Promise<Array<DocStatus>>((resolve, reject) => {
-			const createRequest = new ProtoCreateDocumentRequest()
-				.setProject(this.config.projectName)
-				.setIndex(this.name);
-			for (const doc of docs) {
-				const encodedDoc = this.encodedDoc(doc);
-				createRequest.addDocuments(encodedDoc);
-			}
-			this.grpcClient.create(createRequest, (error, response) => {
-				if (error) {
-					reject(error);
-					return;
-				}
-				const status: Array<DocStatus> = response.getStatusList().map((d) => DocStatus.from(d));
-				resolve(status);
-			});
-		});
+	createMany(docs: Array<T>): Promise<DocStatus[]> {
+		const encodedDocs = docs.map((d) => this.encodedDoc(d));
+		return this.driver.createMany(this.name, encodedDocs);
 	}
 
 	createOne(doc: T): Promise<DocStatus> {
@@ -58,37 +31,15 @@ export class SearchIndex<T extends TigrisIndexType> {
 		});
 	}
 
-	deleteMany(ids: Array<string>): Promise<Array<DocStatus>> {
-		return new Promise<Array<DocStatus>>((resolve, reject) => {
-			const delRequest = new ProtoDeleteDocumentRequest()
-				.setProject(this.config.projectName)
-				.setIndex(this.name)
-				.setIdsList(ids);
-			this.grpcClient.delete(delRequest, (error, response) => {
-				if (error) {
-					reject(error);
-					return;
-				}
-				resolve(response.getStatusList().map((d) => DocStatus.from(d)));
-			});
-		});
+	deleteMany(ids: string[]): Promise<DocStatus[]> {
+		return this.driver.deleteMany(this.name, ids);
 	}
 
 	deleteByQuery(filter: Filter<T>): Promise<number> {
-		return new Promise<number>((resolve, reject) => {
-			const delRequest = new ProtoDeleteByQueryRequest()
-				.setProject(this.config.projectName)
-				.setIndex(this.name)
-				.setFilter(Utility.stringToUint8Array(Utility.filterToString(filter)));
-
-			this.grpcClient.deleteByQuery(delRequest, (error, response) => {
-				if (error) {
-					reject(error);
-					return;
-				}
-				resolve(response.getCount());
-			});
-		});
+		return this.driver.deleteByQuery(
+			this.name,
+			Utility.stringToUint8Array(Utility.filterToString(filter))
+		);
 	}
 
 	deleteOne(id: string): Promise<DocStatus> {
@@ -100,21 +51,8 @@ export class SearchIndex<T extends TigrisIndexType> {
 	}
 
 	createOrReplaceMany(docs: Array<T>): Promise<Array<DocStatus>> {
-		return new Promise<Array<DocStatus>>((resolve, reject) => {
-			const replaceRequest = new ProtoReplaceRequest()
-				.setProject(this.config.projectName)
-				.setIndex(this.name);
-
-			for (const doc of docs) replaceRequest.addDocuments(this.encodedDoc(doc));
-
-			this.grpcClient.createOrReplace(replaceRequest, (error, response) => {
-				if (error) {
-					reject(error);
-					return;
-				}
-				resolve(response.getStatusList().map((d) => DocStatus.from(d)));
-			});
-		});
+		const encodedDocs = docs.map((d) => this.encodedDoc(d));
+		return this.driver.createOrReplaceMany(this.name, encodedDocs);
 	}
 
 	createOrReplaceOne(doc: T): Promise<DocStatus> {
@@ -125,23 +63,8 @@ export class SearchIndex<T extends TigrisIndexType> {
 		});
 	}
 
-	getMany(ids: Array<string>): Promise<Array<IndexedDoc<T>>> {
-		return new Promise<Array<IndexedDoc<T>>>((resolve, reject) => {
-			const getRequest = new ProtoGetDocumentRequest()
-				.setProject(this.config.projectName)
-				.setIndex(this.name)
-				.setIdsList(ids);
-			this.grpcClient.get(getRequest, (error, response) => {
-				if (error) {
-					reject(error);
-					return;
-				}
-				const docs: IndexedDoc<T>[] = response.getDocumentsList().map((d) => {
-					return IndexedDoc.from(d, this.config);
-				});
-				resolve(docs);
-			});
-		});
+	getMany(ids: string[]): Promise<IndexedDoc<T>[]> {
+		return this.driver.getMany<T>(this.name, ids);
 	}
 
 	getOne(id: string): Promise<IndexedDoc<T>> {
@@ -152,20 +75,9 @@ export class SearchIndex<T extends TigrisIndexType> {
 		});
 	}
 
-	updateMany(docs: Array<T>): Promise<Array<DocStatus>> {
-		return new Promise<Array<DocStatus>>((resolve, reject) => {
-			const updateRequest = new ProtoUpdateDocumentRequest()
-				.setProject(this.config.projectName)
-				.setIndex(this.name);
-			for (const doc of docs) updateRequest.addDocuments(this.encodedDoc(doc));
-
-			this.grpcClient.update(updateRequest, (error, response) => {
-				if (error) {
-					reject(error);
-				}
-				resolve(response.getStatusList().map((d) => DocStatus.from(d)));
-			});
-		});
+	updateMany(docs: T[]): Promise<DocStatus[]> {
+		const encodedDocs = docs.map((d) => this.encodedDoc(d));
+		return this.driver.updateMany(this.name, encodedDocs);
 	}
 
 	updateOne(doc: T): Promise<DocStatus> {
@@ -193,7 +105,7 @@ export class SearchIndex<T extends TigrisIndexType> {
 	 * }
 	 * ```
 	 */
-	search(query: SearchQuery<T>): SearchIterator<T>;
+	search(query: SearchQuery<T>): SearchCursor<T>;
 
 	/**
 	 * Search for documents in a collection. Easily perform sophisticated queries and refine
@@ -216,30 +128,8 @@ export class SearchIndex<T extends TigrisIndexType> {
 	 */
 	search(query: SearchQuery<T>, page: number): Promise<SearchResult<T>>;
 
-	search(query: SearchQuery<T>, page?: number): SearchIterator<T> | Promise<SearchResult<T>> {
-		const searchRequest = new ProtoSearchIndexRequest()
-			.setProject(this.config.projectName)
-			.setIndex(this.name);
-
-		Utility.protoSearchRequestFromQuery(query, searchRequest, page);
-
-		// return a iterator if no explicit page number is specified
-		if (typeof page === "undefined") {
-			const initializer = new SearchIndexIteratorInitializer(this.grpcClient, searchRequest);
-			return new SearchIterator<T>(initializer, this.config);
-		} else {
-			return new Promise<SearchResult<T>>((resolve, reject) => {
-				const stream: grpc.ClientReadableStream<ProtoSearchIndexResponse> =
-					this.grpcClient.search(searchRequest);
-
-				stream.on("data", (searchResponse: ProtoSearchIndexResponse) => {
-					const searchResult: SearchResult<T> = SearchResult.from(searchResponse, this.config);
-					resolve(searchResult);
-				});
-				stream.on("error", (error) => reject(error));
-				stream.on("end", () => resolve(SearchResult.empty));
-			});
-		}
+	search(query: SearchQuery<T>, page?: number): SearchCursor<T> | Promise<SearchResult<T>> {
+		return this.driver.search(this.name, query, page);
 	}
 
 	private encodedDoc(doc: T): Uint8Array {

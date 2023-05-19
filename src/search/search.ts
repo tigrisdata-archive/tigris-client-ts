@@ -1,22 +1,18 @@
-import { SearchClient } from "../proto/server/v1/search_grpc_pb";
 import { TigrisClientConfig } from "../tigris";
 import { DeleteIndexResponse, IndexInfo, TigrisIndexSchema, TigrisIndexType } from "./types";
 import { SearchIndex } from "./search-index";
 import { Utility } from "../utility";
-import {
-	CreateOrUpdateIndexRequest as ProtoCreateIndexRequest,
-	DeleteIndexRequest as ProtoDeleteIndexRequest,
-	ListIndexesRequest as ProtoListIndexesRequest,
-} from "../proto/server/v1/search_pb";
 import { DecoratedSchemaProcessor } from "../schema/decorated-schema-processor";
+import { SearchDriver } from "../driver/driver";
+import { Log } from "../utils/logger";
 
 export class Search {
-	private readonly client: SearchClient;
+	private readonly driver: SearchDriver;
 	private readonly config: TigrisClientConfig;
 	private readonly schemaProcessor: DecoratedSchemaProcessor;
 
-	constructor(client: SearchClient, config: TigrisClientConfig) {
-		this.client = client;
+	constructor(driver: SearchDriver, config: TigrisClientConfig) {
+		this.driver = driver;
 		this.config = config;
 		this.schemaProcessor = DecoratedSchemaProcessor.Instance;
 	}
@@ -30,7 +26,7 @@ export class Search {
 		schemaOrClass: TigrisIndexSchema<T> | (new () => TigrisIndexType)
 	): Promise<SearchIndex<T>>;
 
-	public createOrUpdateIndex<T extends TigrisIndexType>(
+	public async createOrUpdateIndex<T extends TigrisIndexType>(
 		nameOrClass: string | TigrisIndexType,
 		schemaOrClass?: TigrisIndexSchema<T> | TigrisIndexType
 	): Promise<SearchIndex<T>> {
@@ -68,55 +64,25 @@ export class Search {
 		}
 
 		const rawJSONSchema: string = Utility._indexSchematoJSON(indexName, schema);
-		const createOrUpdateIndexRequest = new ProtoCreateIndexRequest()
-			.setProject(this.projectName)
-			.setName(indexName)
-			.setSchema(Utility.stringToUint8Array(rawJSONSchema));
-		return new Promise<SearchIndex<T>>((resolve, reject) => {
-			this.client.createOrUpdateIndex(createOrUpdateIndexRequest, (error, response) => {
-				if (error) {
-					reject(error);
-					return;
-				}
-				console.log(`Created index: ${response.getMessage()}`);
-				resolve(new SearchIndex(this.client, indexName, this.config));
-			});
-		});
+		const binSchema = Utility.stringToUint8Array(rawJSONSchema);
+		const msg = await this.driver.createOrUpdateIndex(indexName, binSchema);
+		Log.debug(`Created index: ${msg}`);
+		return new SearchIndex(this.driver, indexName, this.config);
 	}
 
 	public listIndexes(): Promise<Array<IndexInfo>> {
 		// TODO: Set filter on request
-		const listIndexRequest = new ProtoListIndexesRequest().setProject(this.projectName);
-		return new Promise<Array<IndexInfo>>((resolve, reject) => {
-			this.client.listIndexes(listIndexRequest, (error, response) => {
-				if (error) {
-					reject(error);
-					return;
-				}
-				resolve(response.getIndexesList().map((i) => IndexInfo.from(i)));
-			});
-		});
+		return this.driver.listIndexes();
 	}
 
 	// TODO: this doesn't have to be promise but would be a breaking change for existing users
 	public getIndex<T extends TigrisIndexType>(name: string): Promise<SearchIndex<T>> {
-		return Promise.resolve(new SearchIndex(this.client, name, this.config));
+		return Promise.resolve(new SearchIndex(this.driver, name, this.config));
 	}
 
-	public deleteIndex(name: string): Promise<DeleteIndexResponse> {
-		const deleteIndexRequest = new ProtoDeleteIndexRequest()
-			.setProject(this.projectName)
-			.setName(name);
-
-		return new Promise<DeleteIndexResponse>((resolve, reject) => {
-			this.client.deleteIndex(deleteIndexRequest, (error, response) => {
-				if (error) {
-					reject(error);
-					return;
-				}
-				resolve(DeleteIndexResponse.from(response));
-			});
-		});
+	public async deleteIndex(name: string): Promise<DeleteIndexResponse> {
+		const resp = await this.driver.deleteIndex(name);
+		return new DeleteIndexResponse(resp);
 	}
 
 	public get projectName(): string {

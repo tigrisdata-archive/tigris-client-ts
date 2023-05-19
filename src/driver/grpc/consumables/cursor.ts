@@ -1,20 +1,20 @@
-import { IterableStream, Initializer } from "./iterable-stream";
-import { ReadRequest, ReadResponse } from "../proto/server/v1/api_pb";
-import { TigrisClient } from "../proto/server/v1/api_grpc_pb";
-import { Session } from "../session";
-import { Utility } from "../utility";
+import { GrpcIterableStream, Initializer } from "./iterable-stream";
+import { ReadRequest, ReadResponse } from "../../../proto/server/v1/api_pb";
+import { TigrisClient } from "../../../proto/server/v1/api_grpc_pb";
+import { GrpcSession } from "../session";
+import { Utility } from "../../../utility";
 import { ClientReadableStream } from "@grpc/grpc-js";
-import { TigrisClientConfig } from "../tigris";
-import { KeysRequest, KeysResponse } from "../proto/server/v1/cache_pb";
-import { CacheClient } from "../proto/server/v1/cache_grpc_pb";
+import { TigrisClientConfig } from "../../../tigris";
+import { KeysRequest, KeysResponse } from "../../../proto/server/v1/cache_pb";
+import { CacheClient } from "../../../proto/server/v1/cache_grpc_pb";
 
 /** @internal */
 export class ReadCursorInitializer implements Initializer<ReadResponse> {
 	private readonly _client: TigrisClient;
 	private readonly _request: ReadRequest;
-	private readonly _session: Session;
+	private readonly _session: GrpcSession;
 
-	constructor(client: TigrisClient, request: ReadRequest, tx: Session) {
+	constructor(client: TigrisClient, request: ReadRequest, tx: GrpcSession) {
 		this._client = client;
 		this._request = request;
 		this._session = tx;
@@ -43,7 +43,7 @@ export class CacheKeysCursorInitializer implements Initializer<KeysResponse> {
 /**
  * Cursor to supplement find() queries
  */
-export class Cursor<T> extends IterableStream<T, ReadResponse> {
+export class GrpcCursor<T> extends GrpcIterableStream<T, ReadResponse> {
 	/** @internal */
 	private readonly _config: TigrisClientConfig;
 
@@ -61,7 +61,7 @@ export class Cursor<T> extends IterableStream<T, ReadResponse> {
 /**
  * Cursor to supplement keys() call for cache
  */
-export class CacheKeysCursor extends IterableStream<string[], KeysResponse> {
+export class CacheKeysCursor extends GrpcIterableStream<string[], KeysResponse> {
 	/** @internal */
 
 	constructor(initializer: CacheKeysCursorInitializer) {

@@ -1,6 +1,6 @@
 import { Metadata } from "@grpc/grpc-js";
 import json_bigint from "json-bigint";
-import { Session } from "./session";
+import { GrpcSession } from "./driver/grpc/session";
 
 import {
 	DeleteQueryOptions,
@@ -155,7 +155,7 @@ export const Utility = {
 			/(\d{4}-[01]\d-[0-3]\dT[0-2](?:\d:[0-5]){2}\d\.\d+([+-][0-2]\d:[0-5]\d|Z))|(\d{4}-[01]\d-[0-3]\dT[0-2](?:\d:[0-5]){2}\d([+-][0-2]\d:[0-5]\d|Z))|(\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d([+-][0-2]\d:[0-5]\d|Z))/;
 		return isoDateRegex.test(value);
 	},
-	txToMetadata(tx: Session): Metadata {
+	txToMetadata(tx: GrpcSession): Metadata {
 		const metadata = new Metadata();
 		if (tx !== undefined && tx !== null) {
 			metadata.set("Tigris-Tx-Id", tx.id);

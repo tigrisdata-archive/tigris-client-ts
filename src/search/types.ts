@@ -1,11 +1,6 @@
 import { TigrisArrayItem, TigrisDataTypes, TigrisResponse } from "../types";
 
 import { Utility } from "../utility";
-import {
-	DeleteIndexResponse as ProtoDeleteIndexResponse,
-	DocStatus as ProtoDocStatus,
-	IndexInfo as ProtoIndexInfo,
-} from "../proto/server/v1/search_pb";
 import { Status } from "../constants";
 import { TigrisError } from "../error";
 
@@ -35,11 +30,9 @@ export class IndexInfo {
 		this._schema = schema;
 	}
 
-	static from(info: ProtoIndexInfo): IndexInfo {
-		const schema = info.getSchema()
-			? JSON.parse(Utility._base64Decode(info.getSchema_asB64()))
-			: {};
-		return new this(info.getName(), schema);
+	static from(name: string, schemaAsB64: string): IndexInfo {
+		const schema = schemaAsB64 ? JSON.parse(Utility._base64Decode(schemaAsB64)) : {};
+		return new this(name, schema);
 	}
 
 	get name(): string {
@@ -61,10 +54,6 @@ export class DeleteIndexResponse implements TigrisResponse {
 	get message(): string {
 		return this._message;
 	}
-
-	static from(resp: ProtoDeleteIndexResponse): DeleteIndexResponse {
-		return new this(resp.getMessage());
-	}
 }
 
 export class DocStatus {
@@ -74,12 +63,5 @@ export class DocStatus {
 	constructor(id: string, error: TigrisError) {
 		this.id = id;
 		this.error = error;
-	}
-
-	static from(protoStatus: ProtoDocStatus): DocStatus {
-		const err = protoStatus.hasError()
-			? new TigrisError(protoStatus.getError().getMessage())
-			: undefined;
-		return new this(protoStatus.getId(), err);
 	}
 }

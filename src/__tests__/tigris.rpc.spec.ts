@@ -19,16 +19,18 @@ import { anything, capture, reset, spy, when } from "ts-mockito";
 import { TigrisCollection } from "../decorators/tigris-collection";
 import { PrimaryKey } from "../decorators/tigris-primary-key";
 import { Field } from "../decorators/tigris-field";
-import { SearchIterator } from "../consumables/search-iterator";
+import { SearchIterator } from "../driver/grpc/consumables/search-iterator";
 import { CacheService } from "../proto/server/v1/cache_grpc_pb";
 import {
 	BranchNameRequiredError,
 	DuplicatePrimaryKeyOrderError,
 	MissingPrimaryKeyOrderInSchemaDefinitionError,
+	TigrisError,
 } from "../error";
 import { Status } from "@grpc/grpc-js/build/src/constants";
 import { Status as TigrisStatus } from "../constants";
 import { Case, Collation, SearchQuery, SearchResult } from "../search";
+import { GrpcSession } from "../driver/grpc/session";
 
 describe("rpc tests", () => {
 	let server: Server;
@@ -651,12 +653,9 @@ describe("rpc tests", () => {
 	it("beginTx", async () => {
 		const tigris = new Tigris({ ...testConfig, projectName: "db3" });
 		const db3 = tigris.getDatabase();
-		const beginTxPromise = db3.beginTransaction();
-		beginTxPromise.then((value) => {
-			expect(value.id).toBe("id-test");
-			expect(value.origin).toBe("origin-test");
-		});
-		return beginTxPromise;
+		const value = (await db3.beginTransaction()) as GrpcSession;
+		expect(value.id).toBe("id-test");
+		expect(value.origin).toBe("origin-test");
 	});
 
 	it("commitTx", async () => {
@@ -1028,7 +1027,7 @@ describe("rpc tests", () => {
 			const db = tigris.getDatabase();
 			const createResp = db.createBranch(Branch.Existing);
 			createResp.catch((r) => {
-				expect((r as ServiceError).code).toEqual(Status.ALREADY_EXISTS);
+				expect((r as TigrisError).errMsg).toContain("branch already exists");
 			});
 
 			return expect(createResp).rejects.toBeDefined();

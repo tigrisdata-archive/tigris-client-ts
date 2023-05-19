@@ -1,46 +1,27 @@
-import { TigrisClient } from "./proto/server/v1/api_grpc_pb";
 import {
-	CollectionDescription,
 	CollectionInfo,
-	CollectionMetadata,
 	CollectionOptions,
 	CommitTransactionResponse,
 	CreateBranchResponse,
 	DatabaseDescription,
-	DatabaseMetadata,
 	DeleteBranchResponse,
 	DropCollectionResponse,
 	TigrisCollectionType,
 	TigrisSchema,
 	TransactionOptions,
 	TransactionResponse,
+	Session,
 } from "./types";
-import {
-	BeginTransactionRequest as ProtoBeginTransactionRequest,
-	BeginTransactionResponse,
-	CollectionOptions as ProtoCollectionOptions,
-	CreateBranchRequest as ProtoCreateBranchRequest,
-	CreateOrUpdateCollectionRequest as ProtoCreateOrUpdateCollectionRequest,
-	DeleteBranchRequest as ProtoDeleteBranchRequest,
-	DescribeDatabaseRequest as ProtoDescribeDatabaseRequest,
-	DropCollectionRequest as ProtoDropCollectionRequest,
-	ListCollectionsRequest as ProtoListCollectionsRequest,
-} from "./proto/server/v1/api_pb";
 import { Collection } from "./collection";
-import { Session } from "./session";
 import { Utility } from "./utility";
-import { Metadata, ServiceError } from "@grpc/grpc-js";
 import { TigrisClientConfig } from "./tigris";
 import { DecoratedSchemaProcessor } from "./schema/decorated-schema-processor";
 import { Log } from "./utils/logger";
 import { DecoratorMetaStorage } from "./decorators/metadata/decorator-meta-storage";
 import { getDecoratorMetaStorage } from "./globals";
-import { CollectionNotFoundError, BranchNameRequiredError } from "./error";
-import { Status } from "@grpc/grpc-js/build/src/constants";
+import { CollectionNotFoundError, BranchNameRequiredError, TigrisError } from "./error";
+import Driver, { DatabaseDriver } from "./driver/driver";
 
-const SetCookie = "Set-Cookie";
-const Cookie = "Cookie";
-const BeginTransactionMethodName = "/tigrisdata.v1.Tigris/BeginTransaction";
 const DefaultBranch = "main";
 
 /**
@@ -50,10 +31,11 @@ const DefaultBranch = "main";
 export class DB {
 	private readonly _name: string;
 	private readonly _branch: string;
-	private readonly grpcClient: TigrisClient;
+	private readonly driver: Driver;
 	private readonly config: TigrisClientConfig;
 	private readonly schemaProcessor: DecoratedSchemaProcessor;
 	private readonly _metadataStorage: DecoratorMetaStorage;
+	private readonly dbDriver: DatabaseDriver;
 
 	/**
 	 * Create an instance of Tigris Database class.
@@ -64,9 +46,10 @@ export class DB {
 	 * const db = client.getDatabase();
 	 * ```
 	 */
-	constructor(db: string, grpcClient: TigrisClient, config: TigrisClientConfig) {
+	constructor(db: string, driver: Driver, config: TigrisClientConfig) {
 		this._name = db;
-		this.grpcClient = grpcClient;
+		this.driver = driver;
+		this.dbDriver = driver.database();
 		this.config = config;
 		this.schemaProcessor = DecoratedSchemaProcessor.Instance;
 		this._metadataStorage = getDecoratorMetaStorage();
@@ -146,61 +129,39 @@ export class DB {
 		return this.createOrUpdate(
 			collectionName,
 			schema,
-			() => new Collection(collectionName, this._name, this.branch, this.grpcClient, this.config)
+			() =>
+				new Collection(
+					collectionName,
+					this._name,
+					this.branch,
+					this.driver.search(),
+					this.driver.collection<T>(),
+					this.config
+				)
 		);
 	}
 
-	private createOrUpdate<T extends TigrisCollectionType, R>(
+	private async createOrUpdate<T extends TigrisCollectionType, R>(
 		name: string,
 		schema: TigrisSchema<T>,
 		resolver: () => R
 	): Promise<R> {
-		return new Promise<R>((resolve, reject) => {
-			const rawJSONSchema: string = Utility._collectionSchematoJSON(name, schema);
-			const createOrUpdateCollectionRequest = new ProtoCreateOrUpdateCollectionRequest()
-				.setProject(this._name)
-				.setBranch(this.branch)
-				.setCollection(name)
-				.setOnlyCreate(false)
-				.setSchema(Utility.stringToUint8Array(rawJSONSchema));
+		const rawJSONSchema: string = Utility._collectionSchematoJSON(name, schema);
 
-			Log.event(`Creating collection: '${name}' in project: '${this._name}'`);
-			this.grpcClient.createOrUpdateCollection(
-				createOrUpdateCollectionRequest,
-				// eslint-disable-next-line @typescript-eslint/no-unused-vars
-				(error, _response) => {
-					if (error) {
-						reject(error);
-						return;
-					}
-					resolve(resolver());
-				}
-			);
-		});
+		Log.event(`Creating collection: '${name}' in project: '${this._name}'`);
+		await this.dbDriver.createOrUpdateCollection(
+			this._name,
+			this._branch,
+			name,
+			false,
+			rawJSONSchema
+		);
+
+		return resolver();
 	}
 
-	public listCollections(options?: CollectionOptions): Promise<Array<CollectionInfo>> {
-		return new Promise<Array<CollectionInfo>>((resolve, reject) => {
-			const request = new ProtoListCollectionsRequest()
-				.setProject(this.name)
-				.setBranch(this.branch);
-			if (typeof options !== "undefined") {
-				return request.setOptions(new ProtoCollectionOptions());
-			}
-			this.grpcClient.listCollections(request, (error, response) => {
-				if (error) {
-					reject(error);
-				} else {
-					const result = response
-						.getCollectionsList()
-						.map(
-							(collectionInfo) =>
-								new CollectionInfo(collectionInfo.getCollection(), new CollectionMetadata())
-						);
-					resolve(result);
-				}
-			});
-		});
+	public listCollections(options?: CollectionOptions): Promise<CollectionInfo[]> {
+		return this.dbDriver.listCollections(this.name, this.branch, options);
 	}
 
 	/**
@@ -220,21 +181,7 @@ export class DB {
 		nameOrClass: TigrisCollectionType | string
 	): Promise<DropCollectionResponse> {
 		const collectionName = this.resolveNameFromCollectionClass(nameOrClass);
-		return new Promise<DropCollectionResponse>((resolve, reject) => {
-			this.grpcClient.dropCollection(
-				new ProtoDropCollectionRequest()
-					.setProject(this.name)
-					.setBranch(this.branch)
-					.setCollection(collectionName),
-				(error, response) => {
-					if (error) {
-						reject(error);
-					} else {
-						resolve(new DropCollectionResponse(response.getMessage()));
-					}
-				}
-			);
-		});
+		return this.dbDriver.dropCollection(this.name, this.branch, collectionName);
 	}
 
 	public async dropAllCollections(): Promise<PromiseSettledResult<DropCollectionResponse>[]> {
@@ -246,34 +193,7 @@ export class DB {
 	}
 
 	public describe(): Promise<DatabaseDescription> {
-		return new Promise<DatabaseDescription>((resolve, reject) => {
-			this.grpcClient.describeDatabase(
-				new ProtoDescribeDatabaseRequest().setProject(this.name).setBranch(this.branch),
-				(error, response) => {
-					if (error) {
-						reject(error);
-					} else {
-						const collectionsDescription: CollectionDescription[] = [];
-						for (let i = 0; i < response.getCollectionsList().length; i++) {
-							collectionsDescription.push(
-								new CollectionDescription(
-									response.getCollectionsList()[i].getCollection(),
-									new CollectionMetadata(),
-									response.getCollectionsList()[i].getSchema_asB64()
-								)
-							);
-						}
-						resolve(
-							new DatabaseDescription(
-								new DatabaseMetadata(),
-								collectionsDescription,
-								response.getBranchesList()
-							)
-						);
-					}
-				}
-			);
-		});
+		return this.dbDriver.describe(this.name, this.branch);
 	}
 
 	/**
@@ -294,7 +214,14 @@ export class DB {
 
 	public getCollection<T extends TigrisCollectionType>(nameOrClass: T | string): Collection<T> {
 		const collectionName = this.resolveNameFromCollectionClass(nameOrClass);
-		return new Collection<T>(collectionName, this.name, this.branch, this.grpcClient, this.config);
+		return new Collection<T>(
+			collectionName,
+			this.name,
+			this.branch,
+			this.driver.search(),
+			this.driver.collection<T>(),
+			this.config
+		);
 	}
 
 	private resolveNameFromCollectionClass(nameOrClass: TigrisCollectionType | string) {
@@ -339,71 +266,15 @@ export class DB {
 
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	public beginTransaction(_options?: TransactionOptions): Promise<Session> {
-		return new Promise<Session>((resolve, reject) => {
-			const beginTxRequest = new ProtoBeginTransactionRequest()
-				.setProject(this._name)
-				.setBranch(this.branch);
-			const cookie: Metadata = new Metadata();
-			const call = this.grpcClient.makeUnaryRequest(
-				BeginTransactionMethodName,
-				(value) => Buffer.from(value.serializeBinary()),
-				(value) => BeginTransactionResponse.deserializeBinary(value),
-				beginTxRequest,
-				(error: ServiceError, response: BeginTransactionResponse) => {
-					if (error) {
-						reject(error);
-					} else {
-						// on metadata is expected to have invoked at this point since response
-						// is served
-						resolve(
-							new Session(
-								response.getTxCtx().getId(),
-								response.getTxCtx().getOrigin(),
-								this.grpcClient,
-								this.name,
-								this.branch,
-								cookie
-							)
-						);
-					}
-				}
-			);
-			call.on("metadata", (metadata) => {
-				if (metadata.get(SetCookie)) {
-					for (const inboundCookie of metadata.get(SetCookie)) cookie.add(Cookie, inboundCookie);
-				}
-			});
-		});
+		return this.dbDriver.beginTransaction(this.name, this.branch, _options);
 	}
 
 	public createBranch(name: string): Promise<CreateBranchResponse> {
-		return new Promise((resolve, reject) => {
-			const req = new ProtoCreateBranchRequest().setProject(this.name).setBranch(name);
-			this.grpcClient.createBranch(req, (error, response) => {
-				if (error) {
-					if (error.code === Status.NOT_FOUND) {
-						const error_message = `The project ${this.name} could not be found. Please ensure ${this.name} exists in your Tigris deployment or target Tigris region.`;
-						Log.error(error_message);
-					}
-					reject(error);
-					return;
-				}
-				resolve(CreateBranchResponse.from(response));
-			});
-		});
+		return this.dbDriver.createBranch(this.name, name);
 	}
 
 	public deleteBranch(name: string): Promise<DeleteBranchResponse> {
-		return new Promise((resolve, reject) => {
-			const req = new ProtoDeleteBranchRequest().setProject(this.name).setBranch(name);
-			this.grpcClient.deleteBranch(req, (error, response) => {
-				if (error) {
-					reject(error);
-					return;
-				}
-				resolve(DeleteBranchResponse.from(response));
-			});
-		});
+		return this.dbDriver.deleteBranch(this.name, name);
 	}
 
 	/**
@@ -424,8 +295,9 @@ export class DB {
 				await this.createBranch(this.branch);
 				Log.event(`Created database branch: '${this.branch}'`);
 			} catch (error) {
-				if ((error as ServiceError).code === Status.ALREADY_EXISTS) {
-					Log.event(`'${this.branch}' branch already exists`);
+				if ((error as TigrisError).errMsg) {
+					const tError = error as TigrisError;
+					Log.event(tError.errMsg);
 				} else {
 					throw error;
 				}

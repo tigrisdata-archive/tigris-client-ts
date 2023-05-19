@@ -1,19 +1,4 @@
-import {
-	FacetCount as ProtoFacetCount,
-	FacetStats as ProtoFacetStats,
-	Page as ProtoSearchPage,
-	SearchFacet as ProtoSearchFacet,
-	SearchHit as ProtoSearchHit,
-	SearchHitMeta as ProtoSearchHitMeta,
-	SearchMetadata as ProtoSearchMetadata,
-	SearchResponse as ProtoSearchResponse,
-	Match as ProtoMatch,
-	GroupedSearchHits,
-} from "../proto/server/v1/api_pb";
-import { SearchIndexResponse as ProtoSearchIndexResponse } from "../proto/server/v1/search_pb";
-import { TigrisClientConfig } from "../tigris";
-import { TigrisCollectionType } from "../types";
-import { Utility } from "../utility";
+import { IterableCursor, TigrisCollectionType } from "../types";
 
 export type Facets = { [key: string]: FacetCountDistribution };
 export type GroupedHits<T> = { groupKeys: string[]; hits: Array<IndexedDoc<T>> };
@@ -61,31 +46,9 @@ export class SearchResult<T> {
 	static get empty(): SearchResult<never> {
 		return new SearchResult([], {}, SearchMeta.default, []);
 	}
-
-	static from<T>(
-		resp: ProtoSearchResponse | ProtoSearchIndexResponse,
-		config: TigrisClientConfig
-	): SearchResult<T> {
-		const _meta =
-			typeof resp?.getMeta() !== "undefined" ? SearchMeta.from(resp.getMeta()) : SearchMeta.default;
-		const _hits: Array<IndexedDoc<T>> = resp
-			.getHitsList()
-			.map((h: ProtoSearchHit) => IndexedDoc.from<T>(h, config));
-		const _facets: Facets = {};
-		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		for (const [k, _] of resp.getFacetsMap().toArray()) {
-			_facets[k] = FacetCountDistribution.from(resp.getFacetsMap().get(k));
-		}
-		const _groupedHits = resp.getGroupList().map((g: GroupedSearchHits) => {
-			return {
-				groupKeys: g.getGroupKeysList(),
-				hits: g.getHitsList().map((h: ProtoSearchHit) => IndexedDoc.from<T>(h, config)),
-			};
-		});
-
-		return new SearchResult(_hits, _facets, _meta, _groupedHits);
-	}
 }
+
+export interface SearchCursor<T> extends IterableCursor<SearchResult<T>> {}
 
 /**
  * Matched document and relevance metadata for a search query
@@ -106,16 +69,6 @@ export class IndexedDoc<T extends TigrisCollectionType> {
 	constructor(document: T, meta: DocMeta) {
 		this.document = document;
 		this.meta = meta;
-	}
-
-	static from<T>(resp: ProtoSearchHit, config: TigrisClientConfig): IndexedDoc<T> {
-		const docAsB64 = resp.getData_asB64();
-		if (!docAsB64) {
-			return new IndexedDoc<T>(undefined, undefined);
-		}
-		const document = Utility.jsonStringToObj<T>(Utility._base64Decode(docAsB64), config);
-		const meta = resp.hasMetadata() ? DocMeta.from(resp.getMetadata()) : undefined;
-		return new IndexedDoc<T>(document, meta);
 	}
 }
 
@@ -144,21 +97,6 @@ export class DocMeta {
 		this.updatedAt = updatedAt;
 		this.textMatch = textMatch;
 	}
-
-	static from(resp: ProtoSearchHitMeta): DocMeta {
-		const _createdAt =
-			typeof resp?.getCreatedAt()?.getSeconds() !== "undefined"
-				? new Date(resp.getCreatedAt().getSeconds() * 1000)
-				: undefined;
-		const _updatedAt =
-			typeof resp?.getUpdatedAt()?.getSeconds() !== "undefined"
-				? new Date(resp.getUpdatedAt().getSeconds() * 1000)
-				: undefined;
-		const _textMatch =
-			typeof resp?.getMatch() !== "undefined" ? TextMatchInfo.from(resp.getMatch()) : undefined;
-
-		return new DocMeta(_createdAt, _updatedAt, _textMatch);
-	}
 }
 
 /**
@@ -176,17 +114,12 @@ export class TextMatchInfo {
 			this.vectorDistance = vectorDistance;
 		}
 	}
-
-	static from(resp: ProtoMatch): TextMatchInfo {
-		const matchFields: Array<string> = resp.getFieldsList().map((f) => f.getName());
-		return new TextMatchInfo(matchFields, resp.getScore(), resp.getVectorDistance());
-	}
 }
 
 /**
  * Distribution of values in a faceted field
  */
-class FacetCountDistribution {
+export class FacetCountDistribution {
 	/**
 	 * List of field values and their aggregated counts
 	 * @readonly
@@ -202,13 +135,6 @@ class FacetCountDistribution {
 	constructor(counts: ReadonlyArray<FacetCount>, stats: FacetStats) {
 		this.counts = counts;
 		this.stats = stats;
-	}
-
-	static from(resp: ProtoSearchFacet): FacetCountDistribution {
-		const stats =
-			typeof resp?.getStats() !== "undefined" ? FacetStats.from(resp.getStats()) : undefined;
-		const counts = resp.getCountsList().map((c) => FacetCount.from(c));
-		return new FacetCountDistribution(counts, stats);
 	}
 }
 
@@ -230,10 +156,6 @@ export class FacetCount {
 	constructor(value: string, count: number) {
 		this.value = value;
 		this.count = count;
-	}
-
-	static from(resp: ProtoFacetCount): FacetCount {
-		return new FacetCount(resp.getValue(), resp.getCount());
 	}
 }
 
@@ -286,16 +208,6 @@ export class FacetStats {
 		this.min = min;
 		this.sum = sum;
 	}
-
-	static from(resp: ProtoFacetStats): FacetStats {
-		return new FacetStats(
-			resp?.getAvg() ?? 0,
-			resp?.getCount() ?? 0,
-			resp?.getMax() ?? 0,
-			resp?.getMin() ?? 0,
-			resp?.getSum() ?? 0
-		);
-	}
 }
 
 /**
@@ -333,13 +245,6 @@ export class SearchMeta {
 		this.matchedFields = matchedFields;
 	}
 
-	static from(resp: ProtoSearchMetadata): SearchMeta {
-		const found = resp?.getFound() ?? 0;
-		const totalPages = resp?.getTotalPages() ?? 0;
-		const page = typeof resp?.getPage() !== "undefined" ? Page.from(resp.getPage()) : undefined;
-		return new SearchMeta(found, totalPages, page, resp.getMatchedFieldsList());
-	}
-
 	/**
 	 * @returns default metadata to construct empty/default response
 	 * @readonly
@@ -368,12 +273,6 @@ export class Page {
 	constructor(current, size) {
 		this.current = current;
 		this.size = size;
-	}
-
-	static from(resp: ProtoSearchPage): Page {
-		const current = resp?.getCurrent() ?? 0;
-		const size = resp?.getSize() ?? 0;
-		return new Page(current, size);
 	}
 
 	/**

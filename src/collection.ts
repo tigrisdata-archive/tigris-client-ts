@@ -1,44 +1,27 @@
-import * as grpc from "@grpc/grpc-js";
-import { TigrisClient } from "./proto/server/v1/api_grpc_pb";
-import * as server_v1_api_pb from "./proto/server/v1/api_pb";
-import {
-	DeleteRequest as ProtoDeleteRequest,
-	InsertRequest as ProtoInsertRequest,
-	ReadRequest as ProtoReadRequest,
-	ReplaceRequest as ProtoReplaceRequest,
-	SearchResponse as ProtoSearchResponse,
-	UpdateRequest as ProtoUpdateRequest,
-	SearchRequest as ProtoSearchRequest,
-	CountRequest as ProtoCountRequest,
-	DescribeCollectionRequest as ProtoDescribeCollectionRequest,
-} from "./proto/server/v1/api_pb";
-import { Session } from "./session";
 import {
 	CollectionDescription,
+	IterableCursor,
 	DeleteQuery,
 	DeleteQueryOptions,
 	DeleteResponse,
-	DMLMetadata,
 	ExplainResponse,
 	Filter,
 	FindQuery,
 	FindQueryOptions,
-	IndexDescription,
-	ReadType,
+	Session,
 	TigrisCollectionType,
 	UpdateQuery,
 	UpdateQueryOptions,
 	UpdateResponse,
 } from "./types";
-import { Utility } from "./utility";
 import { TigrisClientConfig } from "./tigris";
 import { MissingArgumentError } from "./error";
-import { Cursor, ReadCursorInitializer } from "./consumables/cursor";
-import { SearchIterator, SearchIteratorInitializer } from "./consumables/search-iterator";
-import { SearchQuery } from "./search";
+import { SearchCursor, SearchQuery } from "./search";
 import { SearchResult } from "./search";
 import { DecoratorMetaStorage } from "./decorators/metadata/decorator-meta-storage";
 import { getDecoratorMetaStorage } from "./globals";
+import { SearchDriver, CollectionDriver } from "./driver/driver";
+import { GrpcSession } from "./driver/grpc/session";
 
 interface ICollection {
 	readonly collectionName: string;
@@ -54,7 +37,8 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	readonly collectionName: string;
 	readonly db: string;
 	readonly branch: string;
-	readonly grpcClient: TigrisClient;
+	readonly searchDriver: SearchDriver;
+	readonly collectionDriver: CollectionDriver<T>;
 	readonly config: TigrisClientConfig;
 	private readonly _metadataStorage: DecoratorMetaStorage;
 	private readonly _collectionCreatedAtFieldNames: string[];
@@ -63,15 +47,17 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 		collectionName: string,
 		db: string,
 		branch: string,
-		grpcClient: TigrisClient,
+		searchDriver: SearchDriver,
+		collectionDriver: CollectionDriver<T>,
 		config: TigrisClientConfig
 	) {
 		this.collectionName = collectionName;
 		this.db = db;
 		this.branch = branch;
-		this.grpcClient = grpcClient;
 		this._metadataStorage = getDecoratorMetaStorage();
 		this.config = config;
+		this.searchDriver = searchDriver;
+		this.collectionDriver = collectionDriver;
 		this._collectionCreatedAtFieldNames = ((): string[] => {
 			const collectionTarget = this._metadataStorage.collections.get(this.collectionName)?.target;
 			const collectionFields = this._metadataStorage.getCollectionFieldsByTarget(collectionTarget);
@@ -84,27 +70,7 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	}
 
 	describe(): Promise<CollectionDescription> {
-		return new Promise((resolve, reject) => {
-			const req = new ProtoDescribeCollectionRequest()
-				.setProject(this.db)
-				.setBranch(this.branch)
-				.setCollection(this.collectionName);
-
-			this.grpcClient.describeCollection(req, (error, resp) => {
-				if (error) {
-					return reject(error);
-				}
-				const schema = Buffer.from(resp.getSchema_asB64(), "base64").toString();
-				const desc = new CollectionDescription(
-					this.collectionName,
-					resp.getMetadata(),
-					schema,
-					resp.toObject().indexesList as IndexDescription[]
-				);
-
-				resolve(desc);
-			});
-		});
+		return this.collectionDriver.describe(this.db, this.branch, this.collectionName);
 	}
 
 	/**
@@ -113,43 +79,15 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	 * @param docs - Array of documents to insert
 	 * @param tx - Session information for transaction context
 	 */
-	insertMany(docs: Array<T>, tx?: Session): Promise<Array<T>> {
-		const encoder = new TextEncoder();
-		return new Promise<Array<T>>((resolve, reject) => {
-			const docsArray: Array<Uint8Array | string> = docs.map((doc) =>
-				encoder.encode(Utility.objToJsonString(doc))
-			);
-
-			const protoRequest = new ProtoInsertRequest()
-				.setProject(this.db)
-				.setBranch(this.branch)
-				.setCollection(this.collectionName)
-				.setDocumentsList(docsArray);
-
-			this.grpcClient.insert(
-				protoRequest,
-				Utility.txToMetadata(tx),
-				(error: grpc.ServiceError, response: server_v1_api_pb.InsertResponse): void => {
-					if (error) {
-						reject(error);
-					} else {
-						let clonedDocs: Array<T>;
-						clonedDocs = this.setDocsMetadata(docs, response.getKeysList_asU8());
-						if (response.getMetadata().hasCreatedAt()) {
-							const createdAt = new Date(
-								response.getMetadata()?.getCreatedAt()?.getSeconds() * 1000
-							);
-							clonedDocs = this.setCreatedAtForDocsIfNotExists(
-								clonedDocs,
-								createdAt,
-								this._collectionCreatedAtFieldNames
-							);
-						}
-						resolve(clonedDocs);
-					}
-				}
-			);
-		});
+	insertMany(docs: Array<T>, tx?: Session): Promise<T[]> {
+		return this.collectionDriver.insertMany(
+			this.db,
+			this.branch,
+			this.collectionName,
+			this._collectionCreatedAtFieldNames,
+			docs,
+			tx
+		);
 	}
 
 	/**
@@ -177,30 +115,14 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	 * @param docs - Array of documents to insert or replace
 	 * @param tx - Session information for transaction context
 	 */
-	insertOrReplaceMany(docs: Array<T>, tx?: Session): Promise<Array<T>> {
-		return new Promise<Array<T>>((resolve, reject) => {
-			const docsArray: Array<Uint8Array | string> = docs.map((doc) =>
-				new TextEncoder().encode(Utility.objToJsonString(doc))
-			);
-			const protoRequest = new ProtoReplaceRequest()
-				.setProject(this.db)
-				.setBranch(this.branch)
-				.setCollection(this.collectionName)
-				.setDocumentsList(docsArray);
-
-			this.grpcClient.replace(
-				protoRequest,
-				Utility.txToMetadata(tx),
-				(error: grpc.ServiceError, response: server_v1_api_pb.ReplaceResponse): void => {
-					if (error) {
-						reject(error);
-					} else {
-						const clonedDocs = this.setDocsMetadata(docs, response.getKeysList_asU8());
-						resolve(clonedDocs);
-					}
-				}
-			);
-		});
+	insertOrReplaceMany(docs: T[], tx?: Session): Promise<T[]> {
+		return this.collectionDriver.insertOrReplaceMany(
+			this.db,
+			this.branch,
+			this.collectionName,
+			docs,
+			tx
+		);
 	}
 
 	/**
@@ -260,32 +182,7 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	updateMany(query: UpdateQuery<T>, tx: Session): Promise<UpdateResponse>;
 
 	updateMany(query: UpdateQuery<T>, tx?: Session): Promise<UpdateResponse> {
-		return new Promise<UpdateResponse>((resolve, reject) => {
-			const updateRequest = new ProtoUpdateRequest()
-				.setProject(this.db)
-				.setBranch(this.branch)
-				.setCollection(this.collectionName)
-				.setFilter(Utility.stringToUint8Array(Utility.filterToString(query.filter)))
-				.setFields(Utility.stringToUint8Array(Utility.updateFieldsString(query.fields)));
-
-			if (query.options !== undefined) {
-				updateRequest.setOptions(
-					Utility._updateRequestOptionsToProtoUpdateRequestOptions(query.options)
-				);
-			}
-
-			this.grpcClient.update(updateRequest, Utility.txToMetadata(tx), (error, response) => {
-				if (error) {
-					reject(error);
-				} else {
-					const metadata: DMLMetadata = new DMLMetadata(
-						response.getMetadata().getCreatedAt(),
-						response.getMetadata().getUpdatedAt()
-					);
-					resolve(new UpdateResponse(response.getModifiedCount(), metadata));
-				}
-			});
-		});
+		return this.collectionDriver.updateMany(this.db, this.branch, this.collectionName, query, tx);
 	}
 
 	/**
@@ -386,34 +283,11 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	deleteMany(query: DeleteQuery<T>, tx: Session): Promise<DeleteResponse>;
 
 	deleteMany(query: DeleteQuery<T>, tx?: Session): Promise<DeleteResponse> {
-		return new Promise<DeleteResponse>((resolve, reject) => {
-			if (typeof query?.filter === "undefined") {
-				reject(new MissingArgumentError("filter"));
-			}
-			const deleteRequest = new ProtoDeleteRequest()
-				.setProject(this.db)
-				.setBranch(this.branch)
-				.setCollection(this.collectionName)
-				.setFilter(Utility.stringToUint8Array(Utility.filterToString(query.filter)));
+		if (typeof query?.filter === "undefined") {
+			throw new MissingArgumentError("filter");
+		}
 
-			if (query.options) {
-				deleteRequest.setOptions(
-					Utility._deleteRequestOptionsToProtoDeleteRequestOptions(query.options)
-				);
-			}
-
-			this.grpcClient.delete(deleteRequest, Utility.txToMetadata(tx), (error, response) => {
-				if (error) {
-					reject(error);
-				} else {
-					const metadata: DMLMetadata = new DMLMetadata(
-						response.getMetadata().getCreatedAt(),
-						response.getMetadata().getUpdatedAt()
-					);
-					resolve(new DeleteResponse(metadata));
-				}
-			});
-		});
+		return this.collectionDriver.deleteMany(this.db, this.branch, this.collectionName, query, tx);
 	}
 
 	/**
@@ -472,7 +346,7 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	/**
 	 * Read all the documents from a collection.
 	 *
-	 * @returns - {@link Cursor} to iterate over documents
+	 * @returns - {@link GrpcCursor} to iterate over documents
 	 *
 	 * @example
 	 * ```
@@ -483,13 +357,13 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	 * }
 	 * ```
 	 */
-	findMany(): Cursor<T>;
+	findMany(): IterableCursor<T>;
 
 	/**
 	 * Reads all the documents from a collection in transactional context.
 	 *
 	 * @param tx - Session information for Transaction
-	 * @returns - {@link Cursor} to iterate over documents
+	 * @returns - {@link GrpcCursor} to iterate over documents
 	 *
 	 * @example
 	 * ```
@@ -500,14 +374,14 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	 * }
 	 * ```
 	 */
-	findMany(tx: Session): Cursor<T>;
+	findMany(tx: Session): IterableCursor<T>;
 
 	/**
 	 * Performs a read query on collection and returns a cursor that can be used to iterate over
 	 * query results.
 	 *
 	 * @param query - Filter, field projection and other parameters
-	 * @returns - {@link Cursor} to iterate over documents
+	 * @returns - {@link GrpcCursor} to iterate over documents
 	 *
 	 * @example
 	 * ```
@@ -521,7 +395,7 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	 * }
 	 * ```
 	 */
-	findMany(query: FindQuery<T>): Cursor<T>;
+	findMany(query: FindQuery<T>): IterableCursor<T>;
 
 	/**
 	 * Performs a read query on collection in transactional context and returns a
@@ -529,7 +403,7 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	 *
 	 * @param query - Filter, field projection and other parameters
 	 * @param tx - Session information for Transaction
-	 * @returns - {@link Cursor} to iterate over documents
+	 * @returns - {@link GrpcCursor} to iterate over documents
 	 *
 	 * @example
 	 * ```
@@ -543,9 +417,9 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	 * }
 	 * ```
 	 */
-	findMany(query: FindQuery<T>, tx: Session): Cursor<T>;
+	findMany(query: FindQuery<T>, tx: Session): IterableCursor<T>;
 
-	findMany(txOrQuery?: Session | FindQuery<T>, tx?: Session): Cursor<T> {
+	findMany(txOrQuery?: Session | FindQuery<T>, tx?: Session): IterableCursor<T> {
 		let query: FindQuery<T>;
 		if (typeof txOrQuery !== "undefined") {
 			if (this.isTxSession(txOrQuery)) {
@@ -562,28 +436,8 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 		} else if (!query.filter) {
 			query.filter = findAll;
 		}
-		const readRequest = new ProtoReadRequest()
-			.setProject(this.db)
-			.setBranch(this.branch)
-			.setCollection(this.collectionName)
-			.setFilter(Utility.stringToUint8Array(Utility.filterToString(query.filter)));
 
-		if (query.readFields) {
-			readRequest.setFields(
-				Utility.stringToUint8Array(Utility.readFieldString<T>(query.readFields))
-			);
-		}
-
-		if (query.sort) {
-			readRequest.setSort(Utility.stringToUint8Array(Utility._sortOrderingToString<T>(query.sort)));
-		}
-
-		if (query.options) {
-			readRequest.setOptions(Utility._readRequestOptionsToProtoReadRequestOptions(query.options));
-		}
-
-		const initializer = new ReadCursorInitializer(this.grpcClient, readRequest, tx);
-		return new Cursor<T>(initializer, this.config);
+		return this.collectionDriver.findMany(this.db, this.branch, this.collectionName, query, tx);
 	}
 
 	/**
@@ -599,26 +453,7 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	 * ```
 	 */
 	explain(query: FindQuery<T>): Promise<ExplainResponse> {
-		const readRequest = new ProtoReadRequest()
-			.setProject(this.db)
-			.setBranch(this.branch)
-			.setCollection(this.collectionName)
-			.setFilter(Utility.stringToUint8Array(Utility.filterToString(query.filter)));
-		return new Promise((resolve, reject) => {
-			this.grpcClient.explain(readRequest, (err, resp) => {
-				if (err) {
-					return reject(err);
-				}
-
-				const explainResp = resp.toObject();
-				explainResp.readType =
-					resp.getReadType() === "secondary index"
-						? ("secondary index" as ReadType)
-						: ("primary index" as ReadType);
-
-				resolve(explainResp as ExplainResponse);
-			});
-		});
+		return this.collectionDriver.explain(this.db, this.branch, this.collectionName, query);
 	}
 
 	/**
@@ -636,23 +471,7 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	 * ```
 	 */
 	count(filter?: Filter<T>): Promise<number> {
-		if (!filter) {
-			filter = {};
-		}
-		const countRequest = new ProtoCountRequest()
-			.setProject(this.db)
-			.setCollection(this.collectionName)
-			.setBranch(this.branch)
-			.setFilter(Utility.stringToUint8Array(Utility.filterToString(filter)));
-
-		return new Promise((resolve, reject) => {
-			this.grpcClient.count(countRequest, (err, response) => {
-				if (err) {
-					return reject(err);
-				}
-				resolve(response.getCount());
-			});
-		});
+		return this.collectionDriver.count(this.db, this.branch, this.collectionName, filter);
 	}
 
 	/**
@@ -778,7 +597,7 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	 * }
 	 * ```
 	 */
-	search(query: SearchQuery<T>): SearchIterator<T>;
+	search(query: SearchQuery<T>): SearchCursor<T>;
 
 	/**
 	 * Search for documents in a collection. Easily perform sophisticated queries and refine
@@ -801,73 +620,19 @@ export class Collection<T extends TigrisCollectionType> implements ICollection {
 	 */
 	search(query: SearchQuery<T>, page: number): Promise<SearchResult<T>>;
 
-	search(query: SearchQuery<T>, page?: number): SearchIterator<T> | Promise<SearchResult<T>> {
-		const searchRequest = new ProtoSearchRequest()
-			.setProject(this.db)
-			.setBranch(this.branch)
-			.setCollection(this.collectionName);
-
-		Utility.protoSearchRequestFromQuery(query, searchRequest, page);
-
-		// return a iterator if no explicit page number is specified
-		if (typeof page === "undefined") {
-			const initializer = new SearchIteratorInitializer(this.grpcClient, searchRequest);
-			return new SearchIterator<T>(initializer, this.config);
-		} else {
-			return new Promise<SearchResult<T>>((resolve, reject) => {
-				const stream: grpc.ClientReadableStream<ProtoSearchResponse> =
-					this.grpcClient.search(searchRequest);
-
-				stream.on("data", (searchResponse: ProtoSearchResponse) => {
-					const searchResult: SearchResult<T> = SearchResult.from(searchResponse, this.config);
-					resolve(searchResult);
-				});
-				stream.on("error", (error) => reject(error));
-				stream.on("end", () => resolve(SearchResult.empty));
-			});
-		}
+	search(query: SearchQuery<T>, page?: number): SearchCursor<T> | Promise<SearchResult<T>> {
+		return this.searchDriver.searchCollection(
+			this.db,
+			this.branch,
+			this.collectionName,
+			query,
+			page
+		);
 	}
 
 	private isTxSession(txOrQuery: Session | unknown): txOrQuery is Session {
 		const mayBeTx = txOrQuery as Session;
-		return "id" in mayBeTx && mayBeTx instanceof Session;
-	}
-
-	private setDocsMetadata(docs: Array<T>, keys: Array<Uint8Array>): Array<T> {
-		let docIndex = 0;
-		const clonedDocs: T[] = Object.assign([], docs);
-
-		for (const value of keys) {
-			const keyValueJsonObj: object = Utility.jsonStringToObj(
-				Utility.uint8ArrayToString(value),
-				this.config
-			);
-			for (const fieldName of Object.keys(keyValueJsonObj)) {
-				Reflect.set(clonedDocs[docIndex], fieldName, keyValueJsonObj[fieldName]);
-			}
-			docIndex++;
-		}
-
-		return clonedDocs;
-	}
-
-	private setCreatedAtForDocsIfNotExists(
-		docs: Array<T>,
-		createdAt: Date,
-		collectionCreatedAtFieldNames: string[]
-	): Array<T> {
-		const clonedDocs: T[] = Object.assign([], docs);
-		let docIndex = 0;
-
-		for (const doc of docs) {
-			collectionCreatedAtFieldNames.map((fieldName) => {
-				if (!Reflect.has(doc, fieldName)) {
-					Reflect.set(clonedDocs[docIndex], fieldName, createdAt);
-				}
-			});
-			docIndex++;
-		}
-
-		return clonedDocs;
+		// TODO: FIx GrpcSession
+		return "id" in mayBeTx && mayBeTx instanceof GrpcSession;
 	}
 }

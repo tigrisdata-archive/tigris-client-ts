@@ -16,6 +16,7 @@
 		"src/decorators/*.ts",
 		"src/schema/**/*.ts",
 		"src/search/**/*.ts",
-		"src/utils/**/*.ts"
+		"src/utils/**/*.ts",
+		"!src/http/**"
 	]
 }

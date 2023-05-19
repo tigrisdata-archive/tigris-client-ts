@@ -5,21 +5,27 @@ import {
 	TigrisIndexSchema,
 	TigrisSearchIndex,
 } from "../../search";
-import { capture, instance, mock, reset, spy } from "ts-mockito";
+import { capture, instance, mock, reset } from "ts-mockito";
 import { SearchClient as ProtoSearchClient } from "../../proto/server/v1/search_grpc_pb";
 import { CreateOrUpdateIndexResponse as ProtoCreateIndexResponse } from "../../proto/server/v1/search_pb";
 import { Utility } from "../../utility";
 import { TigrisDataTypes } from "../../types";
 import { Status as ProtoStatus } from "@grpc/grpc-js/build/src/constants";
 import { ServiceError } from "@grpc/grpc-js";
+import { Search as SearchGrpc } from "../../driver/grpc/search";
+import { TigrisClient } from "../../proto/server/v1/api_grpc_pb";
 
 describe("Search", () => {
 	let target: Search;
 	let mockClient: ProtoSearchClient;
+	const config = { projectName: "test_project", serverUrl: "http://127.0.0.1" };
 
 	beforeEach(() => {
 		mockClient = mock(ProtoSearchClient);
-		target = new Search(instance(mockClient), { projectName: "test_project" });
+		let s = new SearchGrpc(config, undefined);
+		s.client = instance(mockClient);
+		s.tigrisClient = instance(mock(TigrisClient));
+		target = new Search(s, config);
 	});
 
 	afterEach(() => {

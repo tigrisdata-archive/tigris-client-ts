@@ -30,6 +30,8 @@ const EXPECTED_EXPORTS = [
 	"DocStatus",
 	"DropCollectionResponse",
 	"FacetCount",
+	// TODO REMOVE LATER
+	"FacetCountDistribution",
 	"FacetStats",
 	"Field",
 	"FindQueryOptions",
@@ -48,7 +50,8 @@ const EXPECTED_EXPORTS = [
 	"SearchMeta",
 	"SearchResult",
 	"ServerMetadata",
-	"Session",
+	// TODO this is a type now
+	// "Session",
 	"Status",
 	"TextMatchInfo",
 	"Tigris",

@@ -89,16 +89,17 @@
 		"@types/json-bigint": "^1.0.1",
 		"@typescript-eslint/eslint-plugin": "^5.35.1",
 		"@typescript-eslint/parser": "^5.35.1",
-		"eslint-plugin-tsdoc": "0.2.17",
 		"copyfiles": "^2.4.1",
 		"eslint": "^8.22.0",
 		"eslint-config-prettier": "^8.5.0",
 		"eslint-plugin-functional": "^4.2.2",
+		"eslint-plugin-tsdoc": "0.2.17",
 		"eslint-plugin-unicorn": "^43.0.2",
 		"eslint-plugin-unused-imports": "^2.0.0",
 		"grpc_tools_node_protoc_ts": "^5.3.2",
 		"grpc-tools": "^1.12.4",
 		"jest": "^28.1.3",
+		"openapi-typescript-codegen": "^0.24.0",
 		"prettier": "2.7.1",
 		"ts-jest": "^28.0.8",
 		"ts-mockito": "^2.6.1",
@@ -108,11 +109,11 @@
 	},
 	"dependencies": {
 		"@grpc/grpc-js": "^1.8.14",
+		"app-root-path": "^3.1.0",
 		"chalk": "4.1.2",
 		"dotenv": "^16.0.3",
 		"google-protobuf": "^3.21.0",
 		"json-bigint": "github:sidorares/json-bigint",
-		"reflect-metadata": "^0.1.13",
-		"app-root-path": "^3.1.0"
+		"reflect-metadata": "^0.1.13"
 	}
 }

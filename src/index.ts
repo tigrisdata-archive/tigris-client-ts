@@ -1,6 +1,5 @@
 export * from "./collection";
 export * from "./db";
-export * from "./session";
 export * from "./tigris";
 export * from "./types";
 export * from "./constants";
@@ -8,5 +7,5 @@ export { Field } from "./decorators/tigris-field";
 export { PrimaryKey } from "./decorators/tigris-primary-key";
 export { TigrisCollection } from "./decorators/tigris-collection";
 export { EmbeddedFieldOptions } from "./decorators/options/embedded-field-options";
-export { Cursor } from "./consumables/cursor";
+export { GrpcCursor as Cursor } from "./driver/grpc/consumables/cursor";
 export * from "./search/index";

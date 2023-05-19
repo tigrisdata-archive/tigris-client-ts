@@ -1,7 +1,8 @@
 import * as proto from "google-protobuf";
 import { ClientReadableStream } from "@grpc/grpc-js";
-import { CursorInUseError } from "../error";
+import { CursorInUseError } from "../../../error";
 import { Readable } from "stream";
+import { IterableCursor } from "src/types";
 
 /** @internal */
 export interface Initializer<TResp extends proto.Message> {
@@ -15,7 +16,9 @@ const tReady = Symbol("ready");
 /** @internal */
 const tClosed = Symbol("closed");
 
-export abstract class IterableStream<T, TResp extends proto.Message> {
+export abstract class GrpcIterableStream<T, TResp extends proto.Message>
+	implements IterableCursor<T>
+{
 	/** @internal */
 	[tStream]: ClientReadableStream<TResp>;
 	/** @internal */

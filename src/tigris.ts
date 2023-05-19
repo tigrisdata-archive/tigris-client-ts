@@ -1,46 +1,20 @@
-import { TigrisClient } from "./proto/server/v1/api_grpc_pb";
-import { ObservabilityClient } from "./proto/server/v1/observability_grpc_pb";
-import { HealthAPIClient } from "./proto/server/v1/health_grpc_pb";
-import * as grpc from "@grpc/grpc-js";
-import { ChannelCredentials, ClientOptions, Metadata, status } from "@grpc/grpc-js";
-import { GetInfoRequest as ProtoGetInfoRequest } from "./proto/server/v1/observability_pb";
-import { HealthCheckInput as ProtoHealthCheckInput } from "./proto/server/v1/health_pb";
-
 import {
-	CacheMetadata,
 	DeleteCacheResponse,
 	ListCachesResponse,
 	ServerMetadata,
 	TigrisCollectionType,
 } from "./types";
 
-import {
-	GetAccessTokenRequest as ProtoGetAccessTokenRequest,
-	GrantType,
-} from "./proto/server/v1/auth_pb";
-
 import { DB } from "./db";
-import { AuthClient } from "./proto/server/v1/auth_grpc_pb";
-import { Utility } from "./utility";
 import { Log } from "./utils/logger";
 import { DecoratorMetaStorage } from "./decorators/metadata/decorator-meta-storage";
 import { getDecoratorMetaStorage } from "./globals";
 import { Cache } from "./cache";
-import { CacheClient } from "./proto/server/v1/cache_grpc_pb";
-import {
-	CreateCacheRequest as ProtoCreateCacheRequest,
-	DeleteCacheRequest as ProtoDeleteCacheRequest,
-	ListCachesRequest as ProtoListCachesRequest,
-} from "./proto/server/v1/cache_pb";
 
 import { initializeEnvironment } from "./utils/env-loader";
-
-import { SearchClient } from "./proto/server/v1/search_grpc_pb";
-import { Search } from "./search";
-import { ServiceConfig } from "@grpc/grpc-js/build/src/service-config";
-
-const AuthorizationHeaderName = "authorization";
-const AuthorizationBearer = "Bearer ";
+import { Search } from "./search/search";
+import Driver from "./driver/driver";
+import GrpcDriver from "./driver/grpc/grpc";
 
 export interface TigrisClientConfig {
 	serverUrl?: string;
@@ -76,84 +50,18 @@ export interface TigrisClientConfig {
 	branch?: string;
 }
 
-class TokenSupplier {
-	private readonly clientId: string;
-	private readonly clientSecret: string;
-	private readonly authClient: AuthClient;
-	private readonly config: TigrisClientConfig;
-
-	private accessToken: string;
-	private nextRefreshTime: number;
-
-	constructor(config: TigrisClientConfig) {
-		this.authClient = new AuthClient(config.serverUrl, grpc.credentials.createSsl());
-		this.clientId = config.clientId;
-		this.clientSecret = config.clientSecret;
-		this.config = config;
-	}
-
-	getAccessToken(): Promise<string> {
-		return new Promise<string>((resolve, reject) => {
-			if (this.shouldRefresh()) {
-				// refresh
-				this.authClient.getAccessToken(
-					new ProtoGetAccessTokenRequest()
-						.setGrantType(GrantType.CLIENT_CREDENTIALS)
-						.setClientId(this.clientId)
-						.setClientSecret(this.clientSecret),
-					(error, response) => {
-						if (error) {
-							reject(error);
-						} else {
-							this.accessToken = response.getAccessToken();
-
-							// retrieve exp
-							const parts: string[] = this.accessToken.split(".");
-							const exp = Number(
-								Utility.jsonStringToObj(Utility._base64Decode(parts[1]), this.config)["exp"]
-							);
-							// 5 min before expiry (note: exp is in seconds)
-							// add random jitter of 1-5 min (i.e. 60000 - 300000 ms)
-							this.nextRefreshTime =
-								exp * 1000 - 300_000 - (Utility._getRandomInt(300_000) + 60_000);
-							resolve(this.accessToken);
-						}
-					}
-				);
-			} else {
-				resolve(this.accessToken);
-			}
-		});
-	}
-
-	shouldRefresh(): boolean {
-		if (typeof this.accessToken === "undefined") {
-			return true;
-		}
-		return Date.now() >= this.nextRefreshTime;
-	}
-}
-
 const DEFAULT_GRPC_PORT = 443;
 const DEFAULT_URL = "api.preview.tigrisdata.cloud";
-
-const USER_AGENT_KEY = "user-agent";
-const USER_AGENT_VAL = "tigris-client-ts.grpc";
-const DEST_NAME_KEY = "destination-name";
 
 /**
  * Tigris client
  */
 export class Tigris {
-	private readonly grpcClient: TigrisClient;
-	private readonly observabilityClient: ObservabilityClient;
-	private readonly cacheClient: CacheClient;
-	private readonly searchClient: SearchClient;
-	private readonly healthAPIClient: HealthAPIClient;
 	private readonly _config: TigrisClientConfig;
 	private readonly _metadataStorage: DecoratorMetaStorage;
 	private readonly _ping: () => void;
 	private readonly pingId: NodeJS.Timeout | number | string | undefined;
+	private readonly driver: Driver;
 
 	/**
 	 * Create Tigris client
@@ -202,100 +110,24 @@ export class Tigris {
 		}
 
 		this._config = config;
-		const defaultMetadata: Metadata = new Metadata();
-		defaultMetadata.set(USER_AGENT_KEY, USER_AGENT_VAL);
-		defaultMetadata.set(DEST_NAME_KEY, config.serverUrl);
-
-		// TODO: expose retry config to end user once validated
-		const svcConfig: ServiceConfig = {
-			loadBalancingConfig: [],
-			methodConfig: [
-				{
-					name: [
-						{
-							service: "tigrisdata.v1.Tigris",
-						},
-						{
-							service: "tigrisdata.search.v1.Search",
-						},
-					],
-					waitForReady: true,
-					retryPolicy: {
-						maxAttempts: 3,
-						initialBackoff: "0.1s",
-						maxBackoff: "1.0s",
-						backoffMultiplier: 1.5,
-						retryableStatusCodes: [
-							status.UNAVAILABLE,
-							status.UNKNOWN,
-							status.INTERNAL,
-							status.RESOURCE_EXHAUSTED,
-						],
-					},
-				},
-			],
-		};
-
-		const grpcOptions: ClientOptions = {
-			"grpc.service_config": JSON.stringify(svcConfig),
-			"grpc.enable_retries": 1,
-		};
-		if (
-			(config.serverUrl.includes("localhost") ||
-				config.serverUrl.startsWith("tigris-local-server:") ||
-				config.serverUrl.includes("127.0.0.1") ||
-				config.serverUrl.includes("[::1]")) &&
-			config.clientId === undefined &&
-			config.clientSecret === undefined
-		) {
-			// no auth - generate insecure channel
-			const insecureCreds: ChannelCredentials = grpc.credentials.createInsecure();
-			this.grpcClient = new TigrisClient(config.serverUrl, insecureCreds, grpcOptions);
-			this.observabilityClient = new ObservabilityClient(config.serverUrl, insecureCreds);
-			this.cacheClient = new CacheClient(config.serverUrl, insecureCreds);
-			this.searchClient = new SearchClient(config.serverUrl, insecureCreds, grpcOptions);
-			this.healthAPIClient = new HealthAPIClient(config.serverUrl, insecureCreds);
-		} else if (config.clientId === undefined || config.clientSecret === undefined) {
-			throw new Error("Both `clientId` and `clientSecret` are required");
-		} else {
-			// auth & secure channel
-			const tokenSupplier = new TokenSupplier(config);
-			const channelCreds: ChannelCredentials = grpc.credentials.combineChannelCredentials(
-				grpc.credentials.createSsl(),
-				grpc.credentials.createFromMetadataGenerator((params, callback) => {
-					tokenSupplier
-						.getAccessToken()
-						.then((accessToken) => {
-							const md = new grpc.Metadata();
-							md.set(AuthorizationHeaderName, AuthorizationBearer + accessToken);
-							md.merge(defaultMetadata);
-							return callback(undefined, md);
-						})
-						.catch((error) => {
-							return callback(error);
-						});
-				})
-			);
-			this.grpcClient = new TigrisClient(config.serverUrl, channelCreds, grpcOptions);
-			this.observabilityClient = new ObservabilityClient(config.serverUrl, channelCreds);
-			this.cacheClient = new CacheClient(config.serverUrl, channelCreds);
-			this.searchClient = new SearchClient(config.serverUrl, channelCreds, grpcOptions);
-			this.healthAPIClient = new HealthAPIClient(config.serverUrl, channelCreds);
-			this._ping = () => {
-				this.healthAPIClient.health(new ProtoHealthCheckInput(), (error, response) => {
-					if (response !== undefined) {
-						Log.debug("health: " + response.getResponse());
-					}
-				});
-			};
-			if (config.enablePing) {
-				// make a ping to server at configured interval
-				let pingIntervalMs = config.pingIntervalMs;
-				if (pingIntervalMs === undefined) {
-					// 5min
-					pingIntervalMs = 300_000;
+		this.driver = new GrpcDriver(config);
+		if (config.enablePing) {
+			this._ping = async () => {
+				try {
+					const resp = await this.driver.health();
+					Log.debug(`health: ${resp}`);
+				} catch (error) {
+					Log.error(`health: ${error}`);
 				}
-				this.pingId = setInterval(this._ping, pingIntervalMs);
+			};
+			// make a ping to server at configured interval
+			let pingIntervalMs = config.pingIntervalMs;
+			if (pingIntervalMs === undefined) {
+				// 5min
+				pingIntervalMs = 300_000;
+			}
+			this.pingId = setInterval(this._ping, pingIntervalMs);
+			if (typeof process !== "undefined") {
 				// stop ping on shutdown
 				process.on("exit", () => {
 					this.close();
@@ -307,27 +139,16 @@ export class Tigris {
 	}
 
 	public getDatabase(): DB {
-		return new DB(this._config.projectName, this.grpcClient, this._config);
+		return new DB(this._config.projectName, this.driver, this._config);
 	}
 
 	/**
 	 * Creates the cache for this project, if the cache doesn't already exist
 	 * @param name - cache identifier
 	 */
-	public createCacheIfNotExists(name: string): Promise<Cache> {
-		return new Promise<Cache>((resolve, reject) => {
-			this.cacheClient.createCache(
-				new ProtoCreateCacheRequest().setProject(this._config.projectName).setName(name),
-				// eslint-disable-next-line @typescript-eslint/no-unused-vars
-				(error, response) => {
-					if (error && error.code != status.ALREADY_EXISTS) {
-						reject(error);
-					} else {
-						resolve(new Cache(this._config.projectName, name, this.cacheClient, this._config));
-					}
-				}
-			);
-		});
+	public async createCacheIfNotExists(name: string): Promise<Cache> {
+		await this.driver.cache().createCache(name);
+		return new Cache(this._config.projectName, name, this.driver.cache());
 	}
 
 	/**
@@ -335,59 +156,26 @@ export class Tigris {
 	 * @param name - cache identifier
 	 */
 	public deleteCache(name: string): Promise<DeleteCacheResponse> {
-		return new Promise<DeleteCacheResponse>((resolve, reject) => {
-			this.cacheClient.deleteCache(
-				new ProtoDeleteCacheRequest().setProject(this._config.projectName).setName(name),
-				(error, response) => {
-					if (error) {
-						reject(error);
-					} else {
-						resolve(new DeleteCacheResponse(response.getMessage()));
-					}
-				}
-			);
-		});
+		return this.driver.cache().deleteCache(name);
 	}
 
 	/**
 	 * Lists all the caches for this project
 	 */
 	public listCaches(): Promise<ListCachesResponse> {
-		return new Promise<ListCachesResponse>((resolve, reject) => {
-			this.cacheClient.listCaches(
-				new ProtoListCachesRequest().setProject(this._config.projectName),
-				(error, response) => {
-					if (error) {
-						reject(error);
-					} else {
-						const cachesMetadata: CacheMetadata[] = new Array<CacheMetadata>();
-						for (const value of response.getCachesList())
-							cachesMetadata.push(new CacheMetadata(value.getName()));
-						resolve(new ListCachesResponse(cachesMetadata));
-					}
-				}
-			);
-		});
+		return this.driver.cache().listCaches();
 	}
 
 	public getCache(cacheName: string): Cache {
-		return new Cache(this._config.projectName, cacheName, this.cacheClient, this._config);
+		return new Cache(this._config.projectName, cacheName, this.driver.cache());
 	}
 
 	public getSearch(): Search {
-		return new Search(this.searchClient, this._config);
+		return new Search(this.driver.search(), this._config);
 	}
 
 	public getServerMetadata(): Promise<ServerMetadata> {
-		return new Promise<ServerMetadata>((resolve, reject) => {
-			this.observabilityClient.getInfo(new ProtoGetInfoRequest(), (error, response) => {
-				if (error) {
-					reject(error);
-				} else {
-					resolve(new ServerMetadata(response.getServerVersion()));
-				}
-			});
-		});
+		return this.driver.observability().getInfo();
 	}
 
 	/**

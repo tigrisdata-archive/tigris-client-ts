@@ -6,6 +6,7 @@ import {
 import { Status } from "./constants";
 import { Collation } from "./search/query";
 import { SearchFieldOptions } from "./search";
+import { Readable } from "stream";
 
 export class DatabaseInfo {
 	private readonly _name: string;
@@ -339,6 +340,11 @@ export class FindQueryOptions {
 	set collation(value: Collation) {
 		this._collation = value;
 	}
+}
+
+export interface Session {
+	commit(): Promise<CommitTransactionResponse>;
+	rollback(): Promise<RollbackTransactionResponse>;
 }
 
 export class TransactionOptions {}
@@ -790,3 +796,51 @@ export type LogicalFilter<T> = {
 };
 
 export type Filter<T> = SelectorFilter<T> | LogicalFilter<T>;
+
+export interface IterableCursor<T> {
+	/**
+	 * Returns a {@link Readable} stream of documents to iterate on
+	 *
+	 * @example
+	 * ```
+	 * const cursor = myCollection.find();
+	 * for await (const doc of cursor.stream()) {
+	 *     console.log(doc);
+	 * }
+	 *```
+	 *
+	 * @throws {@link TigrisCursorInUseError} - if cursor is being consumed or has been consumed.
+	 * @see {@link reset} to re-use a cursor.
+	 */
+	stream(): Readable;
+	/**
+	 * Returns an async iterator to iterate on documents
+	 *
+	 * @example
+	 * ```
+	 * const cursor = myCollection.find();
+	 * for await (const doc of cursor) {
+	 *     console.log(doc);
+	 * }
+	 *```
+	 *
+	 * @throws {@link TigrisCursorInUseError} - if cursor is being consumed or has been consumed.
+	 * @see {@link reset} to re-use a cursor.
+	 */
+	[Symbol.asyncIterator](): AsyncIterableIterator<T>;
+	/**
+	 * Returns an array of documents. The caller is responsible for making sure that there
+	 * is enough memory to store the results.
+	 *
+	 * @throws {@link TigrisCursorInUseError} - if cursor is being consumed or has been consumed.
+	 * @see {@link reset} to re-use a cursor.
+	 */
+	toArray(): Promise<T[]>;
+	/**
+	 * This essentially sends a new query to server and allows the cursor to be re-used. A new
+	 * query to server is sent even if this cursor is not yet consumed.
+	 *
+	 * <b>Note:</b> A cursor may yield different results after `reset()`
+	 */
+	reset();
+}

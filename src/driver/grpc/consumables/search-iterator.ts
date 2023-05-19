@@ -1,18 +1,19 @@
-import { Initializer, IterableStream } from "./iterable-stream";
+import { Initializer, GrpcIterableStream } from "./iterable-stream";
 import {
 	SearchRequest as ProtoSearchRequest,
 	SearchResponse as ProtoSearchResponse,
-} from "../proto/server/v1/api_pb";
+} from "../../../proto/server/v1/api_pb";
 
-import { TigrisClient } from "../proto/server/v1/api_grpc_pb";
+import { TigrisClient } from "../../../proto/server/v1/api_grpc_pb";
 import { ClientReadableStream } from "@grpc/grpc-js";
-import { TigrisClientConfig } from "../tigris";
+import { TigrisClientConfig } from "../../../tigris";
 import {
 	SearchIndexResponse as ProtoSearchIndexResponse,
 	SearchIndexRequest as ProtoSearchIndexRequest,
-} from "../proto/server/v1/search_pb";
-import { SearchClient } from "../proto/server/v1/search_grpc_pb";
-import { SearchResult } from "../search";
+} from "../../../proto/server/v1/search_pb";
+import { SearchClient } from "../../../proto/server/v1/search_grpc_pb";
+import { SearchResult } from "../../../search";
+import { toSearchResult } from "../search";
 
 /** @internal */
 export class SearchIteratorInitializer implements Initializer<ProtoSearchResponse> {
@@ -46,7 +47,7 @@ export class SearchIndexIteratorInitializer implements Initializer<ProtoSearchIn
 /**
  * Iterator to supplement search() queries
  */
-export class SearchIterator<T> extends IterableStream<
+export class SearchIterator<T> extends GrpcIterableStream<
 	SearchResult<T>,
 	ProtoSearchResponse | ProtoSearchIndexResponse
 > {
@@ -63,6 +64,6 @@ export class SearchIterator<T> extends IterableStream<
 
 	/** @override */
 	protected _transform(message: ProtoSearchResponse | ProtoSearchIndexResponse): SearchResult<T> {
-		return SearchResult.from(message, this._config);
+		return toSearchResult(message, this._config);
 	}
 }

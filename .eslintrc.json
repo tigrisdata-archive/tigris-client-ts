@@ -33,5 +33,5 @@
 		"@typescript-eslint/quotes": ["error"],
 		"tsdoc/syntax": "error"
 	},
-	"ignorePatterns": ["src/__tests__/*", "dist/*"]
+	"ignorePatterns": ["src/__tests__/*", "dist/*", "src/http"]
 }
