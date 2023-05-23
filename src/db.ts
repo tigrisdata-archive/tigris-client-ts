@@ -382,9 +382,9 @@ export class DB {
 			this.grpcClient.createBranch(req, (error, response) => {
 				if (error) {
 					if (error.code === Status.UNKNOWN) {
-                        const error_message = `The project ${this.name} could not be found. Please ensure ${this.name} exists in your Tigris deployment or target Tigris region.`
-                        Log.error(error_message)
-                    }
+						const error_message = `The project ${this.name} could not be found. Please ensure ${this.name} exists in your Tigris deployment or target Tigris region.`;
+						Log.error(error_message);
+					}
 					reject(error);
 					return;
 				}
