@@ -44,9 +44,11 @@ export const SearchServiceFixtures = {
 	Success: "validIndex",
 	AlreadyExists: "existingIndex",
 	DoesNotExist: "NoIndex",
-	RetryUnknownToFail: "Unknown",
-	RetryUnavailableToFail: "Unavailable",
-	RetrySucceedInThirdAttempt: "RetryToSucceed",
+	RetryUnknown: "Unknown",
+	RetryUnavailable: "Unavailable",
+	RetryInternal: "Internal",
+	RetryResourceEx: "ResourceExhausted",
+	RetryToFail: "RetryToFail",
 	NoRetryOnFail: "NoRetry",
 	Docs: new Map([
 		["1", { title: "नमस्ते to India", tags: ["travel"] }],
@@ -133,20 +135,31 @@ class TestSearchService {
 			const prevAttempt =
 				previousAttempts.length == 0 ? 0 : parseInt(previousAttempts[0].toString());
 			switch (call.request.getIndex()) {
-				case SearchServiceFixtures.RetryUnavailableToFail:
-					assert(prevAttempt < 3);
-					call.emit("error", { code: status.UNAVAILABLE });
-					break;
-				case SearchServiceFixtures.RetryUnknownToFail:
-					assert(prevAttempt < 3);
-					call.emit("error", { code: status.UNKNOWN });
-					break;
-				case SearchServiceFixtures.RetrySucceedInThirdAttempt:
+				case SearchServiceFixtures.RetryUnavailable:
+					if (prevAttempt < 2) {
+						call.emit("error", { code: status.UNAVAILABLE });
+						break;
+					}
+				case SearchServiceFixtures.RetryUnknown:
 					if (prevAttempt < 2) {
 						call.emit("error", { code: status.UNKNOWN });
-					} else {
-						call.write(new SearchIndexResponse());
+						break;
 					}
+				case SearchServiceFixtures.RetryResourceEx:
+					if (prevAttempt < 2) {
+						call.emit("error", { code: status.RESOURCE_EXHAUSTED });
+						break;
+					}
+				case SearchServiceFixtures.RetryInternal:
+					if (prevAttempt < 2) {
+						call.emit("error", { code: status.INTERNAL });
+						break;
+					}
+					call.write(new SearchIndexResponse());
+					break;
+				case SearchServiceFixtures.RetryToFail:
+					assert(prevAttempt < 3);
+					call.emit("error", { code: status.UNKNOWN });
 					break;
 				case SearchServiceFixtures.NoRetryOnFail:
 					assert(prevAttempt == 0);

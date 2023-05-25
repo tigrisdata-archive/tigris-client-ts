@@ -2,7 +2,7 @@ import { TigrisClient } from "./proto/server/v1/api_grpc_pb";
 import { ObservabilityClient } from "./proto/server/v1/observability_grpc_pb";
 import { HealthAPIClient } from "./proto/server/v1/health_grpc_pb";
 import * as grpc from "@grpc/grpc-js";
-import { ChannelCredentials, ClientOptions, Metadata } from "@grpc/grpc-js";
+import { ChannelCredentials, ClientOptions, Metadata, status } from "@grpc/grpc-js";
 import { GetInfoRequest as ProtoGetInfoRequest } from "./proto/server/v1/observability_pb";
 import { HealthCheckInput as ProtoHealthCheckInput } from "./proto/server/v1/health_pb";
 
@@ -33,11 +33,10 @@ import {
 	ListCachesRequest as ProtoListCachesRequest,
 } from "./proto/server/v1/cache_pb";
 
-import { Status } from "@grpc/grpc-js/build/src/constants";
 import { initializeEnvironment } from "./utils/env-loader";
 
 import { SearchClient } from "./proto/server/v1/search_grpc_pb";
-import { Search } from "./search/search";
+import { Search } from "./search";
 import { ServiceConfig } from "@grpc/grpc-js/build/src/service-config";
 
 const AuthorizationHeaderName = "authorization";
@@ -226,7 +225,12 @@ export class Tigris {
 						initialBackoff: "0.1s",
 						maxBackoff: "1.0s",
 						backoffMultiplier: 1.5,
-						retryableStatusCodes: [Status.UNAVAILABLE, Status.UNKNOWN],
+						retryableStatusCodes: [
+							status.UNAVAILABLE,
+							status.UNKNOWN,
+							status.INTERNAL,
+							status.RESOURCE_EXHAUSTED,
+						],
 					},
 				},
 			],
@@ -316,7 +320,7 @@ export class Tigris {
 				new ProtoCreateCacheRequest().setProject(this._config.projectName).setName(name),
 				// eslint-disable-next-line @typescript-eslint/no-unused-vars
 				(error, response) => {
-					if (error && error.code != Status.ALREADY_EXISTS) {
+					if (error && error.code != status.ALREADY_EXISTS) {
 						reject(error);
 					} else {
 						resolve(new Cache(this._config.projectName, name, this.cacheClient, this._config));
