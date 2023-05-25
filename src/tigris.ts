@@ -2,7 +2,7 @@ import { TigrisClient } from "./proto/server/v1/api_grpc_pb";
 import { ObservabilityClient } from "./proto/server/v1/observability_grpc_pb";
 import { HealthAPIClient } from "./proto/server/v1/health_grpc_pb";
 import * as grpc from "@grpc/grpc-js";
-import { ChannelCredentials, Metadata } from "@grpc/grpc-js";
+import { ChannelCredentials, ClientOptions, Metadata } from "@grpc/grpc-js";
 import { GetInfoRequest as ProtoGetInfoRequest } from "./proto/server/v1/observability_pb";
 import { HealthCheckInput as ProtoHealthCheckInput } from "./proto/server/v1/health_pb";
 
@@ -38,6 +38,7 @@ import { initializeEnvironment } from "./utils/env-loader";
 
 import { SearchClient } from "./proto/server/v1/search_grpc_pb";
 import { Search } from "./search/search";
+import { ServiceConfig } from "@grpc/grpc-js/build/src/service-config";
 
 const AuthorizationHeaderName = "authorization";
 const AuthorizationBearer = "Bearer ";
@@ -206,6 +207,35 @@ export class Tigris {
 		defaultMetadata.set(USER_AGENT_KEY, USER_AGENT_VAL);
 		defaultMetadata.set(DEST_NAME_KEY, config.serverUrl);
 
+		// TODO: expose retry config to end user once validated
+		const svcConfig: ServiceConfig = {
+			loadBalancingConfig: [],
+			methodConfig: [
+				{
+					name: [
+						{
+							service: "tigrisdata.v1.Tigris",
+						},
+						{
+							service: "tigrisdata.search.v1.Search",
+						},
+					],
+					waitForReady: true,
+					retryPolicy: {
+						maxAttempts: 3,
+						initialBackoff: "0.1s",
+						maxBackoff: "1.0s",
+						backoffMultiplier: 1.5,
+						retryableStatusCodes: [Status.UNAVAILABLE, Status.UNKNOWN],
+					},
+				},
+			],
+		};
+
+		const grpcOptions: ClientOptions = {
+			"grpc.service_config": JSON.stringify(svcConfig),
+			"grpc.enable_retries": 1,
+		};
 		if (
 			(config.serverUrl.includes("localhost") ||
 				config.serverUrl.startsWith("tigris-local-server:") ||
@@ -216,10 +246,10 @@ export class Tigris {
 		) {
 			// no auth - generate insecure channel
 			const insecureCreds: ChannelCredentials = grpc.credentials.createInsecure();
-			this.grpcClient = new TigrisClient(config.serverUrl, insecureCreds);
+			this.grpcClient = new TigrisClient(config.serverUrl, insecureCreds, grpcOptions);
 			this.observabilityClient = new ObservabilityClient(config.serverUrl, insecureCreds);
 			this.cacheClient = new CacheClient(config.serverUrl, insecureCreds);
-			this.searchClient = new SearchClient(config.serverUrl, insecureCreds);
+			this.searchClient = new SearchClient(config.serverUrl, insecureCreds, grpcOptions);
 			this.healthAPIClient = new HealthAPIClient(config.serverUrl, insecureCreds);
 		} else if (config.clientId === undefined || config.clientSecret === undefined) {
 			throw new Error("Both `clientId` and `clientSecret` are required");
@@ -242,10 +272,10 @@ export class Tigris {
 						});
 				})
 			);
-			this.grpcClient = new TigrisClient(config.serverUrl, channelCreds);
+			this.grpcClient = new TigrisClient(config.serverUrl, channelCreds, grpcOptions);
 			this.observabilityClient = new ObservabilityClient(config.serverUrl, channelCreds);
 			this.cacheClient = new CacheClient(config.serverUrl, channelCreds);
-			this.searchClient = new SearchClient(config.serverUrl, channelCreds);
+			this.searchClient = new SearchClient(config.serverUrl, channelCreds, grpcOptions);
 			this.healthAPIClient = new HealthAPIClient(config.serverUrl, channelCreds);
 			this._ping = () => {
 				this.healthAPIClient.health(new ProtoHealthCheckInput(), (error, response) => {

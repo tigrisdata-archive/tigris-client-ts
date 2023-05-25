@@ -1,6 +1,6 @@
-import { Server, ServerCredentials, ServiceError } from "@grpc/grpc-js";
+import { Server, ServerCredentials, ServiceError, status } from "@grpc/grpc-js";
 import { TigrisService } from "../proto/server/v1/api_grpc_pb";
-import TestService, { Branch, TestTigrisService } from "./test-service";
+import TestService, { Branch, RetryRPCProjectName, TestTigrisService } from "./test-service";
 import TestServiceCache, { TestCacheService } from "./test-cache-service";
 
 import {
@@ -28,8 +28,7 @@ import {
 } from "../error";
 import { Status } from "@grpc/grpc-js/build/src/constants";
 import { Status as TigrisStatus } from "../constants";
-import { Case, Collation, SearchQuery } from "../search";
-import { SearchResult } from "../search";
+import { Case, Collation, SearchQuery, SearchResult } from "../search";
 
 describe("rpc tests", () => {
 	let server: Server;
@@ -64,6 +63,29 @@ describe("rpc tests", () => {
 	afterAll((done) => {
 		server.forceShutdown();
 		done();
+	});
+
+	describe("grpc client", () => {
+		it("fails after retrying on service UNAVAILABLE", async () => {
+			const tigris = new Tigris({
+				serverUrl: testConfig.serverUrl,
+				projectName: RetryRPCProjectName.Unavailable,
+				branch: "main",
+			});
+			const db1 = tigris.getDatabase();
+			const resp = db1.describe();
+			return expect(resp).rejects.toThrow(`${status.UNAVAILABLE}`);
+		});
+		it("succeeds on third attempt", async () => {
+			const tigris = new Tigris({
+				serverUrl: testConfig.serverUrl,
+				projectName: RetryRPCProjectName.SucceedOnThirdAttempt,
+				branch: "main",
+			});
+			const db1 = tigris.getDatabase();
+			const resp = db1.describe();
+			return expect(resp).resolves.toBeDefined();
+		});
 	});
 
 	it("getDatabase", () => {
