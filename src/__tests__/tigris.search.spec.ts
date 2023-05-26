@@ -10,7 +10,7 @@ import {
 	TigrisIndexSchema,
 	TigrisIndexType,
 } from "../search";
-import { Server, ServerCredentials } from "@grpc/grpc-js";
+import { Server, ServerCredentials, status } from "@grpc/grpc-js";
 import TestSearchService, { SearchServiceFixtures } from "./test-search-service";
 import { SearchService } from "../proto/server/v1/search_grpc_pb";
 import { SearchField } from "../decorators/tigris-search-field";
@@ -176,6 +176,34 @@ describe("Search Indexing", () => {
 					},
 				]);
 			}
+		});
+
+		const retryCodes: Array<string> = [
+			SearchServiceFixtures.RetryUnavailable,
+			SearchServiceFixtures.RetryUnknown,
+			SearchServiceFixtures.RetryInternal,
+			SearchServiceFixtures.RetryResourceEx,
+		];
+
+		it.each(retryCodes)(
+			"retries and succeeds at third attempt when failure is '%s'",
+			async (indexName) => {
+				const index = await tigris.getIndex<Book>(indexName);
+				const result = index.search({}).toArray();
+				await expect(result).resolves.toBeDefined();
+			}
+		);
+
+		it("retries and fails after 3 attempts", async () => {
+			const index = await tigris.getIndex<Book>(SearchServiceFixtures.RetryToFail);
+			const result = index.search({}).toArray();
+			await expect(result).rejects.toThrow(`${status.UNKNOWN}`);
+		});
+
+		it("never retries for other status codes", async () => {
+			const index = await tigris.getIndex<Book>(SearchServiceFixtures.NoRetryOnFail);
+			const result = index.search({}).toArray();
+			await expect(result).rejects.toBeDefined();
 		});
 	});
 
