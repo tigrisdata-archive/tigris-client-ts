@@ -1,5 +1,5 @@
 import { ISearchServer, SearchService } from "../proto/server/v1/search_grpc_pb";
-import { sendUnaryData, ServerUnaryCall, ServerWritableStream } from "@grpc/grpc-js";
+import { sendUnaryData, ServerUnaryCall, ServerWritableStream, status } from "@grpc/grpc-js";
 import {
 	CreateByIdRequest,
 	CreateByIdResponse,
@@ -38,11 +38,18 @@ import {
 	SearchHit,
 	SearchHitMeta,
 } from "../proto/server/v1/api_pb";
+import assert from "assert";
 
 export const SearchServiceFixtures = {
 	Success: "validIndex",
 	AlreadyExists: "existingIndex",
 	DoesNotExist: "NoIndex",
+	RetryUnknown: "Unknown",
+	RetryUnavailable: "Unavailable",
+	RetryInternal: "Internal",
+	RetryResourceEx: "ResourceExhausted",
+	RetryToFail: "RetryToFail",
+	NoRetryOnFail: "NoRetry",
 	Docs: new Map([
 		["1", { title: "नमस्ते to India", tags: ["travel"] }],
 		["2", { title: "reliable systems 🙏", tags: ["it"] }],
@@ -124,30 +131,67 @@ class TestSearchService {
 			return;
 		},
 		search(call: ServerWritableStream<SearchIndexRequest, SearchIndexResponse>): void {
-			const expectedUpdatedAt = new google_protobuf_timestamp_pb.Timestamp().setSeconds(
-				SearchServiceFixtures.SearchDocs.UpdatedAtSeconds
-			);
-			const resp = new SearchIndexResponse();
-			SearchServiceFixtures.Docs.forEach((d) =>
-				resp.addHits(
-					new SearchHit()
-						.setData(enc.encode(JSON.stringify(d)))
-						.setMetadata(new SearchHitMeta().setUpdatedAt(expectedUpdatedAt))
-				)
-			);
-			resp.setMeta(
-				new SearchMetadata()
-					.setFound(5)
-					.setTotalPages(5)
-					.setPage(new Page().setSize(1).setCurrent(1))
-			);
-			resp
-				.getFacetsMap()
-				.set(
-					"title",
-					new SearchFacet().setCountsList([new FacetCount().setCount(2).setValue("Philosophy")])
-				);
-			call.write(resp);
+			const previousAttempts = call.metadata.get("grpc-previous-rpc-attempts");
+			const prevAttempt =
+				previousAttempts.length == 0 ? 0 : parseInt(previousAttempts[0].toString());
+			switch (call.request.getIndex()) {
+				case SearchServiceFixtures.RetryUnavailable:
+					if (prevAttempt < 2) {
+						call.emit("error", { code: status.UNAVAILABLE });
+						break;
+					}
+				case SearchServiceFixtures.RetryUnknown:
+					if (prevAttempt < 2) {
+						call.emit("error", { code: status.UNKNOWN });
+						break;
+					}
+				case SearchServiceFixtures.RetryResourceEx:
+					if (prevAttempt < 2) {
+						call.emit("error", { code: status.RESOURCE_EXHAUSTED });
+						break;
+					}
+				case SearchServiceFixtures.RetryInternal:
+					if (prevAttempt < 2) {
+						call.emit("error", { code: status.INTERNAL });
+						break;
+					}
+					call.write(new SearchIndexResponse());
+					break;
+				case SearchServiceFixtures.RetryToFail:
+					assert(prevAttempt < 3);
+					call.emit("error", { code: status.UNKNOWN });
+					break;
+				case SearchServiceFixtures.NoRetryOnFail:
+					assert(prevAttempt == 0);
+					call.emit("error", { code: status.DEADLINE_EXCEEDED });
+					break;
+				case SearchServiceFixtures.Success:
+					const expectedUpdatedAt = new google_protobuf_timestamp_pb.Timestamp().setSeconds(
+						SearchServiceFixtures.SearchDocs.UpdatedAtSeconds
+					);
+					const resp = new SearchIndexResponse();
+					SearchServiceFixtures.Docs.forEach((d) =>
+						resp.addHits(
+							new SearchHit()
+								.setData(enc.encode(JSON.stringify(d)))
+								.setMetadata(new SearchHitMeta().setUpdatedAt(expectedUpdatedAt))
+						)
+					);
+					resp.setMeta(
+						new SearchMetadata()
+							.setFound(5)
+							.setTotalPages(5)
+							.setPage(new Page().setSize(1).setCurrent(1))
+					);
+					resp
+						.getFacetsMap()
+						.set(
+							"title",
+							new SearchFacet().setCountsList([new FacetCount().setCount(2).setValue("Philosophy")])
+						);
+					call.write(resp);
+					break;
+			}
 			call.end();
 		},
 		update(

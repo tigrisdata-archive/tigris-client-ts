@@ -1,6 +1,12 @@
 import { TigrisService } from "../proto/server/v1/api_grpc_pb";
 import * as grpc from "@grpc/grpc-js";
-import { sendUnaryData, Server, ServerUnaryCall, ServerWritableStream } from "@grpc/grpc-js";
+import {
+	sendUnaryData,
+	Server,
+	ServerErrorResponse,
+	ServerUnaryCall,
+	ServerWritableStream,
+} from "@grpc/grpc-js";
 import { v4 as uuidv4 } from "uuid";
 import {
 	BeginTransactionRequest,
@@ -353,25 +359,46 @@ export class TestTigrisService {
 			call: ServerUnaryCall<DescribeDatabaseRequest, DescribeDatabaseResponse>,
 			callback: sendUnaryData<DescribeDatabaseResponse>
 		): void {
-			const result: DescribeDatabaseResponse = new DescribeDatabaseResponse();
-			const collectionsDescription: CollectionDescription[] = [];
-			for (
-				let index = 0;
-				index < TestTigrisService.COLLECTION_MAP.get(call.request.getProject()).length;
-				index++
-			) {
-				collectionsDescription.push(
-					new CollectionDescription()
-						.setCollection(TestTigrisService.COLLECTION_MAP.get(call.request.getProject())[index])
-						.setMetadata(new CollectionMetadata())
-						.setSchema("schema" + index)
-				);
+			const previousAttempts = call.metadata.get("grpc-previous-rpc-attempts");
+			const prevAttempt =
+				previousAttempts.length == 0 ? 0 : parseInt(previousAttempts[0].toString());
+			switch (call.request.getProject()) {
+				case RetryRPCProjectName.Unavailable:
+					// max 3 attempts
+					assert(prevAttempt < 3);
+					callback({ name: "not available", code: Status.UNAVAILABLE }, undefined);
+					break;
+				case RetryRPCProjectName.SucceedOnThirdAttempt:
+					// error out on first 2 attempts
+					if (prevAttempt == 2) {
+						callback(undefined, new DescribeDatabaseResponse());
+					} else {
+						callback({ name: "", code: Status.UNKNOWN }, undefined);
+					}
+					break;
+				default:
+					const result: DescribeDatabaseResponse = new DescribeDatabaseResponse();
+					const collectionsDescription: CollectionDescription[] = [];
+					for (
+						let index = 0;
+						index < TestTigrisService.COLLECTION_MAP.get(call.request.getProject()).length;
+						index++
+					) {
+						collectionsDescription.push(
+							new CollectionDescription()
+								.setCollection(
+									TestTigrisService.COLLECTION_MAP.get(call.request.getProject())[index]
+								)
+								.setMetadata(new CollectionMetadata())
+								.setSchema("schema" + index)
+						);
+					}
+					result
+						.setMetadata(new DatabaseMetadata())
+						.setCollectionsList(collectionsDescription)
+						.setBranchesList(["main", "staging", TestTigrisService.ExpectedBranch]);
+					callback(undefined, result);
 			}
-			result
-				.setMetadata(new DatabaseMetadata())
-				.setCollectionsList(collectionsDescription)
-				.setBranchesList(["main", "staging", TestTigrisService.ExpectedBranch]);
-			callback(undefined, result);
 		},
 
 		dropCollection(
@@ -752,4 +779,9 @@ export default {
 export enum Branch {
 	Existing = "existing",
 	NotFound = "no-project",
+}
+
+export enum RetryRPCProjectName {
+	Unavailable = "unavailable",
+	SucceedOnThirdAttempt = "third_attempt",
 }
