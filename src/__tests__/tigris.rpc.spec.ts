@@ -991,6 +991,7 @@ describe("rpc tests", () => {
 
 	describe("DB branching", () => {
 		const tigris = new Tigris(testConfig);
+		const mockedUtil = spy(Utility);
 
 		it("creates a new branch", async () => {
 			expect.hasAssertions();
@@ -1009,6 +1010,13 @@ describe("rpc tests", () => {
 			});
 
 			return expect(createResp).rejects.toBeDefined();
+		});
+
+		it("fails to create branch if project does not exist", async () => {
+			when(mockedUtil.branchNameFromEnv(anything())).thenReturn(Branch.NotFound);
+			const db = tigris.getDatabase();
+
+			return expect(db.createBranch(Branch.NotFound)).rejects.toThrow(Error);
 		});
 
 		it("deletes a branch successfully", async () => {
