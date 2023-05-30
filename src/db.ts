@@ -381,6 +381,10 @@ export class DB {
 			const req = new ProtoCreateBranchRequest().setProject(this.name).setBranch(name);
 			this.grpcClient.createBranch(req, (error, response) => {
 				if (error) {
+					if (error.code === Status.NOT_FOUND) {
+						const error_message = `The project ${this.name} could not be found. Please ensure ${this.name} exists in your Tigris deployment or target Tigris region.`;
+						Log.error(error_message);
+					}
 					reject(error);
 					return;
 				}
