@@ -60,12 +60,16 @@ export class Search implements SearchDriver {
 	client: SearchClient;
 	tigrisClient: TigrisClient;
 	config: TigrisClientConfig;
-	constructor(config: TigrisClientConfig, channelCredentials: ChannelCredentials | undefined) {
+	constructor(
+		config: TigrisClientConfig,
+		channelCredentials: ChannelCredentials | undefined,
+		opts: grpc.ClientOptions
+	) {
 		this.config = config;
 		// TODO: to remove later this is for testing
 		if (channelCredentials) {
-			this.client = new SearchClient(config.serverUrl, channelCredentials);
-			this.tigrisClient = new TigrisClient(config.serverUrl, channelCredentials);
+			this.client = new SearchClient(config.serverUrl, channelCredentials, opts);
+			this.tigrisClient = new TigrisClient(config.serverUrl, channelCredentials, opts);
 		}
 	}
 

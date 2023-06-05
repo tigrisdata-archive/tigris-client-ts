@@ -22,7 +22,7 @@ describe("Search", () => {
 
 	beforeEach(() => {
 		mockClient = mock(ProtoSearchClient);
-		let s = new SearchGrpc(config, undefined);
+		let s = new SearchGrpc(config, undefined, {});
 		s.client = instance(mockClient);
 		s.tigrisClient = instance(mock(TigrisClient));
 		target = new Search(s, config);

@@ -23,6 +23,7 @@ import { Cache } from "./cache";
 import { Observability } from "./observability";
 import { Search } from "./search";
 import { ServiceConfig } from "@grpc/grpc-js/build/src/service-config";
+import { Status } from "@grpc/grpc-js/build/src/constants";
 
 const AuthorizationHeaderName = "authorization";
 const AuthorizationBearer = "Bearer ";
@@ -39,6 +40,7 @@ export default class GrpcDriver implements Driver {
 	searchDriver: SearchDriver;
 	databaseDriver: DatabaseDriver;
 	channelCreds: ChannelCredentials;
+	grpcOptions: ClientOptions;
 	private readonly _config: TigrisClientConfig;
 
 	constructor(config: TigrisClientConfig) {
@@ -61,10 +63,10 @@ export default class GrpcDriver implements Driver {
 						maxBackoff: "1.0s",
 						backoffMultiplier: 1.5,
 						retryableStatusCodes: [
-							status.UNAVAILABLE,
-							status.UNKNOWN,
-							status.INTERNAL,
-							status.RESOURCE_EXHAUSTED,
+							Status.UNAVAILABLE,
+							Status.UNKNOWN,
+							Status.INTERNAL,
+							Status.RESOURCE_EXHAUSTED,
 						],
 					},
 				},
@@ -76,14 +78,15 @@ export default class GrpcDriver implements Driver {
 			"grpc.enable_retries": 1,
 		};
 		this._config = config;
-		this.authClient = new AuthClient(config.serverUrl, grpc.credentials.createSsl());
+		this.grpcOptions = grpcOptions;
+		this.authClient = new AuthClient(config.serverUrl, grpc.credentials.createSsl(), grpcOptions);
 		this.channelCreds = this.getChannelCreds(config);
-		this.grpcClient = new TigrisClient(config.serverUrl, this.channelCreds);
-		this.cacheDriver = new Cache(this._config, this.channelCreds);
-		this.healthClient = new HealthAPIClient(config.serverUrl, this.channelCreds);
-		this.observabilityDriver = new Observability(config, this.channelCreds);
-		this.searchDriver = new Search(config, this.channelCreds);
-		this.databaseDriver = new Database(config, this.channelCreds);
+		this.grpcClient = new TigrisClient(config.serverUrl, this.channelCreds, grpcOptions);
+		this.cacheDriver = new Cache(this._config, this.channelCreds, grpcOptions);
+		this.healthClient = new HealthAPIClient(config.serverUrl, this.channelCreds, grpcOptions);
+		this.observabilityDriver = new Observability(config, this.channelCreds, grpcOptions);
+		this.searchDriver = new Search(config, this.channelCreds, grpcOptions);
+		this.databaseDriver = new Database(config, this.channelCreds, grpcOptions);
 	}
 
 	database(): DatabaseDriver {
@@ -91,7 +94,7 @@ export default class GrpcDriver implements Driver {
 	}
 
 	collection<T>(): CollectionDriver<T> {
-		return new GrpcCollectionDriver<T>(this._config, this.channelCreds);
+		return new GrpcCollectionDriver<T>(this._config, this.channelCreds, this.grpcOptions);
 	}
 
 	observability(): ObservabilityDriver {
@@ -110,7 +113,6 @@ export default class GrpcDriver implements Driver {
 		const defaultMetadata = new Metadata();
 		defaultMetadata.set(USER_AGENT_KEY, USER_AGENT_VAL);
 		defaultMetadata.set(DEST_NAME_KEY, config.serverUrl);
-
 		if (this.isLocalServer(config)) {
 			return grpc.credentials.createInsecure();
 		} else if (config.clientId === undefined || config.clientSecret === undefined) {

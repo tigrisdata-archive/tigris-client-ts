@@ -2,7 +2,7 @@ import { CollectionDriver } from "../driver";
 import { Utility } from "../../utility";
 import { TigrisClient } from "../../proto/server/v1/api_grpc_pb";
 import * as grpc from "@grpc/grpc-js";
-import { ChannelCredentials } from "@grpc/grpc-js";
+import { ChannelCredentials, ClientOptions } from "@grpc/grpc-js";
 import {
 	DeleteRequest as ProtoDeleteRequest,
 	InsertRequest as ProtoInsertRequest,
@@ -36,9 +36,13 @@ import { GrpcSession } from "./session";
 export class GrpcCollectionDriver<T extends TigrisCollectionType> implements CollectionDriver<T> {
 	client: TigrisClient;
 	config: TigrisClientConfig;
-	constructor(config: TigrisClientConfig, channelCredentials: ChannelCredentials) {
+	constructor(
+		config: TigrisClientConfig,
+		channelCredentials: ChannelCredentials,
+		opts: ClientOptions
+	) {
 		this.config = config;
-		this.client = new TigrisClient(config.serverUrl, channelCredentials);
+		this.client = new TigrisClient(config.serverUrl, channelCredentials, opts);
 	}
 
 	describe(db: string, branch: string, coll: string): Promise<CollectionDescription> {

@@ -2,7 +2,7 @@ import { DatabaseDriver } from "../driver";
 import { Utility } from "../../utility";
 import { TigrisClient } from "../../proto/server/v1/api_grpc_pb";
 import { Log } from "../../utils/logger";
-import { Metadata, ChannelCredentials, ServiceError } from "@grpc/grpc-js";
+import { Metadata, ChannelCredentials, ServiceError, ClientOptions } from "@grpc/grpc-js";
 import {
 	BeginTransactionRequest as ProtoBeginTransactionRequest,
 	BeginTransactionResponse,
@@ -43,9 +43,14 @@ const BeginTransactionMethodName = "/tigrisdata.v1.Tigris/BeginTransaction";
 export class Database implements DatabaseDriver {
 	client: TigrisClient;
 	config: TigrisClientConfig;
-	constructor(config: TigrisClientConfig, channelCredentials: ChannelCredentials) {
+
+	constructor(
+		config: TigrisClientConfig,
+		channelCredentials: ChannelCredentials,
+		opts: ClientOptions
+	) {
 		this.config = config;
-		this.client = new TigrisClient(config.serverUrl, channelCredentials);
+		this.client = new TigrisClient(config.serverUrl, channelCredentials, opts);
 	}
 
 	createOrUpdateCollection(

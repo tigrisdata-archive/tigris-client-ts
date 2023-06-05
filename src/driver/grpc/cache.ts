@@ -1,6 +1,6 @@
 import { CacheDriver } from "../driver";
 import { Utility } from "../../utility";
-import { ChannelCredentials } from "@grpc/grpc-js";
+import { ChannelCredentials, ClientOptions } from "@grpc/grpc-js";
 import {
 	DelRequest as ProtoDelRequest,
 	GetRequest as ProtoGetRequest,
@@ -31,9 +31,13 @@ import { CacheKeysCursor, CacheKeysCursorInitializer } from "./consumables/curso
 export class Cache implements CacheDriver {
 	cacheClient: CacheClient;
 	config: TigrisClientConfig;
-	constructor(config: TigrisClientConfig, channelCredentials: ChannelCredentials) {
+	constructor(
+		config: TigrisClientConfig,
+		channelCredentials: ChannelCredentials,
+		opts: ClientOptions
+	) {
 		this.config = config;
-		this.cacheClient = new CacheClient(config.serverUrl, channelCredentials);
+		this.cacheClient = new CacheClient(config.serverUrl, channelCredentials, opts);
 	}
 	get(cacheName: string, key: string): Promise<CacheGetResponse> {
 		return new Promise<CacheGetResponse>((resolve, reject) => {
