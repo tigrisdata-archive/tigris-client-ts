@@ -61,5 +61,8 @@
 				}
 			}
 		}
+	},
+	"options": {
+		"token_separators": ["/"]
 	}
 }
