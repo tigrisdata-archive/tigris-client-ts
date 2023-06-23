@@ -2,6 +2,7 @@ import { DecoratorMetaStorage } from "../decorators/metadata/decorator-meta-stor
 import { getDecoratorMetaStorage } from "../globals";
 import {
 	CollectionFieldOptions,
+	SearchIndexOptions,
 	TigrisCollectionType,
 	TigrisDataTypes,
 	TigrisSchema,
@@ -20,6 +21,7 @@ export type CollectionSchema<T extends TigrisCollectionType> = {
 export type IndexSchema<T extends TigrisIndexType> = {
 	name: string;
 	schema: TigrisIndexSchema<T>;
+	options?: SearchIndexOptions;
 };
 
 /** @internal */
@@ -47,6 +49,7 @@ export class DecoratedSchemaProcessor {
 		return {
 			name: index.indexName,
 			schema: schema as TigrisIndexSchema<typeof cls>,
+			options: index.options,
 		};
 	}
 
