@@ -8,6 +8,7 @@ import {
 	FindQueryOptions,
 	GroupByField,
 	ReadFields,
+	SearchIndexOptions,
 	SortOrder,
 	TigrisDataTypes,
 	TigrisSchema,
@@ -211,9 +212,18 @@ export const Utility = {
 		return toReturn;
 	},
 
-	_indexSchematoJSON<T>(indexName: string, schema: TigrisIndexSchema<T>): string {
+	_indexSchematoJSON<T>(
+		indexName: string,
+		schema: TigrisIndexSchema<T>,
+		options?: SearchIndexOptions
+	): string {
 		const root = { title: indexName, type: "object" };
 		root["properties"] = this._getSchemaProperties(schema, {}, {});
+		if (options && Array.isArray(options.tokenSeparators) && options.tokenSeparators.length > 0) {
+			root["options"] = {
+				token_separators: options.tokenSeparators,
+			};
+		}
 		return Utility.objToJsonString(root);
 	},
 

@@ -43,7 +43,7 @@ export class OrderStatus {
 	createdAt: Date;
 }
 
-@TigrisSearchIndex(ORDERS_INDEX_NAME)
+@TigrisSearchIndex(ORDERS_INDEX_NAME, { tokenSeparators: ["/"] })
 export class Order {
 	@SearchField(TigrisDataTypes.UUID, { sort: true })
 	orderId: string;

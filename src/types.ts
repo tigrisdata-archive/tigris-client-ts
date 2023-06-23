@@ -705,6 +705,10 @@ export type PrimaryKeyOptions = {
 	autoGenerate?: boolean;
 };
 
+export type SearchIndexOptions = {
+	tokenSeparators?: Array<string>;
+};
+
 /**
  * Generates all possible paths for type parameter T. By recursively iterating over its keys. While
  * iterating the keys it makes the keys available in string form and in non string form both. For

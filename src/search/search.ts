@@ -9,6 +9,7 @@ import {
 	ListIndexesRequest as ProtoListIndexesRequest,
 } from "../proto/server/v1/search_pb";
 import { DecoratedSchemaProcessor } from "../schema/decorated-schema-processor";
+import { SearchIndexOptions } from "../types";
 
 export class Search {
 	private readonly client: SearchClient;
@@ -37,6 +38,7 @@ export class Search {
 		let indexName: string;
 		let mayBeClass: new () => TigrisIndexType;
 		let schema: TigrisIndexSchema<T>;
+		let schemaOptions: SearchIndexOptions;
 
 		if (typeof nameOrClass === "string") {
 			indexName = nameOrClass as string;
@@ -65,9 +67,10 @@ export class Search {
 			schema = generatedIndex.schema as TigrisIndexSchema<T>;
 			// if indexName is not provided, use the one from model class
 			indexName = indexName ?? generatedIndex.name;
+			schemaOptions = generatedIndex.options;
 		}
 
-		const rawJSONSchema: string = Utility._indexSchematoJSON(indexName, schema);
+		const rawJSONSchema: string = Utility._indexSchematoJSON(indexName, schema, schemaOptions);
 		const createOrUpdateIndexRequest = new ProtoCreateIndexRequest()
 			.setProject(this.projectName)
 			.setName(indexName)
